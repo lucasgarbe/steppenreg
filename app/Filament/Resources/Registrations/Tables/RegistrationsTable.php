@@ -42,6 +42,12 @@ class RegistrationsTable
                     ->searchable()
                     ->sortable(false),
 
+                TextColumn::make('team.name')
+                    ->label('Team')
+                    ->placeholder('Individual')
+                    ->searchable()
+                    ->sortable(),
+
                 IconColumn::make('payed')
                     ->label('Paid')
                     ->boolean()
@@ -93,6 +99,14 @@ class RegistrationsTable
                 Filter::make('finished')
                     ->label('Finished Only')
                     ->query(fn(Builder $query): Builder => $query->whereNotNull('finish_time')),
+
+                Filter::make('team_members')
+                    ->label('Team Members Only')
+                    ->query(fn(Builder $query): Builder => $query->whereNotNull('team_id')),
+
+                Filter::make('individuals')
+                    ->label('Individual Registrations')
+                    ->query(fn(Builder $query): Builder => $query->whereNull('team_id')),
 
                 TrashedFilter::make(),
             ])

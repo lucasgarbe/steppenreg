@@ -5,6 +5,7 @@ namespace App\Models;
 use EventSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Registration extends Model
@@ -15,6 +16,7 @@ class Registration extends Model
         'name',
         'email',
         'track_id',
+        'team_id',
         'age',
         'payed',
         'starting',
@@ -89,6 +91,12 @@ class Registration extends Model
     public function getTrackNameAttribute(): ?string
     {
         return $this->track['name'] ?? null;
+    }
+
+    // Relationships
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 
     public function getStatusAttribute(): string

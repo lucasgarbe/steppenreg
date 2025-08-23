@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,10 +21,17 @@ class RegistrationFactory extends Factory
         $starting = $finished || fake()->boolean(60); // If finished, definitely starting. Otherwise 60% chance
         $payed = $starting || fake()->boolean(80); // If starting, likely paid. Otherwise 80% chance
         
+        $teamId = null;
+        // 60% chance of being assigned to a team if there are available teams
+        if (fake()->boolean(60) && Team::notFull()->exists()) {
+            $teamId = Team::notFull()->inRandomOrder()->first()?->id;
+        }
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'track_id' => fake()->randomElement([1, 2, 3]), // Random track selection
+            'team_id' => $teamId,
             'age' => fake()->numberBetween(16, 75),
             'payed' => $payed,
             'starting' => $starting,

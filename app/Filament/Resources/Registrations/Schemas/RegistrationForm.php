@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Registrations\Schemas;
 
+use App\Models\Team;
 use EventSettings;
 use Filament\Forms;
 use Filament\Schemas\Schema;
@@ -57,6 +58,46 @@ class RegistrationForm
                             ->required()
                             ->placeholder('Select a track')
                             ->helperText('Choose the track/route for this participant'),
+
+                        Forms\Components\Select::make('team_id')
+                            ->label('Team Selection')
+                            ->options(function () {
+                                return Team::notFull()
+                                    ->withCount('registrations')
+                                    ->get()
+                                    ->mapWithKeys(function ($team) {
+                                        $label = $team->name;
+                                        $memberCount = $team->registrations_count;
+                                        $maxMembers = $team->max_members;
+                                        $available = $maxMembers - $memberCount;
+                                        
+                                        $label .= " ({$memberCount}/{$maxMembers})";
+                                        if ($available <= 2) {
+                                            $label .= " - {$available} spots left";
+                                        }
+                                        
+                                        return [$team->id => $label];
+                                    })
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->placeholder('Select a team (optional)')
+                            ->helperText('Choose an existing team or leave empty for individual registration')
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->unique(Team::class, 'name'),
+                                Forms\Components\TextInput::make('max_members')
+                                    ->numeric()
+                                    ->default(5)
+                                    ->minValue(1)
+                                    ->maxValue(20),
+                            ])
+                            ->createOptionUsing(function (array $data): int {
+                                $team = Team::create($data);
+                                return $team->id;
+                            }),
                     ])->columns(2),
 
                 Section::make('Registration Status')
