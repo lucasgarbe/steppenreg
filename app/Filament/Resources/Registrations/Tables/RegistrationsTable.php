@@ -34,24 +34,27 @@ class RegistrationsTable
 
                 TextColumn::make('age')
                     ->label('Age')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('gender_label')
                     ->label('Gender')
                     ->placeholder('Not specified')
                     ->sortable()
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'FLINTA*' => 'purple',
                         'All Gender' => 'blue',
                         default => 'gray',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('track_name')
                     ->label('Track')
                     ->placeholder('No track selected')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('team.name')
                     ->label('Team')
@@ -76,27 +79,12 @@ class RegistrationsTable
                     })
                     ->sortable(),
 
-                IconColumn::make('payed')
-                    ->label('Paid')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
-
-                IconColumn::make('starting')
-                    ->label('Starting')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-play-circle')
-                    ->falseIcon('heroicon-o-pause-circle')
-                    ->trueColor('success')
-                    ->falseColor('warning'),
-
                 TextColumn::make('finish_time')
                     ->label('Finish Time')
                     ->time('H:i')
                     ->placeholder('Not finished')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -126,7 +114,7 @@ class RegistrationsTable
                             ->options(function () {
                                 $tracks = app(\App\Settings\EventSettings::class)->tracks ?? [];
                                 $options = [];
-                                
+
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
@@ -134,7 +122,7 @@ class RegistrationsTable
                                     }
                                     $options[$track['id']] = $label;
                                 }
-                                
+
                                 return $options;
                             })
                             ->placeholder('All tracks')
