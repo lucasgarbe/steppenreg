@@ -40,6 +40,16 @@ class RegistrationForm
                             ->maxValue(120)
                             ->placeholder('Enter age'),
 
+                        Forms\Components\Select::make('gender')
+                            ->label('Gender Category')
+                            ->options([
+                                'flinta' => 'FLINTA*',
+                                'all_gender' => 'All Gender',
+                            ])
+                            ->required()
+                            ->placeholder('Select gender category')
+                            ->helperText('FLINTA* includes women, lesbians, inter, non-binary, trans, and agender people'),
+
                         Forms\Components\Select::make('track_id')
                             ->label('Track Selection')
                             ->options(function () {
@@ -100,7 +110,9 @@ class RegistrationForm
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->maxLength(255)
-                                    ->unique(Team::class, 'name'),
+                                    ->unique(Team::class, 'name', function ($rule, $get) {
+                                        return $rule->where('track_id', $get('../../track_id'));
+                                    }),
                                 Forms\Components\TextInput::make('max_members')
                                     ->numeric()
                                     ->default(5)

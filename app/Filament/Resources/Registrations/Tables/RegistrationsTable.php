@@ -36,6 +36,17 @@ class RegistrationsTable
                     ->label('Age')
                     ->sortable(),
 
+                TextColumn::make('gender_label')
+                    ->label('Gender')
+                    ->placeholder('Not specified')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'FLINTA*' => 'purple',
+                        'All Gender' => 'blue',
+                        default => 'gray',
+                    }),
+
                 TextColumn::make('track_name')
                     ->label('Track')
                     ->placeholder('No track selected')

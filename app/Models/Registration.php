@@ -33,6 +33,7 @@ class Registration extends Model
         'track_id',
         'team_id',
         'age',
+        'gender',
         'payed',
         'starting',
         'draw_status',
@@ -134,6 +135,23 @@ class Registration extends Model
     public function getTrackNameAttribute(): ?string
     {
         return $this->track['name'] ?? null;
+    }
+
+    public function getGenderLabelAttribute(): ?string
+    {
+        return match($this->gender) {
+            'flinta' => 'FLINTA*',
+            'all_gender' => 'All Gender',
+            default => null,
+        };
+    }
+
+    public static function getGenderOptions(): array
+    {
+        return [
+            'flinta' => 'FLINTA*',
+            'all_gender' => 'All Gender',
+        ];
     }
 
     // Relationships
