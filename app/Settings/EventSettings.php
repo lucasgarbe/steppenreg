@@ -8,6 +8,8 @@ class EventSettings extends Settings
 
     public bool $site_active;
 
+    public array $tracks;
+
     public static function group(): string
     {
         return 'event';

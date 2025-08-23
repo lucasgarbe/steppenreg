@@ -23,6 +23,7 @@ class RegistrationFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'track_id' => fake()->randomElement([1, 2, 3]), // Random track selection
             'age' => fake()->numberBetween(16, 75),
             'payed' => $payed,
             'starting' => $starting,

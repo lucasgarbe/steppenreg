@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Registrations\Schemas;
 
+use EventSettings;
 use Filament\Forms;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
@@ -36,6 +37,26 @@ class RegistrationForm
                             ->minValue(1)
                             ->maxValue(120)
                             ->placeholder('Enter age'),
+
+                        Forms\Components\Select::make('track_id')
+                            ->label('Track Selection')
+                            ->options(function () {
+                                $tracks = app(EventSettings::class)->tracks ?? [];
+                                $options = [];
+                                
+                                foreach ($tracks as $track) {
+                                    $label = $track['name'];
+                                    if (isset($track['distance'])) {
+                                        $label .= ' (' . $track['distance'] . ' km)';
+                                    }
+                                    $options[$track['id']] = $label;
+                                }
+                                
+                                return $options;
+                            })
+                            ->required()
+                            ->placeholder('Select a track')
+                            ->helperText('Choose the track/route for this participant'),
                     ])->columns(2),
 
                 Section::make('Registration Status')

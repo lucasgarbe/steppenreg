@@ -36,6 +36,12 @@ class RegistrationsTable
                     ->label('Age')
                     ->sortable(),
 
+                TextColumn::make('track_name')
+                    ->label('Track')
+                    ->placeholder('No track selected')
+                    ->searchable()
+                    ->sortable(false),
+
                 IconColumn::make('payed')
                     ->label('Paid')
                     ->boolean()

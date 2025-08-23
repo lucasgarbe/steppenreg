@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use EventSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,6 +14,7 @@ class Registration extends Model
     protected $fillable = [
         'name',
         'email',
+        'track_id',
         'age',
         'payed',
         'starting',
@@ -71,6 +73,22 @@ class Registration extends Model
     public function getHasFinishedAttribute(): bool
     {
         return !is_null($this->finish_time);
+    }
+
+    public function getTrackAttribute(): ?array
+    {
+        if (!$this->track_id) {
+            return null;
+        }
+        
+        $tracks = app(EventSettings::class)->tracks ?? [];
+        
+        return collect($tracks)->firstWhere('id', $this->track_id);
+    }
+
+    public function getTrackNameAttribute(): ?string
+    {
+        return $this->track['name'] ?? null;
     }
 
     public function getStatusAttribute(): string
