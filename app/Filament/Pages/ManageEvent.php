@@ -3,6 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Settings\EventSettings;
+use App\Filament\Widgets\DailyRegistrations;
+use App\Filament\Widgets\RegistrationTimelineByGender;
+use App\Filament\Widgets\RegistrationTimelineByTrack;
+use App\Filament\Widgets\RegistrationStats;
+use App\Filament\Widgets\TeamStats;
 use BackedEnum;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
@@ -58,5 +63,21 @@ class ManageEvent extends SettingsPage
                             ),
                     ]),
             ]);
+    }
+    
+    public function getWidgets(): array
+    {
+        return [
+            RegistrationStats::class,
+            TeamStats::class,
+            DailyRegistrations::class,
+            RegistrationTimelineByTrack::class,
+            RegistrationTimelineByGender::class,
+        ];
+    }
+    
+    public function getColumns(): int | string | array
+    {
+        return 3;
     }
 }
