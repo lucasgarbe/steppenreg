@@ -120,6 +120,17 @@ class RegistrationForm
                 Section::make('Registration Status')
                     ->description('Payment and participation status')
                     ->schema([
+                        Forms\Components\Select::make('draw_status')
+                            ->label('Draw Status')
+                            ->options([
+                                'not_drawn' => 'Not Drawn',
+                                'drawn' => 'Drawn',
+                                'waitlist' => 'Waitlist',
+                            ])
+                            ->default('not_drawn')
+                            ->required()
+                            ->helperText('Current draw status of this registration'),
+
                         Forms\Components\Toggle::make('payed')
                             ->label('Payment Received')
                             ->helperText('Mark as paid when payment is confirmed'),
@@ -132,7 +143,7 @@ class RegistrationForm
                             ->label('Finish Time')
                             ->helperText('Record finish time when participant completes the event')
                             ->seconds(false),
-                    ])->columns(3),
+                    ])->columns(2),
 
                 Section::make('Additional Information')
                     ->description('Notes and additional details')

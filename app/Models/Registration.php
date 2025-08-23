@@ -35,6 +35,8 @@ class Registration extends Model
         'age',
         'payed',
         'starting',
+        'draw_status',
+        'drawn_at',
         'finish_time',
         'notes',
     ];
@@ -42,6 +44,7 @@ class Registration extends Model
     protected $casts = [
         'payed' => 'boolean',
         'starting' => 'boolean',
+        'drawn_at' => 'datetime',
         'finish_time' => 'datetime:H:i',
     ];
 
@@ -76,6 +79,21 @@ class Registration extends Model
         return $query->whereNull('finish_time');
     }
 
+    public function scopeDrawn($query)
+    {
+        return $query->where('draw_status', 'drawn');
+    }
+
+    public function scopeNotDrawn($query)
+    {
+        return $query->where('draw_status', 'not_drawn');
+    }
+
+    public function scopeOnWaitlist($query)
+    {
+        return $query->where('draw_status', 'waitlist');
+    }
+
     // Accessors
     public function getIsPayedAttribute(): bool
     {
@@ -90,6 +108,16 @@ class Registration extends Model
     public function getHasFinishedAttribute(): bool
     {
         return !is_null($this->finish_time);
+    }
+
+    public function getIsDrawnAttribute(): bool
+    {
+        return $this->draw_status === 'drawn';
+    }
+
+    public function getIsOnWaitlistAttribute(): bool
+    {
+        return $this->draw_status === 'waitlist';
     }
 
     public function getTrackAttribute(): ?array
@@ -125,7 +153,15 @@ class Registration extends Model
         }
         
         if ($this->is_payed) {
-            return 'Payed';
+            return 'Paid';
+        }
+        
+        if ($this->is_drawn) {
+            return 'Drawn';
+        }
+        
+        if ($this->is_on_waitlist) {
+            return 'Waitlist';
         }
         
         return 'Registered';
@@ -136,6 +172,9 @@ class Registration extends Model
     {
         return [
             'total' => static::count(),
+            'drawn' => static::drawn()->count(),
+            'not_drawn' => static::notDrawn()->count(),
+            'waitlist' => static::onWaitlist()->count(),
             'payed' => static::payed()->count(),
             'unpayed' => static::unpayed()->count(),
             'starting' => static::starting()->count(),
