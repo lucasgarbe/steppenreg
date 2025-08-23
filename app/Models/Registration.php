@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use EventSettings;
+use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +11,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Registration extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Auto-leave team if track changes to maintain consistency
+        static::updating(function ($registration) {
+            if ($registration->isDirty('track_id') && $registration->team_id) {
+                $team = $registration->team;
+                if ($team && $team->track_id && $team->track_id !== $registration->track_id) {
+                    $registration->team_id = null;
+                }
+            }
+        });
+    }
 
     protected $fillable = [
         'name',

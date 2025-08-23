@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Settings\EventSettings;
 use BackedEnum;
-use EventSettings;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;

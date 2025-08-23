@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\Registrations\Schemas;
 
 use App\Models\Team;
-use EventSettings;
+use App\Settings\EventSettings;
 use Filament\Forms;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 
@@ -61,11 +62,17 @@ class RegistrationForm
 
                         Forms\Components\Select::make('team_id')
                             ->label('Team Selection')
-                            ->options(function () {
-                                return Team::notFull()
+                            ->options(function (Get $get) {
+                                $trackId = $get('track_id');
+                                if (!$trackId) {
+                                    return [];
+                                }
+                                
+                                return Team::forTrack($trackId)
+                                    ->notFull()
                                     ->withCount('registrations')
                                     ->get()
-                                    ->mapWithKeys(function ($team) {
+                                    ->mapWithKeys(function ($team) use ($trackId) {
                                         $label = $team->name;
                                         $memberCount = $team->registrations_count;
                                         $maxMembers = $team->max_members;
@@ -76,13 +83,19 @@ class RegistrationForm
                                             $label .= " - {$available} spots left";
                                         }
                                         
+                                        // Show track name if team has different track
+                                        if ($team->track_id && $team->track_id !== $trackId) {
+                                            $trackName = $team->track_name ?? "Track {$team->track_id}";
+                                            $label .= " [{$trackName}]";
+                                        }
+                                        
                                         return [$team->id => $label];
                                     })
                                     ->toArray();
                             })
                             ->searchable()
                             ->placeholder('Select a team (optional)')
-                            ->helperText('Choose an existing team or leave empty for individual registration')
+                            ->helperText('Only teams for your selected track are shown')
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
                                     ->required()
@@ -94,8 +107,12 @@ class RegistrationForm
                                     ->minValue(1)
                                     ->maxValue(20),
                             ])
-                            ->createOptionUsing(function (array $data): int {
-                                $team = Team::create($data);
+                            ->createOptionUsing(function (array $data, Get $get): int {
+                                $team = Team::create([
+                                    'name' => $data['name'],
+                                    'max_members' => $data['max_members'] ?? 5,
+                                    'track_id' => $get('track_id'), // Set track from registration
+                                ]);
                                 return $team->id;
                             }),
                     ])->columns(2),

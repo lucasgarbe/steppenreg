@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,10 +15,12 @@ class Team extends Model
     protected $fillable = [
         'name',
         'max_members',
+        'track_id',
     ];
 
     protected $casts = [
         'max_members' => 'integer',
+        'track_id' => 'integer',
     ];
 
     protected $attributes = [
@@ -52,6 +55,60 @@ class Team extends Model
     public function scopeNotFull($query)
     {
         return $query->whereRaw('(SELECT COUNT(*) FROM registrations WHERE team_id = teams.id AND deleted_at IS NULL) < teams.max_members');
+    }
+
+    public function scopeForTrack($query, $trackId)
+    {
+        return $query->where('track_id', $trackId)->orWhereNull('track_id');
+    }
+
+    public function getTrackAttribute(): ?array
+    {
+        if (!$this->track_id) {
+            return null;
+        }
+        
+        $tracks = app(EventSettings::class)->tracks ?? [];
+        
+        return collect($tracks)->firstWhere('id', $this->track_id);
+    }
+
+    public function getTrackNameAttribute(): ?string
+    {
+        return $this->track['name'] ?? null;
+    }
+
+    public function canAcceptRegistration($registration): bool
+    {
+        // Check if team is full
+        if ($this->getIsFull()) {
+            return false;
+        }
+        
+        // Check track consistency
+        if ($this->track_id && $this->track_id !== $registration->track_id) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public function addMember($registration): bool
+    {
+        if (!$this->canAcceptRegistration($registration)) {
+            return false;
+        }
+        
+        // Set team track from first member if not set
+        if (!$this->track_id && $registration->track_id) {
+            $this->track_id = $registration->track_id;
+            $this->save();
+        }
+        
+        $registration->team_id = $this->id;
+        $registration->save();
+        
+        return true;
     }
 
     public static function getStats(): array
