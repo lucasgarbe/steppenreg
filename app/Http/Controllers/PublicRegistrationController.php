@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Registration;
+use App\Models\Team;
+use App\Settings\EventSettings;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
+class PublicRegistrationController extends Controller
+{
+    public function create()
+    {
+        $eventSettings = app(EventSettings::class);
+        $tracks = $eventSettings->tracks ?? [];
+        
+        return view('public.registration.create', compact('tracks'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:registrations,email',
+            'age' => 'required|integer|min:1|max:120',
+            'gender' => 'required|string|in:flinta,all_gender',
+            'track_id' => 'required|integer',
+            'team_name' => 'nullable|string|max:255',
+        ]);
+
+        $teamId = null;
+
+        // Handle team assignment if team name provided
+        if ($request->filled('team_name')) {
+            // Normalize team name (trim, case-insensitive)
+            $teamName = trim($request->team_name);
+            
+            // First, check if team name exists on ANY track
+            $existingTeam = Team::whereRaw('LOWER(name) = LOWER(?)', [$teamName])->first();
+            
+            if ($existingTeam) {
+                // Team exists - check if it's on the same track (convert to int for proper comparison)
+                if ($existingTeam->track_id != (int) $request->track_id) {
+                    // Team exists but on different track - show error
+                    $existingTrackName = $this->getTrackName($existingTeam->track_id);
+                    $selectedTrackName = $this->getTrackName($request->track_id);
+                    
+                    return back()
+                        ->withErrors(['team_name' => "Team '{$teamName}' already exists on {$existingTrackName}, but you selected {$selectedTrackName}. Please choose a different team name or change your track selection."])
+                        ->withInput();
+                }
+                
+                // Team exists on same track - check if it's full
+                $currentMembers = $existingTeam->registrations()->count();
+                if ($currentMembers >= $existingTeam->max_members) {
+                    return back()
+                        ->withErrors(['team_name' => "Team '{$teamName}' is already full ({$existingTeam->max_members} members)."])
+                        ->withInput();
+                }
+                
+                $teamId = $existingTeam->id;
+            } else {
+                // Team doesn't exist - create new team
+                $team = Team::create([
+                    'name' => $teamName,
+                    'max_members' => 5, // Default team size controlled by admin
+                    'track_id' => $request->track_id,
+                ]);
+                $teamId = $team->id;
+            }
+        }
+
+        // Create registration
+        Registration::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'age' => $request->age,
+            'gender' => $request->gender,
+            'track_id' => $request->track_id,
+            'team_id' => $teamId,
+            'draw_status' => 'not_drawn',
+            'payed' => false,
+            'starting' => false,
+        ]);
+
+        return redirect()->route('registration.success')->with('success', 'Registration completed successfully!');
+    }
+
+    public function success()
+    {
+        return view('public.registration.success');
+    }
+
+    /**
+     * Get track name by ID for error messages
+     */
+    private function getTrackName(int $trackId): string
+    {
+        $eventSettings = app(EventSettings::class);
+        $tracks = $eventSettings->tracks ?? [];
+        
+        foreach ($tracks as $track) {
+            if ($track['id'] === $trackId) {
+                return $track['name'];
+            }
+        }
+        
+        return "Track {$trackId}";
+    }
+}
