@@ -6,17 +6,16 @@ use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
 use BackedEnum;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class ManageDraw extends Page implements HasSchemas
 {
@@ -28,104 +27,88 @@ class ManageDraw extends Page implements HasSchemas
 
     public ?array $data = [];
 
-    public function mount(): void
-    {
-        $this->form->fill([
-            'track_id' => null,
-            'participants_to_draw' => 50,
-        ]);
-    }
-
     public function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Select::make('track_id')
-                    ->label('Track Selection')
-                    ->options(function () {
-                        $tracks = app(EventSettings::class)->tracks ?? [];
-                        $options = [];
+                Section::make('Draw Configuration')
+                    ->description('Configure the parameters for executing an automatic draw')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->schema([
+                        Select::make('track_id')
+                            ->label('Track Selection')
+                            ->options(function () {
+                                $tracks = app(EventSettings::class)->tracks ?? [];
+                                $options = [];
 
-                        foreach ($tracks as $track) {
-                            $label = $track['name'];
-                            if (isset($track['distance'])) {
-                                $label .= ' (' . $track['distance'] . ' km)';
-                            }
-                            $options[$track['id']] = $label;
-                        }
+                                foreach ($tracks as $track) {
+                                    $label = $track['name'];
+                                    if (isset($track['distance'])) {
+                                        $label .= ' (' . $track['distance'] . ' km)';
+                                    }
+                                    $options[$track['id']] = $label;
+                                }
 
-                        return $options;
-                    })
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(function ($state) {
-                        $this->updateTrackInfo($state);
-                    })
-                    ->helperText('Select the track to perform the draw for'),
+                                return $options;
+                            })
+                            ->required()
+                            ->helperText('Select the track to perform the draw for'),
 
-                TextInput::make('participants_to_draw')
-                    ->label('Participants to Draw')
-                    ->numeric()
-                    ->required()
-                    ->minValue(1)
-                    ->helperText('Number of participants to select in the draw'),
-
-                Placeholder::make('track_stats')
-                    ->label('Track Statistics')
-                    ->content(function () {
-                        $trackId = $this->data['track_id'] ?? null;
-                        if (!$trackId) {
-                            return 'Select a track to see statistics';
-                        }
-
-                        $stats = $this->getTrackStats($trackId);
-                        return "
-                            • Total Registrations: {$stats['total']}
-                            • Not Drawn Yet: {$stats['not_drawn']}
-                            • Already Drawn: {$stats['drawn']}
-                            • On Waitlist: {$stats['waitlist']}
-                            • Individual Registrations: {$stats['individuals']}
-                            • Team Registrations: {$stats['team_members']} (in {$stats['teams']} teams)
-                            • Drawing Units Available: {$stats['drawing_units']}
-                        ";
-                    }),
+                        TextInput::make('participants_to_draw')
+                            ->label('Participants to Draw')
+                            ->numeric()
+                            ->default(50)
+                            ->required()
+                            ->minValue(1)
+                            ->helperText('Number of participants to select in the draw'),
+                    ])
+                    ->columns(2),
             ])
-            ->statePath('data')
-            ->columns(1);
+            ->statePath('data');
     }
 
-    protected function getActions(): array
+    public function submitDraw()
     {
-        return [
-            Action::make('executeDraw')
-                ->label('Execute Draw')
-                ->icon('heroicon-o-star')
-                ->color('success')
-                ->requiresConfirmation()
-                ->modalDescription(function () {
-                    $trackId = $this->data['track_id'] ?? null;
-                    $participantsToDraw = $this->data['participants_to_draw'] ?? 0;
+        $state = $this->form->getState();
+        Log::info('submitDraw', $state);
 
-                    if (!$trackId) {
-                        return 'Please select a track first.';
-                    }
-
-                    $stats = $this->getTrackStats($trackId);
-                    return "This will randomly draw {$participantsToDraw} participants from {$stats['drawing_units']} available units (individuals + teams) for the selected track. Teams will be drawn as complete units.";
-                })
-                ->action('performDraw')
-                ->disabled(fn() => !($this->data['track_id'] ?? null)),
-
-            Action::make('previewDraw')
-                ->label('Preview Draw')
-                ->icon('heroicon-o-eye')
-                ->color('info')
-                ->action('showDrawPreview')
-                ->disabled(fn() => !($this->data['track_id'] ?? null)),
-        ];
+        $this->drawRegistrations($state['track_id'], $state['participants_to_draw']);
     }
 
-    private function getTrackStats(int $trackId): array
+    public function getTrackStats()
+    {
+        $tracks = app(EventSettings::class)->tracks ?? [];
+        $allStats = [];
+
+        foreach ($tracks as $track) {
+            $stats = $this->calculateTrackStats($track['id']);
+            $allStats[] = [
+                'track_name' => $track['name'],
+                'distance' => $track['distance'] ?? null,
+                'stats' => $stats
+            ];
+        }
+
+        $message = "Current Track Statistics:\n\n";
+        foreach ($allStats as $trackData) {
+            $stats = $trackData['stats'];
+            $message .= "🏁 {$trackData['track_name']}";
+            if ($trackData['distance']) {
+                $message .= " ({$trackData['distance']} km)";
+            }
+            $message .= "\n";
+            $message .= "   • Total: {$stats['total']} | Drawn: {$stats['drawn']} | Not Drawn: {$stats['not_drawn']}\n";
+            $message .= "   • Available Units: {$stats['drawing_units']} ({$stats['individuals']} individuals + {$stats['teams']} teams)\n\n";
+        }
+
+        Notification::make()
+            ->title('Track Statistics')
+            ->body($message)
+            ->info()
+            ->send();
+    }
+
+    private function calculateTrackStats(int $trackId): array
     {
         $registrations = Registration::where('track_id', $trackId);
 
@@ -143,7 +126,6 @@ class ManageDraw extends Page implements HasSchemas
             })
             ->count();
 
-        // Drawing units = individuals + teams (each team counts as 1 unit)
         $drawingUnits = $individuals + $teams;
 
         return [
@@ -158,62 +140,10 @@ class ManageDraw extends Page implements HasSchemas
         ];
     }
 
-    public function updateTrackInfo($trackId): void
+    public function drawRegistrations(int $trackId, int $participantsToDraw)
     {
-        // This will trigger form re-render with updated stats
-        $this->form->fill($this->data);
-    }
+        Log::info('drawRegistrations', ['track_id' => $trackId, 'participants_to_draw' => $participantsToDraw]);
 
-    public function performDraw(): void
-    {
-        $trackId = $this->data['track_id'];
-        $participantsToDraw = $this->data['participants_to_draw'];
-
-        if (!$trackId || !$participantsToDraw) {
-            Notification::make()
-                ->title('Invalid Parameters')
-                ->body('Please select a track and specify number of participants.')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        $result = $this->executeDraw($trackId, $participantsToDraw);
-
-        if ($result['success']) {
-            Notification::make()
-                ->title('Draw Completed Successfully!')
-                ->body("Drew {$result['participants_drawn']} participants from {$result['units_drawn']} units (individuals + teams)")
-                ->success()
-                ->send();
-        } else {
-            Notification::make()
-                ->title('Draw Failed')
-                ->body($result['message'])
-                ->danger()
-                ->send();
-        }
-    }
-
-    public function showDrawPreview(): void
-    {
-        $trackId = $this->data['track_id'];
-
-        if (!$trackId) {
-            return;
-        }
-
-        $stats = $this->getTrackStats($trackId);
-
-        Notification::make()
-            ->title('Draw Preview')
-            ->body("Available for draw: {$stats['drawing_units']} units ({$stats['individuals']} individuals + {$stats['teams']} teams = {$stats['not_drawn']} total participants)")
-            ->info()
-            ->send();
-    }
-
-    private function executeDraw(int $trackId, int $participantsToDraw): array
-    {
         // Get all drawing units (individuals + teams) that haven't been drawn yet
         $individuals = Registration::where('track_id', $trackId)
             ->whereNull('team_id')
@@ -229,7 +159,9 @@ class ManageDraw extends Page implements HasSchemas
             }])
             ->get();
 
-        // Create drawing units collection
+        Log::info('Found drawing units', ['individuals' => $individuals->count(), 'teams' => $teams->count()]);
+
+        // Create drawing units collection and shuffle randomly
         $drawingUnits = collect();
 
         // Add individuals as single-person units
@@ -252,10 +184,12 @@ class ManageDraw extends Page implements HasSchemas
         }
 
         if ($drawingUnits->isEmpty()) {
-            return [
-                'success' => false,
-                'message' => 'No participants available for draw in this track.',
-            ];
+            Notification::make()
+                ->title('Draw Failed')
+                ->body('No participants available for draw in this track.')
+                ->danger()
+                ->send();
+            return;
         }
 
         // Shuffle the drawing units randomly
@@ -269,14 +203,41 @@ class ManageDraw extends Page implements HasSchemas
         foreach ($shuffledUnits as $unit) {
             // Check if drawing this unit would exceed our target
             if ($participantsDrawn + $unit['participant_count'] > $participantsToDraw) {
-                // If we're close to the target, we might want to skip large teams
-                // or put them on waitlist instead
-                continue;
+                continue; // Skip large teams that would exceed target
             }
 
             $drawnRegistrations = $drawnRegistrations->merge($unit['registrations']);
             $unitsDrawn++;
             $participantsDrawn += $unit['participant_count'];
+
+            Log::info('Drew unit', [
+                'type' => $unit['type'],
+                'participant_count' => $unit['participant_count'],
+                'total_drawn' => $participantsDrawn
+            ]);
+
+            // Log individual registrations being drawn
+            foreach ($unit['registrations'] as $registration) {
+                Log::info('Drawn registration: ' . $registration->email);
+                $registration->draw_status = 'drawn';
+                $registration->drawn_at = now();
+                $registration->save();
+
+                // If this is a team registration, draw all team members
+                if ($registration->team) {
+                    Log::info('Drawn registration is in team: ' . $registration->team->name);
+                    $teamMembers = $registration->team->registrations()->where('draw_status', 'not_drawn')->get();
+
+                    foreach ($teamMembers as $teamMember) {
+                        if ($teamMember->id !== $registration->id) { // Don't double-process the original
+                            Log::info('Registration drawn through team: ' . $teamMember->email);
+                            $teamMember->draw_status = 'drawn';
+                            $teamMember->drawn_at = now();
+                            $teamMember->save();
+                        }
+                    }
+                }
+            }
 
             // Stop if we've reached our target
             if ($participantsDrawn >= $participantsToDraw) {
@@ -284,18 +245,17 @@ class ManageDraw extends Page implements HasSchemas
             }
         }
 
-        // Update the drawn registrations
-        foreach ($drawnRegistrations as $registration) {
-            $registration->update([
-                'draw_status' => 'drawn',
-                'drawn_at' => now(),
-            ]);
-        }
+        // Get track info for notification
+        $tracks = app(EventSettings::class)->tracks ?? [];
+        $trackInfo = collect($tracks)->firstWhere('id', $trackId);
+        $trackName = $trackInfo['name'] ?? "Track {$trackId}";
 
-        return [
-            'success' => true,
-            'units_drawn' => $unitsDrawn,
-            'participants_drawn' => $participantsDrawn,
-        ];
+        Notification::make()
+            ->title('Draw Completed Successfully!')
+            ->body("Drew {$participantsDrawn} participants from {$unitsDrawn} units for {$trackName}")
+            ->success()
+            ->send();
+
+        Log::info('Draw completed', ['units_drawn' => $unitsDrawn, 'participants_drawn' => $participantsDrawn]);
     }
 }
