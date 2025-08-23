@@ -16,10 +16,10 @@ class ListRegistrations extends ListRecords
         return [
             Action::make('manageDraw')
                 ->label('Draw Management')
-                ->icon('heroicon-o-star')
-                ->color('primary')
+                ->icon('heroicon-o-calculator')
+                ->color('gray')
                 ->url(static::$resource::getUrl('draw')),
-            CreateAction::make(),
+            CreateAction::make()->color('success'),
         ];
     }
 }
