@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Registrations;
 use App\Filament\Resources\Registrations\Pages\CreateRegistration;
 use App\Filament\Resources\Registrations\Pages\EditRegistration;
 use App\Filament\Resources\Registrations\Pages\ListRegistrations;
+use App\Filament\Resources\Registrations\Pages\ManageDraw;
 use App\Filament\Resources\Registrations\Schemas\RegistrationForm;
 use App\Filament\Resources\Registrations\Tables\RegistrationsTable;
 use App\Models\Registration;
@@ -51,6 +52,7 @@ class RegistrationResource extends Resource
             'index' => ListRegistrations::route('/'),
             'create' => CreateRegistration::route('/create'),
             'edit' => EditRegistration::route('/{record}/edit'),
+            'draw' => ManageDraw::route('/draw'),
         ];
     }
 

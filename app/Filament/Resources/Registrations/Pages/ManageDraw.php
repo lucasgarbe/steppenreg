@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Resources\Registrations\Pages;
 
+use App\Filament\Resources\Registrations\RegistrationResource;
+use App\Filament\Resources\Registrations\Widgets\DrawStatsWidget;
+use App\Filament\Resources\Registrations\Widgets\TrackStatsWidget;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
-use BackedEnum;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
@@ -13,17 +15,16 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
-use Filament\Support\Icons\Heroicon;
+use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Log;
 
 class ManageDraw extends Page implements HasSchemas
 {
     use InteractsWithSchemas;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedStar;
-    protected static ?string $title = 'Manage Draw';
-    protected string $view = 'filament.pages.manage-draw';
+    protected static string $resource = RegistrationResource::class;
+    protected static ?string $title = 'Draw Management';
+    protected string $view = 'filament.resources.registrations.pages.manage-draw';
 
     public ?array $data = [];
 
@@ -257,5 +258,19 @@ class ManageDraw extends Page implements HasSchemas
             ->send();
 
         Log::info('Draw completed', ['units_drawn' => $unitsDrawn, 'participants_drawn' => $participantsDrawn]);
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            DrawStatsWidget::class,
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            TrackStatsWidget::class,
+        ];
     }
 }
