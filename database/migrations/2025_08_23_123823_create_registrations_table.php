@@ -13,8 +13,19 @@ return new class extends Migration
     {
         Schema::create('registrations', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->string('email');
+            $table->integer('age');
+            $table->boolean('payed')->default(false);
+            $table->boolean('starting')->default(false);
+            $table->time('finish_time')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['email']);
+            $table->index(['payed']);
+            $table->index(['starting']);
         });
     }
 

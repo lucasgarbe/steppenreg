@@ -16,8 +16,42 @@ class RegistrationFactory extends Factory
      */
     public function definition(): array
     {
+        $finished = fake()->boolean(30); // 30% chance of being finished
+        $starting = $finished || fake()->boolean(60); // If finished, definitely starting. Otherwise 60% chance
+        $payed = $starting || fake()->boolean(80); // If starting, likely paid. Otherwise 80% chance
+        
         return [
-            //
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'age' => fake()->numberBetween(16, 75),
+            'payed' => $payed,
+            'starting' => $starting,
+            'finish_time' => $finished ? fake()->time('H:i:s') : null,
+            'notes' => fake()->optional(0.3)->realText(200),
         ];
+    }
+
+    public function payed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'payed' => true,
+        ]);
+    }
+
+    public function starting(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'starting' => true,
+            'payed' => true, // Must be paid to start
+        ]);
+    }
+
+    public function finished(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'finish_time' => fake()->time('H:i:s'),
+            'starting' => true,
+            'payed' => true,
+        ]);
     }
 }
