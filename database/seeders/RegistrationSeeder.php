@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Registration;
+use App\Settings\EventSettings;
 use Illuminate\Database\Seeder;
 
 class RegistrationSeeder extends Seeder
@@ -31,5 +32,17 @@ class RegistrationSeeder extends Seeder
                 ['Finished', Registration::finished()->count()],
             ]
         );
+
+        // Show registrations by track
+        $settings = app(EventSettings::class);
+        if (!empty($settings->tracks)) {
+            $this->command->info('Registrations by Track:');
+            $trackStats = [];
+            foreach ($settings->tracks as $track) {
+                $count = Registration::where('track_id', $track['id'])->count();
+                $trackStats[] = [$track['name'], $count . ' participants'];
+            }
+            $this->command->table(['Track', 'Registrations'], $trackStats);
+        }
     }
 }

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Team;
+use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -29,12 +30,18 @@ class RegistrationFactory extends Factory
             $teamId = Team::notFull()->inRandomOrder()->first()?->id;
         }
 
+        // Get available track IDs from EventSettings
+        $settings = app(EventSettings::class);
+        $trackIds = collect($settings->tracks)->pluck('id')->toArray();
+        $trackId = !empty($trackIds) ? fake()->randomElement($trackIds) : 1;
+
         return [
             'name' => $name,
             'email' => $email,
-            'track_id' => fake()->randomElement([1, 2, 3]), // Random track selection
+            'track_id' => $trackId,
             'team_id' => $teamId,
             'age' => fake()->numberBetween(16, 75),
+            'gender' => fake()->randomElement(['flinta', 'all_gender']),
             'payed' => $payed,
             'starting' => $starting,
             'finish_time' => $finished ? fake()->time('H:i:s') : null,
