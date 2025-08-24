@@ -38,6 +38,7 @@ class Registration extends Model
         'starting',
         'draw_status',
         'drawn_at',
+        'starting_number',
         'finish_time',
         'notes',
     ];
@@ -143,6 +144,50 @@ class Registration extends Model
             'flinta' => 'FLINTA*',
             'all_gender' => 'All Gender',
             default => null,
+        };
+    }
+
+    public function getFormattedStartingNumberAttribute(): ?string
+    {
+        return $this->starting_number ? sprintf('%03d', $this->starting_number) : null;
+    }
+
+    public function getStartingNumberTypeAttribute(): ?string
+    {
+        if (!$this->starting_number) {
+            return null;
+        }
+
+        $ranges = app(\App\Services\StartingNumberService::class)->getTrackRanges($this->track_id);
+        
+        if ($this->starting_number >= $ranges['main']['start'] && $this->starting_number <= $ranges['main']['end']) {
+            return 'main';
+        }
+        
+        if ($this->starting_number >= $ranges['waitlist']['start'] && $this->starting_number <= $ranges['waitlist']['end']) {
+            return 'waitlist';
+        }
+        
+        if (isset($ranges['waitlist_overflow']) && 
+            $this->starting_number >= $ranges['waitlist_overflow']['start'] && 
+            $this->starting_number <= $ranges['waitlist_overflow']['end']) {
+            return 'waitlist_overflow';
+        }
+        
+        return 'unknown';
+    }
+
+    public function getStartingNumberLabelAttribute(): ?string
+    {
+        if (!$this->starting_number) {
+            return null;
+        }
+
+        return match($this->starting_number_type) {
+            'main' => $this->formatted_starting_number,
+            'waitlist' => $this->formatted_starting_number . ' (W)',
+            'waitlist_overflow' => $this->formatted_starting_number . ' (W+)',
+            default => $this->formatted_starting_number
         };
     }
 

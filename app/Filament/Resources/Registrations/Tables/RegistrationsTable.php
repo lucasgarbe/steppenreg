@@ -22,6 +22,19 @@ class RegistrationsTable
     {
         return $table
             ->columns([
+                TextColumn::make('starting_number_label')
+                    ->label('Start #')
+                    ->sortable('starting_number')
+                    ->searchable(isIndividual: false, isGlobal: false)
+                    ->placeholder('—')
+                    ->badge()
+                    ->color(fn ($record) => match($record->starting_number_type) {
+                        'main' => 'success',
+                        'waitlist' => 'warning', 
+                        'waitlist_overflow' => 'danger',
+                        default => 'gray'
+                    }),
+
                 TextColumn::make('name')
                     ->label('Name')
                     ->searchable()
@@ -212,6 +225,26 @@ class RegistrationsTable
                             'draw_status' => 'not_drawn',
                             'drawn_at' => null
                         ]))
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('assign_starting_numbers')
+                        ->label('Assign Starting Numbers')
+                        ->icon('heroicon-o-hashtag')
+                        ->color('info')
+                        ->action(function (Collection $records) {
+                            $service = app(\App\Services\StartingNumberService::class);
+                            $results = $service->bulkAssignNumbers($records->pluck('id')->toArray());
+                            
+                            $assigned = count($results['assigned'] ?? []);
+                            $failed = count($results['failed'] ?? []);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title("Starting numbers assigned")
+                                ->body("Assigned: {$assigned}, Failed: {$failed}")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
                         ->deselectRecordsAfterCompletion(),
 
                     DeleteBulkAction::make(),

@@ -15,6 +15,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(\App\Services\MailVariableResolver::class);
         $this->app->singleton(\App\Services\MailTemplateService::class);
+        $this->app->singleton(\App\Services\StartingNumberService::class);
     }
 
     /**

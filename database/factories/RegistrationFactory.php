@@ -72,4 +72,21 @@ class RegistrationFactory extends Factory
             'payed' => true,
         ]);
     }
+
+    public function drawn(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'draw_status' => 'drawn',
+            'drawn_at' => fake()->dateTimeBetween('-30 days', 'now'),
+            'payed' => true,
+        ]);
+    }
+
+    public function waitlisted(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'draw_status' => 'waitlist',
+            'drawn_at' => null,
+        ]);
+    }
 }
