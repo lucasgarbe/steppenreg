@@ -17,8 +17,8 @@ class LanguageSwitcher extends Component
     public function __construct()
     {
         $this->languages = config('app.supported_locales', [
-            'de' => ['name' => 'Deutsch', 'flag' => '🇩🇪'],
-            'en' => ['name' => 'English', 'flag' => '🇺🇸'],
+            'de' => ['name' => 'Deutsch', 'flag' => 'DE'],
+            'en' => ['name' => 'English', 'flag' => 'EN'],
         ]);
         $this->currentLocale = app()->getLocale();
     }

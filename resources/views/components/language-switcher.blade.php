@@ -6,7 +6,7 @@
                 class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 {{ $locale === $currentLocale ? 'bg-blue-100 text-blue-800' : 'text-gray-700 hover:bg-gray-100' }}"
                 title="{{ $language['name'] }}"
             >
-                <span class="mr-2">{{ $language['flag'] }}</span>
+                <span class="mr-2 px-1 text-xs bg-gray-200 rounded">{{ $language['flag'] }}</span>
                 <span>{{ $language['name'] }}</span>
             </a>
         @endforeach

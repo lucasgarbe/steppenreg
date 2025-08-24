@@ -36,7 +36,7 @@
                     <div>
                         <span class="font-medium text-gray-600">Status:</span>
                         <span class="inline-flex px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-                            🔴 {{ $eventSettings->getApplicationStateLabel() }}
+                            {{ $eventSettings->getApplicationStateLabel() }}
                         </span>
                     </div>
                     <div>

@@ -93,7 +93,7 @@ class ManageDraw extends Page implements HasSchemas
         $message = "Current Track Statistics:\n\n";
         foreach ($allStats as $trackData) {
             $stats = $trackData['stats'];
-            $message .= "🏁 {$trackData['track_name']}";
+            $message .= "Track: {$trackData['track_name']}";
             if ($trackData['distance']) {
                 $message .= " ({$trackData['distance']} km)";
             }

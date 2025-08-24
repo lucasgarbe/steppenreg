@@ -85,7 +85,7 @@ class MailTemplateSeeder extends Seeder
     private function getDrawSuccessBody(): string
     {
         return '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #059669;">🎉 Congratulations! You\'re in!</h2>
+            <h2 style="color: #059669;">Congratulations! You\'re in!</h2>
             
             <p>Dear {{name}},</p>
             
