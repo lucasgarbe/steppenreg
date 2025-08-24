@@ -8,7 +8,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -22,15 +21,18 @@ class RegistrationsTable
     {
         return $table
             ->columns([
-                TextColumn::make('starting_number_label')
+                TextColumn::make('starting_number')
                     ->label('Start #')
-                    ->sortable('starting_number')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->whereNotNull('starting_number')->orderBy('starting_number', $direction);
+                    })
                     ->searchable(isIndividual: false, isGlobal: false)
                     ->placeholder('—')
                     ->badge()
-                    ->color(fn ($record) => match($record->starting_number_type) {
+                    ->formatStateUsing(fn($record) => $record->starting_number_label)
+                    ->color(fn($record) => match ($record->starting_number_type) {
                         'main' => 'success',
-                        'waitlist' => 'warning', 
+                        'waitlist' => 'warning',
                         'waitlist_overflow' => 'danger',
                         default => 'gray'
                     }),
@@ -66,7 +68,9 @@ class RegistrationsTable
                     ->label('Track')
                     ->placeholder('No track selected')
                     ->searchable()
-                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->whereNotNull('track_id')->orderBy('track_id', $direction);
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('team.name')
@@ -234,10 +238,10 @@ class RegistrationsTable
                         ->action(function (Collection $records) {
                             $service = app(\App\Services\StartingNumberService::class);
                             $results = $service->bulkAssignNumbers($records->pluck('id')->toArray());
-                            
+
                             $assigned = count($results['assigned'] ?? []);
                             $failed = count($results['failed'] ?? []);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title("Starting numbers assigned")
                                 ->body("Assigned: {$assigned}, Failed: {$failed}")

@@ -154,7 +154,7 @@ class Registration extends Model
 
     public function getStartingNumberTypeAttribute(): ?string
     {
-        if (!$this->starting_number) {
+        if (!$this->starting_number || !$this->track_id) {
             return null;
         }
 
