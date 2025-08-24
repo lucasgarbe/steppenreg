@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Registration;
+use App\Observers\RegistrationObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(\App\Services\MailVariableResolver::class);
+        $this->app->singleton(\App\Services\MailTemplateService::class);
     }
 
     /**
@@ -19,6 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Registration::observe(RegistrationObserver::class);
     }
 }
