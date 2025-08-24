@@ -180,6 +180,39 @@ class RegistrationsTable
                     ->label('Waitlist Only')
                     ->query(fn(Builder $query): Builder => $query->where('draw_status', 'waitlist')),
 
+                Filter::make('status')
+                    ->label('Status')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('status')
+                            ->label('Select Status')
+                            ->options([
+                                'Registered' => 'Registered',
+                                'Waitlist' => 'Waitlist',
+                                'Drawn' => 'Drawn',
+                                'Paid' => 'Paid',
+                                'Starting' => 'Starting',
+                                'Finished' => 'Finished',
+                            ])
+                            ->placeholder('All statuses')
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!isset($data['status']) || !$data['status']) {
+                            return $query;
+                        }
+                        
+                        $status = $data['status'];
+                        
+                        return match ($status) {
+                            'Finished' => $query->whereNotNull('finish_time'),
+                            'Starting' => $query->where('starting', true)->whereNull('finish_time'),
+                            'Paid' => $query->where('payed', true)->where('starting', false)->whereNull('finish_time'),
+                            'Drawn' => $query->where('draw_status', 'drawn')->where('payed', false)->where('starting', false)->whereNull('finish_time'),
+                            'Waitlist' => $query->where('draw_status', 'waitlist')->where('payed', false)->where('starting', false)->whereNull('finish_time'),
+                            'Registered' => $query->where('draw_status', 'not_drawn')->where('payed', false)->where('starting', false)->whereNull('finish_time'),
+                            default => $query,
+                        };
+                    }),
+
                 TrashedFilter::make(),
             ])
             ->recordActions([
