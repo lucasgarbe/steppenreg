@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Registrations\Tables;
 
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -14,6 +16,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class RegistrationsTable
 {
@@ -225,7 +228,129 @@ class RegistrationsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    
+                    Action::make('promote_from_waitlist')
+                        ->label('Promote to Drawn')
+                        ->icon('heroicon-o-arrow-up')
+                        ->color('success')
+                        ->visible(fn($record) => $record->draw_status === 'waitlist' && !$record->is_withdrawn)
+                        ->requiresConfirmation()
+                        ->modalHeading('Promote from Waitlist')
+                        ->modalDescription(fn($record) => "Are you sure you want to promote {$record->name} from waitlist to drawn status?")
+                        ->action(function ($record) {
+                            DB::transaction(function () use ($record) {
+                                // First update the status - the observer will handle starting number assignment
+                                $record->update([
+                                    'draw_status' => 'drawn',
+                                    'promoted_from_waitlist_at' => now()
+                                ]);
+                                
+                                // Generate withdraw token
+                                $record->generateWithdrawToken();
+                            });
+                            
+                            $record->refresh(); // Get the updated starting number
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Promotion Completed')
+                                ->body("Promoted {$record->name} from waitlist to drawn status" . ($record->starting_number ? " (Starting #{$record->formatted_starting_number})" : ""))
+                                ->success()
+                                ->send();
+                        }),
+                    
+                    Action::make('add_to_waitlist')
+                        ->label('Add to Waitlist')
+                        ->icon('heroicon-o-clock')
+                        ->color('warning')
+                        ->visible(fn($record) => $record->draw_status === 'not_drawn' && !$record->is_withdrawn)
+                        ->requiresConfirmation()
+                        ->modalHeading('Add to Waitlist')
+                        ->modalDescription(fn($record) => "Are you sure you want to add {$record->name} to the waitlist?")
+                        ->action(function ($record) {
+                            $record->update([
+                                'draw_status' => 'waitlist',
+                                'drawn_at' => now()
+                            ]);
+                            
+                            // Generate waitlist token
+                            $record->generateWaitlistToken();
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Added to Waitlist')
+                                ->body("Added {$record->name} to the waitlist")
+                                ->success()
+                                ->send();
+                        }),
+                    
+                    Action::make('manual_withdraw')
+                        ->label('Withdraw')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
+                        ->requiresConfirmation()
+                        ->modalHeading('Manual Withdrawal')
+                        ->modalDescription(fn($record) => "Are you sure you want to manually withdraw {$record->name} from the event?")
+                        ->action(function ($record) {
+                            $record->update([
+                                'is_withdrawn' => true,
+                                'withdrawn_at' => now(),
+                                'withdrawal_reason' => 'admin_manual'
+                            ]);
+                            
+                            // Try to promote next waitlist registration
+                            $nextWaitlisted = \App\Models\Registration::where('draw_status', 'waitlist')
+                                ->where('track_id', $record->track_id)
+                                ->where('is_withdrawn', false)
+                                ->whereNull('promoted_from_waitlist_at')
+                                ->orderBy('drawn_at')
+                                ->first();
+                                
+                            if ($nextWaitlisted) {
+                                $nextWaitlisted->update([
+                                    'draw_status' => 'drawn',
+                                    'promoted_from_waitlist_at' => now()
+                                ]);
+                                
+                                // Generate withdraw token for the newly promoted
+                                $nextWaitlisted->generateWithdrawToken();
+                                
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Withdrawal Completed')
+                                    ->body("Withdrew {$record->name} and promoted {$nextWaitlisted->name} from waitlist")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Withdrawal Completed')
+                                    ->body("Withdrew {$record->name} (no waitlisted participants to promote)")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+                    
+                    Action::make('send_withdrawal_link')
+                        ->label('Send Withdrawal Link')
+                        ->icon('heroicon-o-envelope')
+                        ->color('warning')
+                        ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
+                        ->action(function ($record) {
+                            // Generate token if not exists
+                            if (!$record->withdraw_token) {
+                                $record->generateWithdrawToken();
+                            }
+                            
+                            // Send notification email
+                            \App\Jobs\Mail\SendDrawNotification::dispatch($record);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Withdrawal Link Sent')
+                                ->body("Sent withdrawal link to {$record->email}")
+                                ->success()
+                                ->send();
+                        }),
+                ])
             ])
             ->bulkActions([
                 BulkActionGroup::make([

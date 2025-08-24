@@ -108,7 +108,7 @@ class StartingNumberService
 
     private function findNextAvailableInRange(array $range, int $trackId): ?int
     {
-        $usedNumbers = Registration::where('track_id', $trackId)
+        $usedNumbers = Registration::withTrashed()->where('track_id', $trackId)
             ->whereNotNull('starting_number')
             ->whereBetween('starting_number', [$range['start'], $range['end']])
             ->pluck('starting_number')
@@ -130,7 +130,7 @@ class StartingNumberService
         // For now, simple logic: if there are already main draw numbers assigned, assume this is waitlist
         
         $mainRange = $this->getBaseRanges($registration->track_id)['main'];
-        $mainDrawCount = Registration::where('track_id', $registration->track_id)
+        $mainDrawCount = Registration::withTrashed()->where('track_id', $registration->track_id)
             ->where('draw_status', 'drawn')
             ->whereNotNull('starting_number')
             ->whereBetween('starting_number', [$mainRange['start'], $mainRange['end']])
@@ -147,7 +147,7 @@ class StartingNumberService
         $baseRanges = $this->getBaseRanges($trackId);
         $waitlistCapacity = $baseRanges['waitlist']['end'] - $baseRanges['waitlist']['start'] + 1;
         
-        $waitlistCount = Registration::where('track_id', $trackId)
+        $waitlistCount = Registration::withTrashed()->where('track_id', $trackId)
             ->where('draw_status', 'drawn')
             ->whereNotNull('starting_number')
             ->whereBetween('starting_number', [$baseRanges['waitlist']['start'], $baseRanges['waitlist']['end']])

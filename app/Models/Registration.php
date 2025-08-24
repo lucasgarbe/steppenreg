@@ -42,20 +42,28 @@ class Registration extends Model
         'finish_time',
         'notes',
         'waitlist_token',
+        'waitlist_token_expires_at',
         'withdraw_token',
+        'withdraw_token_expires_at',
         'waitlist_registered_at',
         'withdrawn_at',
+        'promoted_from_waitlist_at',
         'original_draw_status',
         'withdrawal_reason',
+        'is_withdrawn',
     ];
 
     protected $casts = [
         'payed' => 'boolean',
         'starting' => 'boolean',
+        'is_withdrawn' => 'boolean',
         'drawn_at' => 'datetime',
         'finish_time' => 'datetime:H:i',
         'waitlist_registered_at' => 'datetime',
         'withdrawn_at' => 'datetime',
+        'promoted_from_waitlist_at' => 'datetime',
+        'waitlist_token_expires_at' => 'datetime',
+        'withdraw_token_expires_at' => 'datetime',
     ];
 
     // Scopes
@@ -308,6 +316,7 @@ class Registration extends Model
         } while (static::where('waitlist_token', $token)->exists());
 
         $this->waitlist_token = $token;
+        $this->waitlist_token_expires_at = now()->addDays(7);
         $this->save();
 
         return $token;
@@ -320,6 +329,7 @@ class Registration extends Model
         } while (static::where('withdraw_token', $token)->exists());
 
         $this->withdraw_token = $token;
+        $this->withdraw_token_expires_at = now()->addDays(7);
         $this->save();
 
         return $token;
@@ -373,9 +383,9 @@ class Registration extends Model
         }
 
         $this->original_draw_status = $this->draw_status;
-        $this->draw_status = 'not_drawn';
+        $this->is_withdrawn = true;
         $this->withdrawn_at = now();
-        $this->withdrawal_reason = $reason;
+        $this->withdrawal_reason = $reason ?? 'user_initiated';
         
         return $this->save();
     }

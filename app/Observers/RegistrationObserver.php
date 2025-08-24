@@ -26,16 +26,15 @@ class RegistrationObserver
                 $number = $startingNumberService->assignNumber($registration);
                 
                 if ($number) {
-                    $registration->starting_number = $number;
-                    $registration->saveQuietly(); // Prevent infinite loop
+                    // Use updateQuietly to prevent triggering observer again
+                    $registration->updateQuietly(['starting_number' => $number]);
                 }
             }
             
-            // Clear starting number when no longer drawn
-            if ($registration->draw_status === 'not_drawn' || $registration->draw_status === 'waitlist') {
+            // Clear starting number when no longer drawn (but not if withdrawn - they keep their number)
+            if (($registration->draw_status === 'not_drawn' || $registration->draw_status === 'waitlist') && !$registration->is_withdrawn) {
                 if ($registration->starting_number) {
-                    $registration->starting_number = null;
-                    $registration->saveQuietly(); // Prevent infinite loop
+                    $registration->updateQuietly(['starting_number' => null]);
                 }
             }
         }
