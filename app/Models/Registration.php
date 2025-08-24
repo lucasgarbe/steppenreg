@@ -41,6 +41,12 @@ class Registration extends Model
         'starting_number',
         'finish_time',
         'notes',
+        'waitlist_token',
+        'withdraw_token',
+        'waitlist_registered_at',
+        'withdrawn_at',
+        'original_draw_status',
+        'withdrawal_reason',
     ];
 
     protected $casts = [
@@ -48,6 +54,8 @@ class Registration extends Model
         'starting' => 'boolean',
         'drawn_at' => 'datetime',
         'finish_time' => 'datetime:H:i',
+        'waitlist_registered_at' => 'datetime',
+        'withdrawn_at' => 'datetime',
     ];
 
     // Scopes
@@ -96,6 +104,29 @@ class Registration extends Model
         return $query->where('draw_status', 'waitlist');
     }
 
+    public function scopeWithdrawn($query)
+    {
+        return $query->whereNotNull('withdrawn_at');
+    }
+
+    public function scopeWaitlistRegistered($query)
+    {
+        return $query->whereNotNull('waitlist_registered_at');
+    }
+
+    public function scopeCanJoinWaitlist($query)
+    {
+        return $query->where('draw_status', 'not_drawn')
+                    ->whereNull('waitlist_registered_at')
+                    ->whereNull('withdrawn_at');
+    }
+
+    public function scopeCanWithdraw($query)
+    {
+        return $query->where('draw_status', 'drawn')
+                    ->whereNull('withdrawn_at');
+    }
+
     // Accessors
     public function getIsPayedAttribute(): bool
     {
@@ -120,6 +151,28 @@ class Registration extends Model
     public function getIsOnWaitlistAttribute(): bool
     {
         return $this->draw_status === 'waitlist';
+    }
+
+    public function getIsWithdrawnAttribute(): bool
+    {
+        return !is_null($this->withdrawn_at);
+    }
+
+    public function getIsWaitlistRegisteredAttribute(): bool
+    {
+        return !is_null($this->waitlist_registered_at);
+    }
+
+    public function getCanJoinWaitlistAttribute(): bool
+    {
+        return $this->draw_status === 'not_drawn' && 
+               !$this->is_waitlist_registered && 
+               !$this->is_withdrawn;
+    }
+
+    public function getCanWithdrawAttribute(): bool
+    {
+        return $this->draw_status === 'drawn' && !$this->is_withdrawn;
     }
 
     public function getTrackAttribute(): ?array
@@ -242,6 +295,100 @@ class Registration extends Model
             'unpayed' => static::unpayed()->count(),
             'starting' => static::starting()->count(),
             'finished' => static::finished()->count(),
+            'withdrawn' => static::withdrawn()->count(),
+            'waitlist_registered' => static::waitlistRegistered()->count(),
         ];
+    }
+
+    // Token Management Methods
+    public function generateWaitlistToken(): string
+    {
+        do {
+            $token = bin2hex(random_bytes(32));
+        } while (static::where('waitlist_token', $token)->exists());
+
+        $this->waitlist_token = $token;
+        $this->save();
+
+        return $token;
+    }
+
+    public function generateWithdrawToken(): string
+    {
+        do {
+            $token = bin2hex(random_bytes(32));
+        } while (static::where('withdraw_token', $token)->exists());
+
+        $this->withdraw_token = $token;
+        $this->save();
+
+        return $token;
+    }
+
+    public function getWaitlistUrl(): string
+    {
+        if (!$this->waitlist_token) {
+            $this->generateWaitlistToken();
+        }
+        
+        return route('waitlist.join', $this->waitlist_token);
+    }
+
+    public function getWithdrawUrl(): string
+    {
+        if (!$this->withdraw_token) {
+            $this->generateWithdrawToken();
+        }
+        
+        return route('withdraw.show', $this->withdraw_token);
+    }
+
+    public static function findByWaitlistToken(string $token): ?self
+    {
+        return static::where('waitlist_token', $token)->first();
+    }
+
+    public static function findByWithdrawToken(string $token): ?self
+    {
+        return static::where('withdraw_token', $token)->first();
+    }
+
+    public function joinWaitlist(): bool
+    {
+        if (!$this->can_join_waitlist) {
+            return false;
+        }
+
+        $this->draw_status = 'waitlist';
+        $this->waitlist_registered_at = now();
+        $this->original_draw_status = 'not_drawn';
+        
+        return $this->save();
+    }
+
+    public function withdraw(?string $reason = null): bool
+    {
+        if (!$this->can_withdraw) {
+            return false;
+        }
+
+        $this->original_draw_status = $this->draw_status;
+        $this->draw_status = 'not_drawn';
+        $this->withdrawn_at = now();
+        $this->withdrawal_reason = $reason;
+        
+        return $this->save();
+    }
+
+    public function getWaitlistPosition(): ?int
+    {
+        if ($this->draw_status !== 'waitlist' || !$this->waitlist_registered_at) {
+            return null;
+        }
+
+        return static::where('track_id', $this->track_id)
+                    ->where('draw_status', 'waitlist')
+                    ->where('waitlist_registered_at', '<', $this->waitlist_registered_at)
+                    ->count() + 1;
     }
 }

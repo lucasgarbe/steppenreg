@@ -23,6 +23,8 @@ class MailVariableResolver
             'registration_date' => $registration->created_at->format('d.m.Y'),
             'draw_status' => $this->formatDrawStatus($registration->draw_status),
             'team_name' => $registration->team?->name ?? '',
+            'waitlist_url' => $registration->getWaitlistUrl(),
+            'withdraw_url' => $registration->getWithdrawUrl(),
         ];
     }
 
@@ -39,6 +41,8 @@ class MailVariableResolver
             'registration_date' => Carbon::now()->format('d.m.Y'),
             'draw_status' => 'Not drawn yet',
             'team_name' => 'Sample Team',
+            'waitlist_url' => 'https://example.com/waitlist/join/sample-token',
+            'withdraw_url' => 'https://example.com/withdraw/sample-token',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\TemplateBasedEmail;
 use App\Models\MailLog;
 use App\Models\MailTemplate;
 use App\Models\Registration;
@@ -25,7 +26,6 @@ class MailTemplateService
         }
 
         $variables = $this->variableResolver->resolve($registration);
-        $content = $template->renderContent($variables);
 
         $mailLog = MailLog::logEmail(
             templateKey: $templateKey,
@@ -35,10 +35,8 @@ class MailTemplateService
         );
 
         try {
-            Mail::raw($content['body'], function ($message) use ($registration, $content) {
-                $message->to($registration->email, $registration->name)
-                    ->subject($content['subject']);
-            });
+            $mailable = new TemplateBasedEmail($template, $registration, $variables);
+            Mail::to($registration->email, $registration->name)->send($mailable);
 
             $mailLog->markAsSent();
         } catch (\Exception $e) {

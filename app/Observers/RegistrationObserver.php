@@ -17,9 +17,8 @@ class RegistrationObserver
     {
         // Handle draw status changes
         if ($registration->wasChanged('draw_status')) {
-            if ($registration->draw_status !== 'not_drawn') {
-                SendDrawNotification::dispatch($registration);
-            }
+            // NOTE: Draw notifications are now sent manually via admin action
+            // This prevents automatic emails during bulk draw operations
             
             // Assign starting number when status changes to 'drawn'
             if ($registration->draw_status === 'drawn' && !$registration->starting_number) {

@@ -19,7 +19,7 @@ class SendRegistrationConfirmation implements ShouldQueue
     public function __construct(
         public Registration $registration
     ) {
-        $this->onQueue('medium');
+        // Using default queue for simplicity
     }
 
     public function handle(MailTemplateService $mailService): void

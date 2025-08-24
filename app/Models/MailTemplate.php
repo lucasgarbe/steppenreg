@@ -60,6 +60,8 @@ class MailTemplate extends Model
             'draw_status' => 'Draw status',
             'team_name' => 'Team name (if applicable)',
             'track_distance' => 'Track distance',
+            'waitlist_url' => 'Waitlist registration URL',
+            'withdraw_url' => 'Withdrawal URL',
         ];
     }
 }

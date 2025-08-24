@@ -82,17 +82,26 @@ class RegistrationsTable
                 TextColumn::make('draw_status')
                     ->label('Draw Status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'drawn' => 'success',
+                    ->color(fn($record): string => match ($record->draw_status) {
+                        'drawn' => $record->is_withdrawn ? 'danger' : 'success',
                         'waitlist' => 'warning',
                         'not_drawn' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'drawn' => 'Drawn',
-                        'waitlist' => 'Waitlist',
-                        'not_drawn' => 'Not Drawn',
-                        default => $state,
+                    ->formatStateUsing(function($record): string {
+                        if ($record->is_withdrawn) {
+                            return 'Withdrawn';
+                        }
+                        if ($record->is_waitlist_registered && $record->draw_status === 'waitlist') {
+                            $position = $record->getWaitlistPosition();
+                            return "Waitlist #{$position}";
+                        }
+                        return match ($record->draw_status) {
+                            'drawn' => 'Drawn',
+                            'waitlist' => 'Waitlist',
+                            'not_drawn' => 'Not Drawn',
+                            default => $record->draw_status,
+                        };
                     })
                     ->sortable(),
 
@@ -271,10 +280,10 @@ class RegistrationsTable
                         ->action(function (Collection $records) {
                             $service = app(\App\Services\StartingNumberService::class);
                             $results = $service->bulkAssignNumbers($records->pluck('id')->toArray());
-
+                            
                             $assigned = count($results['assigned'] ?? []);
                             $failed = count($results['failed'] ?? []);
-
+                            
                             \Filament\Notifications\Notification::make()
                                 ->title("Starting numbers assigned")
                                 ->body("Assigned: {$assigned}, Failed: {$failed}")
@@ -282,6 +291,83 @@ class RegistrationsTable
                                 ->send();
                         })
                         ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('generate_waitlist_tokens')
+                        ->label('Generate Waitlist Links')
+                        ->icon('heroicon-o-link')
+                        ->color('warning')
+                        ->action(function (Collection $records) {
+                            $generated = 0;
+                            foreach ($records as $record) {
+                                if ($record->can_join_waitlist) {
+                                    $record->generateWaitlistToken();
+                                    $generated++;
+                                }
+                            }
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title("Waitlist tokens generated")
+                                ->body("Generated {$generated} waitlist links for eligible registrations")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('generate_withdraw_tokens')
+                        ->label('Generate Withdraw Links')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->action(function (Collection $records) {
+                            $generated = 0;
+                            foreach ($records as $record) {
+                                if ($record->can_withdraw) {
+                                    $record->generateWithdrawToken();
+                                    $generated++;
+                                }
+                            }
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title("Withdrawal tokens generated")
+                                ->body("Generated {$generated} withdrawal links for drawn registrations")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('send_draw_notifications')
+                        ->label('Send Draw Result Emails')
+                        ->icon('heroicon-o-envelope')
+                        ->color('primary')
+                        ->action(function (Collection $records) {
+                            $sent = 0;
+                            foreach ($records as $record) {
+                                // Only send to records that have a draw result (not 'not_drawn')
+                                if ($record->draw_status !== 'not_drawn') {
+                                    // Generate tokens first if needed
+                                    if ($record->draw_status === 'drawn' && !$record->withdraw_token) {
+                                        $record->generateWithdrawToken();
+                                    }
+                                    if (($record->draw_status === 'not_drawn' || $record->can_join_waitlist) && !$record->waitlist_token) {
+                                        $record->generateWaitlistToken();
+                                    }
+                                    
+                                    \App\Jobs\Mail\SendDrawNotification::dispatch($record);
+                                    $sent++;
+                                }
+                            }
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title("Draw notification emails queued")
+                                ->body("Sent {$sent} draw result emails to queue for processing")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Send Draw Result Emails')
+                        ->modalDescription('This will send draw result emails to all selected participants. Make sure tokens are generated first!')
                         ->deselectRecordsAfterCompletion(),
 
                     DeleteBulkAction::make(),

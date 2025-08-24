@@ -19,7 +19,7 @@ class SendDrawNotification implements ShouldQueue
     public function __construct(
         public Registration $registration
     ) {
-        $this->onQueue('high'); // Higher priority for draw notifications
+        // Using default queue for simplicity
     }
 
     public function handle(MailTemplateService $mailService): void
