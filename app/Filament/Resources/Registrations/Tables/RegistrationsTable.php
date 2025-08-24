@@ -25,7 +25,7 @@ class RegistrationsTable
         return $table
             ->columns([
                 TextColumn::make('starting_number')
-                    ->label('Start #')
+                    ->label(__('admin.registrations.columns.start_number'))
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->whereNotNull('starting_number')->orderBy('starting_number', $direction);
                     })
@@ -41,23 +41,23 @@ class RegistrationsTable
                     }),
 
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('admin.registrations.columns.name'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label(__('admin.registrations.columns.email'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('age')
-                    ->label('Age')
+                    ->label(__('admin.registrations.columns.age'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('gender_label')
-                    ->label('Gender')
-                    ->placeholder('Not specified')
+                    ->label(__('admin.registrations.columns.gender'))
+                    ->placeholder(__('admin.form.placeholders.not_specified'))
                     ->sortable()
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -68,8 +68,8 @@ class RegistrationsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('track_name')
-                    ->label('Track')
-                    ->placeholder('No track selected')
+                    ->label(__('admin.registrations.columns.track'))
+                    ->placeholder(__('admin.form.placeholders.no_track_selected'))
                     ->searchable()
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->whereNotNull('track_id')->orderBy('track_id', $direction);
@@ -77,13 +77,13 @@ class RegistrationsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('team.name')
-                    ->label('Team')
-                    ->placeholder('Individual')
+                    ->label(__('admin.registrations.columns.team'))
+                    ->placeholder(__('admin.form.placeholders.individual'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('draw_status')
-                    ->label('Draw Status')
+                    ->label(__('admin.registrations.columns.draw_status'))
                     ->badge()
                     ->color(fn($record): string => match ($record->draw_status) {
                         'drawn' => $record->is_withdrawn ? 'danger' : 'success',
@@ -93,31 +93,42 @@ class RegistrationsTable
                     })
                     ->formatStateUsing(function($record): string {
                         if ($record->is_withdrawn) {
-                            return 'Withdrawn';
+                            return __('admin.registrations.draw_status.withdrawn');
                         }
                         if ($record->is_waitlist_registered && $record->draw_status === 'waitlist') {
                             $position = $record->getWaitlistPosition();
-                            return "Waitlist #{$position}";
+                            return __('messages.waitlist') . " #{$position}";
                         }
                         return match ($record->draw_status) {
-                            'drawn' => 'Drawn',
-                            'waitlist' => 'Waitlist',
-                            'not_drawn' => 'Not Drawn',
+                            'drawn' => __('admin.registrations.draw_status.drawn'),
+                            'waitlist' => __('admin.registrations.draw_status.waitlist'),
+                            'not_drawn' => __('admin.registrations.draw_status.not_drawn'),
                             default => $record->draw_status,
                         };
                     })
                     ->sortable(),
 
                 TextColumn::make('finish_time')
-                    ->label('Finish Time')
+                    ->label(__('admin.registrations.columns.finish_time'))
                     ->time('H:i')
-                    ->placeholder('Not finished')
+                    ->placeholder(__('admin.form.placeholders.not_finished'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('admin.registrations.columns.status'))
                     ->badge()
+                    ->formatStateUsing(function($record): string {
+                        return match ($record->status) {
+                            'Finished' => __('admin.registrations.status.finished'),
+                            'Starting' => __('admin.registrations.status.starting'),
+                            'Paid' => __('admin.registrations.status.paid'),
+                            'Drawn' => __('admin.registrations.status.drawn'),
+                            'Waitlist' => __('admin.registrations.status.waitlist'),
+                            'Registered' => __('admin.registrations.status.registered'),
+                            default => $record->status,
+                        };
+                    })
                     ->color(fn(string $state): string => match ($state) {
                         'Finished' => 'success',
                         'Starting' => 'info',
@@ -129,7 +140,7 @@ class RegistrationsTable
                     }),
 
                 TextColumn::make('created_at')
-                    ->label('Registered At')
+                    ->label(__('admin.registrations.columns.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -232,13 +243,13 @@ class RegistrationsTable
                     EditAction::make(),
                     
                     Action::make('promote_from_waitlist')
-                        ->label('Promote to Drawn')
+                        ->label(__('admin.registrations.actions.promote_from_waitlist'))
                         ->icon('heroicon-o-arrow-up')
                         ->color('success')
                         ->visible(fn($record) => $record->draw_status === 'waitlist' && !$record->is_withdrawn)
                         ->requiresConfirmation()
-                        ->modalHeading('Promote from Waitlist')
-                        ->modalDescription(fn($record) => "Are you sure you want to promote {$record->name} from waitlist to drawn status?")
+                        ->modalHeading(__('admin.registrations.actions.promote_from_waitlist'))
+                        ->modalDescription(fn($record) => __('admin.registrations.confirmations.promote_from_waitlist', ['name' => $record->name]))
                         ->action(function ($record) {
                             DB::transaction(function () use ($record) {
                                 // First update the status - the observer will handle starting number assignment
@@ -253,21 +264,28 @@ class RegistrationsTable
                             
                             $record->refresh(); // Get the updated starting number
                             
+                            $message = $record->starting_number ? 
+                                __('admin.registrations.notifications.promoted_with_starting_number', [
+                                    'name' => $record->name,
+                                    'number' => $record->formatted_starting_number
+                                ]) :
+                                __('admin.registrations.notifications.promoted_from_waitlist', ['name' => $record->name]);
+                            
                             \Filament\Notifications\Notification::make()
-                                ->title('Promotion Completed')
-                                ->body("Promoted {$record->name} from waitlist to drawn status" . ($record->starting_number ? " (Starting #{$record->formatted_starting_number})" : ""))
+                                ->title(__('admin.registrations.notifications.promotion_completed'))
+                                ->body($message)
                                 ->success()
                                 ->send();
                         }),
                     
                     Action::make('add_to_waitlist')
-                        ->label('Add to Waitlist')
+                        ->label(__('admin.registrations.actions.add_to_waitlist'))
                         ->icon('heroicon-o-clock')
                         ->color('warning')
                         ->visible(fn($record) => $record->draw_status === 'not_drawn' && !$record->is_withdrawn)
                         ->requiresConfirmation()
-                        ->modalHeading('Add to Waitlist')
-                        ->modalDescription(fn($record) => "Are you sure you want to add {$record->name} to the waitlist?")
+                        ->modalHeading(__('admin.registrations.actions.add_to_waitlist'))
+                        ->modalDescription(fn($record) => __('admin.registrations.confirmations.add_to_waitlist', ['name' => $record->name]))
                         ->action(function ($record) {
                             $record->update([
                                 'draw_status' => 'waitlist',
@@ -278,20 +296,20 @@ class RegistrationsTable
                             $record->generateWaitlistToken();
                             
                             \Filament\Notifications\Notification::make()
-                                ->title('Added to Waitlist')
-                                ->body("Added {$record->name} to the waitlist")
+                                ->title(__('admin.registrations.notifications.added_to_waitlist'))
+                                ->body(__('admin.registrations.notifications.added_to_waitlist_body', ['name' => $record->name]))
                                 ->success()
                                 ->send();
                         }),
                     
                     Action::make('manual_withdraw')
-                        ->label('Withdraw')
+                        ->label(__('admin.registrations.actions.manual_withdraw'))
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
                         ->requiresConfirmation()
-                        ->modalHeading('Manual Withdrawal')
-                        ->modalDescription(fn($record) => "Are you sure you want to manually withdraw {$record->name} from the event?")
+                        ->modalHeading(__('admin.registrations.actions.manual_withdraw'))
+                        ->modalDescription(fn($record) => __('admin.registrations.confirmations.manual_withdraw', ['name' => $record->name]))
                         ->action(function ($record) {
                             $record->update([
                                 'is_withdrawn' => true,
@@ -317,21 +335,24 @@ class RegistrationsTable
                                 $nextWaitlisted->generateWithdrawToken();
                                 
                                 \Filament\Notifications\Notification::make()
-                                    ->title('Withdrawal Completed')
-                                    ->body("Withdrew {$record->name} and promoted {$nextWaitlisted->name} from waitlist")
+                                    ->title(__('admin.registrations.notifications.withdrawal_completed'))
+                                    ->body(__('admin.registrations.notifications.withdrew_and_promoted', [
+                                        'withdrawn' => $record->name,
+                                        'promoted' => $nextWaitlisted->name
+                                    ]))
                                     ->success()
                                     ->send();
                             } else {
                                 \Filament\Notifications\Notification::make()
-                                    ->title('Withdrawal Completed')
-                                    ->body("Withdrew {$record->name} (no waitlisted participants to promote)")
+                                    ->title(__('admin.registrations.notifications.withdrawal_completed'))
+                                    ->body(__('admin.registrations.notifications.withdrew_no_promotion', ['name' => $record->name]))
                                     ->success()
                                     ->send();
                             }
                         }),
                     
                     Action::make('send_withdrawal_link')
-                        ->label('Send Withdrawal Link')
+                        ->label(__('admin.registrations.actions.send_withdrawal_link'))
                         ->icon('heroicon-o-envelope')
                         ->color('warning')
                         ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
@@ -345,8 +366,8 @@ class RegistrationsTable
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
                             
                             \Filament\Notifications\Notification::make()
-                                ->title('Withdrawal Link Sent')
-                                ->body("Sent withdrawal link to {$record->email}")
+                                ->title(__('admin.registrations.notifications.withdrawal_link_sent'))
+                                ->body(__('admin.registrations.notifications.withdrawal_link_sent_body', ['email' => $record->email]))
                                 ->success()
                                 ->send();
                         }),
@@ -354,22 +375,22 @@ class RegistrationsTable
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    BulkAction::make('mark_as_paid')
-                        ->label('Mark as Paid')
+                     BulkAction::make('mark_as_paid')
+                        ->label(__('admin.registrations.actions.mark_as_paid'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(fn(Collection $records) => $records->each->update(['payed' => true]))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_starting')
-                        ->label('Mark as Starting')
+                        ->label(__('admin.registrations.actions.mark_as_starting'))
                         ->icon('heroicon-o-play-circle')
                         ->color('info')
                         ->action(fn(Collection $records) => $records->each->update(['starting' => true]))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_drawn')
-                        ->label('Mark as Drawn')
+                        ->label(__('admin.registrations.actions.mark_as_drawn'))
                         ->icon('heroicon-o-star')
                         ->color('success')
                         ->action(fn(Collection $records) => $records->each->update([
@@ -379,7 +400,7 @@ class RegistrationsTable
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_waitlist')
-                        ->label('Mark as Waitlist')
+                        ->label(__('admin.registrations.actions.mark_as_waitlist'))
                         ->icon('heroicon-o-clock')
                         ->color('warning')
                         ->action(fn(Collection $records) => $records->each->update([
@@ -389,7 +410,7 @@ class RegistrationsTable
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_not_drawn')
-                        ->label('Mark as Not Drawn')
+                        ->label(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
                         ->action(fn(Collection $records) => $records->each->update([
@@ -399,7 +420,7 @@ class RegistrationsTable
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('assign_starting_numbers')
-                        ->label('Assign Starting Numbers')
+                        ->label(__('admin.registrations.actions.assign_starting_numbers'))
                         ->icon('heroicon-o-hashtag')
                         ->color('info')
                         ->action(function (Collection $records) {

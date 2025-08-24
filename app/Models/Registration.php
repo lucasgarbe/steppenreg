@@ -202,8 +202,8 @@ class Registration extends Model
     public function getGenderLabelAttribute(): ?string
     {
         return match($this->gender) {
-            'flinta' => 'FLINTA*',
-            'all_gender' => 'All Gender',
+            'flinta' => __('messages.gender_flinta'),
+            'all_gender' => __('messages.gender_all_gender'),
             default => null,
         };
     }
@@ -255,8 +255,8 @@ class Registration extends Model
     public static function getGenderOptions(): array
     {
         return [
-            'flinta' => 'FLINTA*',
-            'all_gender' => 'All Gender',
+            'flinta' => __('messages.gender_flinta'),
+            'all_gender' => __('messages.gender_all_gender'),
         ];
     }
 
@@ -269,26 +269,26 @@ class Registration extends Model
     public function getStatusAttribute(): string
     {
         if ($this->has_finished) {
-            return 'Finished';
+            return __('messages.finished');
         }
         
         if ($this->is_starting) {
-            return 'Starting';
+            return __('messages.starting');
         }
         
         if ($this->is_payed) {
-            return 'Paid';
+            return __('messages.paid');
         }
         
         if ($this->is_drawn) {
-            return 'Drawn';
+            return __('messages.drawn');
         }
         
         if ($this->is_on_waitlist) {
-            return 'Waitlist';
+            return __('messages.waitlist');
         }
         
-        return 'Registered';
+        return __('messages.registered');
     }
 
     // Static methods

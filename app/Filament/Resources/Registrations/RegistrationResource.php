@@ -23,7 +23,12 @@ class RegistrationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     
-    protected static ?string $navigationLabel = 'Registrations';
+    protected static ?string $navigationLabel = null;
+    
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.navigation.registrations');
+    }
     
     protected static ?int $navigationSort = 10;
 

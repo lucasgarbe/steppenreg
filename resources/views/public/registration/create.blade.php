@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Registration</title>
+    <title>{{ __('public.registration.title') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'])
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
@@ -12,7 +12,12 @@
         <div class="bg-white rounded-lg shadow-md p-8">
             <!-- Header -->
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Event Registration</h1>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ __('public.registration.title') }}</h1>
+                
+                <!-- Language Switcher -->
+                <div class="mb-4">
+                    <x-language-switcher />
+                </div>
                 
                 @if($isFlintaOnly)
                     <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">

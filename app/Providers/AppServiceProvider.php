@@ -24,5 +24,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Registration::observe(RegistrationObserver::class);
+        
+        // Configure supported locales
+        config([
+            'app.supported_locales' => [
+                'de' => ['name' => 'Deutsch', 'flag' => '🇩🇪'],
+                'en' => ['name' => 'English', 'flag' => '🇺🇸'],
+            ]
+        ]);
     }
 }
