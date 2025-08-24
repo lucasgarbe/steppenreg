@@ -15,17 +15,26 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email');
+            $table->integer('track_id')->nullable();
             $table->integer('age');
+            $table->enum('gender', ['flinta', 'all_gender'])->nullable();
             $table->boolean('payed')->default(false);
             $table->boolean('starting')->default(false);
+            $table->enum('draw_status', ['not_drawn', 'drawn', 'waitlist'])->default('not_drawn');
+            $table->timestamp('drawn_at')->nullable();
             $table->time('finish_time')->nullable();
+            $table->foreignId('team_id')->nullable()->constrained()->nullOnDelete();
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
+            // Indexes
             $table->index(['email']);
             $table->index(['payed']);
             $table->index(['starting']);
+            $table->index(['track_id']);
+            $table->index(['draw_status']);
+            $table->index(['gender']);
         });
     }
 

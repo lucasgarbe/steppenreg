@@ -17,10 +17,12 @@ class RegistrationFactory extends Factory
      */
     public function definition(): array
     {
+        $name = fake()->name();
+        $email = str_replace([' ', '.'], '', strtolower($name)) . '@' . fake()->safeEmailDomain();
         $finished = fake()->boolean(30); // 30% chance of being finished
         $starting = $finished || fake()->boolean(60); // If finished, definitely starting. Otherwise 60% chance
-        $payed = $starting || fake()->boolean(80); // If starting, likely paid. Otherwise 80% chance
-        
+        $payed = $starting || fake()->boolean(90); // If starting, likely paid. Otherwise 80% chance
+
         $teamId = null;
         // 60% chance of being assigned to a team if there are available teams
         if (fake()->boolean(60) && Team::notFull()->exists()) {
@@ -28,8 +30,8 @@ class RegistrationFactory extends Factory
         }
 
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'name' => $name,
+            'email' => $email,
             'track_id' => fake()->randomElement([1, 2, 3]), // Random track selection
             'team_id' => $teamId,
             'age' => fake()->numberBetween(16, 75),
@@ -42,14 +44,14 @@ class RegistrationFactory extends Factory
 
     public function payed(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'payed' => true,
         ]);
     }
 
     public function starting(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'starting' => true,
             'payed' => true, // Must be paid to start
         ]);
@@ -57,7 +59,7 @@ class RegistrationFactory extends Factory
 
     public function finished(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'finish_time' => fake()->time('H:i:s'),
             'starting' => true,
             'payed' => true,

@@ -14,20 +14,20 @@ class RegistrationSeeder extends Seeder
     {
         // Clear existing data
         Registration::truncate();
-        
+
         // Create various types of registrations
         Registration::factory(20)->create();
         Registration::factory(5)->payed()->create();
         Registration::factory(8)->starting()->create();
         Registration::factory(3)->finished()->create();
-        
+
         $this->command->info('Created ' . Registration::count() . ' sample registrations');
         $this->command->table(
             ['Status', 'Count'],
             [
                 ['Total', Registration::count()],
                 ['Paid', Registration::payed()->count()],
-                ['Starting', Registration::starting()->count()], 
+                ['Starting', Registration::starting()->count()],
                 ['Finished', Registration::finished()->count()],
             ]
         );
