@@ -15,19 +15,64 @@ class PublicRegistrationController extends Controller
         $eventSettings = app(EventSettings::class);
         $tracks = $eventSettings->tracks ?? [];
         
-        return view('public.registration.create', compact('tracks'));
+        // Check application state and determine access
+        $applicationState = $eventSettings->application_state;
+        $isFlintaOnly = $eventSettings->isOpenForFlintaOnly();
+        $isLiveEvent = $eventSettings->isLiveEvent();
+        
+        // Handle different states
+        if ($applicationState === 'closed' || $applicationState === 'closed_waitlist') {
+            // Registration is closed (waitlist is managed via email links, not public form)
+            return view('public.registration.closed', [
+                'eventSettings' => $eventSettings,
+                'state' => $applicationState
+            ]);
+        }
+        
+        if ($isLiveEvent) {
+            // Live event - show special message
+            return view('public.registration.live-event', [
+                'eventSettings' => $eventSettings
+            ]);
+        }
+        
+        // Registration is open (either FLINTA* only or everyone)
+        return view('public.registration.create', compact(
+            'tracks', 
+            'eventSettings', 
+            'applicationState', 
+            'isFlintaOnly'
+        ));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $eventSettings = app(EventSettings::class);
+        
+        // Check if registration is allowed
+        if ($eventSettings->application_state === 'closed' || 
+            $eventSettings->application_state === 'closed_waitlist' || 
+            $eventSettings->isLiveEvent()) {
+            return redirect()->route('registration.create')
+                ->withErrors(['general' => 'Registration is currently closed.']);
+        }
+        
+        // Prepare validation rules
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:registrations,email',
             'age' => 'required|integer|min:1|max:120',
             'gender' => 'required|string|in:flinta,all_gender',
             'track_id' => 'required|integer',
             'team_name' => 'nullable|string|max:255',
-        ]);
+        ];
+        
+        // If only FLINTA* registration is open, restrict gender selection
+        if ($eventSettings->isOpenForFlintaOnly()) {
+            $rules['gender'] = 'required|string|in:flinta';
+        }
+        
+        $request->validate($rules);
 
         $teamId = null;
 
@@ -71,6 +116,9 @@ class PublicRegistrationController extends Controller
             }
         }
 
+        // All public registrations start as not_drawn (waitlist is managed separately via email)
+        $drawStatus = 'not_drawn';
+        
         // Create registration
         Registration::create([
             'name' => $request->name,
@@ -79,7 +127,7 @@ class PublicRegistrationController extends Controller
             'gender' => $request->gender,
             'track_id' => $request->track_id,
             'team_id' => $teamId,
-            'draw_status' => 'not_drawn',
+            'draw_status' => $drawStatus,
             'payed' => false,
             'starting' => false,
         ]);

@@ -17,6 +17,11 @@ class EventSettingsSeeder extends Seeder
         // Set event configuration
         $settings->event_name = 'Steppenreg';
         $settings->site_active = true;
+        
+        // Set default application state - start with closed
+        if (!isset($settings->application_state) || empty($settings->application_state)) {
+            $settings->application_state = 'closed';
+        }
 
         // Define cycling tracks with realistic distances and participant limits
         $cyclingTracks = [
@@ -58,6 +63,7 @@ class EventSettingsSeeder extends Seeder
 
         $this->command->info('Event settings configured: ' . $settings->event_name);
         $this->command->info('Site status: ' . ($settings->site_active ? 'ACTIVE' : 'INACTIVE'));
+        $this->command->info('Application state: ' . $settings->getApplicationStateLabel());
         $this->command->info('Total tracks available: ' . count($settings->tracks));
     }
 }

@@ -10,6 +10,7 @@ use App\Filament\Widgets\RegistrationStats;
 use App\Filament\Widgets\TeamStats;
 use BackedEnum;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
@@ -33,7 +34,14 @@ class ManageEvent extends SettingsPage
                             ->required(),
                         Toggle::make('site_active')
                             ->required(),
-                    ]),
+                        Select::make('application_state')
+                            ->label('Application State')
+                            ->options(EventSettings::getApplicationStates())
+                            ->required()
+                            ->helperText('Controls what type of registrations are accepted')
+                            ->native(false),
+                    ])
+                    ->columns(2),
                 Section::make('Tracks')
                     ->schema([
                         Repeater::make('tracks')

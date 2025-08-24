@@ -13,7 +13,26 @@
             <!-- Header -->
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">Event Registration</h1>
-                <p class="text-gray-600">Complete the form below to register for the event</p>
+                
+                @if($isFlintaOnly)
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-purple-800">FLINTA* Registration Open</h3>
+                                <div class="mt-1 text-sm text-purple-700">
+                                    <p>Currently only open for FLINTA* participants (women, lesbians, inter, non-binary, trans, and agender people).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                
+                <p class="text-gray-600">Complete the form below to register for {{ $eventSettings->event_name }}</p>
             </div>
 
             <!-- Form -->
@@ -74,9 +93,16 @@
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Select gender category...</option>
                                 <option value="flinta" {{ old('gender') == 'flinta' ? 'selected' : '' }}>FLINTA*</option>
-                                <option value="all_gender" {{ old('gender') == 'all_gender' ? 'selected' : '' }}>All Gender</option>
+                                @if(!$isFlintaOnly)
+                                    <option value="all_gender" {{ old('gender') == 'all_gender' ? 'selected' : '' }}>All Gender</option>
+                                @endif
                             </select>
-                            <p class="mt-1 text-xs text-gray-500">FLINTA* includes women, lesbians, inter, non-binary, trans, and agender people</p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                FLINTA* includes women, lesbians, inter, non-binary, trans, and agender people
+                                @if($isFlintaOnly)
+                                    <br><strong class="text-purple-600">Currently only FLINTA* registration is available.</strong>
+                                @endif
+                            </p>
                             @error('gender')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
