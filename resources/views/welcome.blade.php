@@ -1,11 +1,11 @@
 @extends('layouts.public')
 
-@section('title', config('app.name') . ' - Event Registration System')
+@section('title', app(\App\Settings\EventSettings::class)->event_name)
 @section('description', 'Register for our upcoming event. Complete the form to secure your spot.')
 
 @section('content')
     <x-public.page-header 
-        :title="config('app.name')" 
+        :title="app(\App\Settings\EventSettings::class)->event_name" 
         subtitle="Event Registration System"
     />
 

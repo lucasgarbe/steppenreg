@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', config('app.name', 'Steppenreg'))</title>
+    <title>@yield('title', app(\App\Settings\EventSettings::class)->event_name)</title>
     
     <!-- Meta tags -->
     <meta name="description" content="@yield('description', __('public.registration.subtitle'))">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('steppenwolf-logo_small-transparent-black.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('steppenwolf-logo_small-transparent-black.png') }}">
     
     <!-- Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'])
