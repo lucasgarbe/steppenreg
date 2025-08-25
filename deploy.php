@@ -1,4 +1,5 @@
 <?php
+
 namespace Deployer;
 
 require 'recipe/laravel.php';
@@ -20,3 +21,16 @@ host('bab.steppenwolf-berlin.de')
 // Hooks
 
 after('deploy:failed', 'deploy:unlock');
+
+// Define pnpm tasks
+task('pnpm:install', function () {
+    run('cd {{release_path}} && /home/deployer/.local/share/pnpm/pnpm install');
+})->desc('Install pnpm dependencies');
+
+task('pnpm:build', function () {
+    run('cd {{release_path}} && /home/deployer/.local/share/pnpm/pnpm run build');
+})->desc('Build assets with pnpm');
+
+// Add the tasks to the deployment flow
+after('deploy:vendors', 'pnpm:install');
+after('deploy:vendors', 'pnpm:build');
