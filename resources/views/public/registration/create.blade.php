@@ -1,215 +1,276 @@
-<!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ __('public.registration.title') }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'])
+@extends('layouts.public')
+
+@section('title', __('public.registration.title'))
+@section('description', __('public.registration.subtitle'))
+
+@push('head')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-</head>
-<body class="bg-gray-50 min-h-screen py-8">
-    <div class="max-w-2xl mx-auto px-4">
-        <div class="bg-white rounded-lg shadow-md p-8">
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ __('public.registration.title') }}</h1>
-                
-                <!-- Language Switcher -->
-                <div class="mb-4">
-                    <x-language-switcher />
+@endpush
+
+@section('content')
+    <x-public.page-header 
+        :title="__('public.registration.title')" 
+        :subtitle="'Complete the form below to register for ' . $eventSettings->event_name"
+    >
+        @if($isFlintaOnly)
+            <x-public.alert type="info" class="mt-4">
+                <h3 class="text-sm font-medium">FLINTA* Registration Open</h3>
+                <div class="mt-1 text-sm">
+                    <p>Currently only open for FLINTA* participants (women, lesbians, inter, non-binary, trans, and agender people).</p>
                 </div>
-                
-                @if($isFlintaOnly)
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-purple-800">FLINTA* Registration Open</h3>
-                                <div class="mt-1 text-sm text-purple-700">
-                                    <p>Currently only open for FLINTA* participants (women, lesbians, inter, non-binary, trans, and agender people).</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-                
-                <p class="text-gray-600">Complete the form below to register for {{ $eventSettings->event_name }}</p>
+            </x-public.alert>
+        @endif
+    </x-public.page-header>
+
+    <x-public.form action="{{ route('registration.store') }}" id="registration-form">
+        <!-- Personal Information Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                {{ __('public.registration.personal_information') }}
+            </h2>
+            
+            <div class="space-y-6">
+                <!-- Name -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ __('public.registration.fields.name') }} <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="{{ __('public.registration.fields.name_placeholder') }}"
+                        required
+                        value="{{ old('name') }}"
+                    >
+                    @error('name')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ __('public.registration.fields.email') }} <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="{{ __('public.registration.fields.email_placeholder') }}"
+                        required
+                        value="{{ old('email') }}"
+                    >
+                    @error('email')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Age -->
+                <div>
+                    <label for="age" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ __('public.registration.fields.age') }} <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        id="age" 
+                        name="age" 
+                        min="16" 
+                        max="99"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="{{ __('public.registration.fields.age_placeholder') }}"
+                        required
+                        value="{{ old('age') }}"
+                    >
+                    @error('age')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Gender -->
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ __('public.registration.fields.gender') }}
+                    </label>
+                    <select 
+                        id="gender" 
+                        name="gender" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">{{ __('public.registration.fields.gender_placeholder') }}</option>
+                        @foreach(\App\Models\Registration::getGenderOptions() as $value => $label)
+                            <option value="{{ $value }}" {{ old('gender') == $value ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('gender')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
-
-            <!-- Form -->
-            <form method="POST" action="{{ route('registration.store') }}" id="registration-form">
-                @csrf
-
-                <!-- Personal Information Section -->
-                <div class="mb-8">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
-                        Personal Information
-                    </h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Name -->
-                        <div>
-                            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-                                Full Name <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text"
-                                   id="name"
-                                   name="name"
-                                   value="{{ old('name') }}"
-                                   required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="Enter your full name">
-                            @error('name')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Age -->
-                        <div>
-                            <label for="age" class="block text-sm font-medium text-gray-700 mb-2">
-                                Age <span class="text-red-500">*</span>
-                            </label>
-                            <input type="number"
-                                   id="age"
-                                   name="age"
-                                   value="{{ old('age') }}"
-                                   min="1"
-                                   max="120"
-                                   required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="Enter your age">
-                            @error('age')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Gender -->
-                        <div>
-                            <label for="gender" class="block text-sm font-medium text-gray-700 mb-2">
-                                Gender Category <span class="text-red-500">*</span>
-                            </label>
-                            <select id="gender"
-                                    name="gender"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Select gender category...</option>
-                                <option value="flinta" {{ old('gender') == 'flinta' ? 'selected' : '' }}>FLINTA*</option>
-                                @if(!$isFlintaOnly)
-                                    <option value="all_gender" {{ old('gender') == 'all_gender' ? 'selected' : '' }}>All Gender</option>
-                                @endif
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500">
-                                FLINTA* includes women, lesbians, inter, non-binary, trans, and agender people
-                                @if($isFlintaOnly)
-                                    <br><strong class="text-purple-600">Currently only FLINTA* registration is available.</strong>
-                                @endif
-                            </p>
-                            @error('gender')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Email -->
-                        <div class="md:col-span-2">
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                                Email Address <span class="text-red-500">*</span>
-                            </label>
-                            <input type="email"
-                                   id="email"
-                                   name="email"
-                                   value="{{ old('email') }}"
-                                   required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="your.email@example.com">
-                            @error('email')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Track Selection Section -->
-                <div class="mb-8">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
-                        Track Selection
-                    </h2>
-
-                    <div>
-                        <label for="track_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Choose Your Track <span class="text-red-500">*</span>
-                        </label>
-                        <select id="track_id"
-                                name="track_id"
-                                required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Select a track...</option>
-                            @foreach($tracks as $track)
-                                <option value="{{ $track['id'] }}" {{ old('track_id') == $track['id'] ? 'selected' : '' }}>
-                                    {{ $track['name'] }}
-                                    @if(isset($track['distance']))
-                                        ({{ $track['distance'] }} km)
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('track_id')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Team Section -->
-                <div class="mb-8">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
-                        Team (Optional)
-                    </h2>
-
-                    <div>
-                        <label for="team_name" class="block text-sm font-medium text-gray-700 mb-2">
-                            Team Name
-                        </label>
-                        <input type="text"
-                               id="team_name"
-                               name="team_name"
-                               value="{{ old('team_name') }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Enter team name (leave empty to register individually)">
-                        <p class="mt-1 text-xs text-gray-500">
-                            Enter a team name to join an existing team or create a new one.
-                            Your teammates should enter the exact same team name.
-                        </p>
-                        @error('team_name')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <div class="flex justify-center">
-                    <button type="submit"
-                            class="bg-blue-600 text-white px-8 py-3 rounded-md font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200">
-                        Complete Registration
-                    </button>
-                </div>
-            </form>
         </div>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Simple form enhancement - could add team name suggestions in the future if needed
-            const teamNameInput = document.getElementById('team_name');
+        <!-- Event Information Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                {{ __('public.registration.event_information') }}
+            </h2>
+            
+            <div class="space-y-6">
+                <!-- Track -->
+                <div>
+                    <label for="track_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ __('public.registration.fields.track') }} <span class="text-red-500">*</span>
+                    </label>
+                    <select 
+                        id="track_id" 
+                        name="track_id" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                        onchange="handleTrackChange()"
+                    >
+                        <option value="">{{ __('public.registration.fields.track_placeholder') }}</option>
+                        @foreach($tracks as $track)
+                            <option value="{{ $track['id'] }}" {{ old('track_id') == $track['id'] ? 'selected' : '' }}>
+                                {{ $track['name'] }}
+                                @if(isset($track['distance']))
+                                    ({{ $track['distance'] }} km)
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('track_id')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
 
-            // Optional: Add team name normalization
-            teamNameInput.addEventListener('blur', function() {
-                // Trim whitespace and normalize case
-                this.value = this.value.trim();
-            });
-        });
-    </script>
-</body>
-</html>
+                <!-- Team Options -->
+                <div id="team-section" style="display: none;">
+                    <div class="space-y-4">
+                        <!-- Team Option Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                {{ __('public.registration.fields.team_option') }}
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="team_option" value="individual" class="mr-2" checked onchange="handleTeamOptionChange()">
+                                    <span class="text-sm text-gray-700">{{ __('public.registration.team_options.individual') }}</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="team_option" value="join" class="mr-2" onchange="handleTeamOptionChange()">
+                                    <span class="text-sm text-gray-700">{{ __('public.registration.team_options.join_team') }}</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="team_option" value="create" class="mr-2" onchange="handleTeamOptionChange()">
+                                    <span class="text-sm text-gray-700">{{ __('public.registration.team_options.create_team') }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Team Selection/Creation -->
+                        <div id="team-input" style="display: none;">
+                            <label for="team_name" class="block text-sm font-medium text-gray-700 mb-1">
+                                {{ __('public.registration.fields.team') }}
+                            </label>
+                            <input 
+                                type="text" 
+                                id="team_name" 
+                                name="team_name" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="{{ __('public.registration.fields.team_placeholder') }}"
+                                value="{{ old('team_name') }}"
+                            >
+                            @error('team_name')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ __('public.registration.fields.notes') }}
+                    </label>
+                    <textarea 
+                        id="notes" 
+                        name="notes" 
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="{{ __('public.registration.fields.notes_placeholder') }}"
+                    >{{ old('notes') }}</textarea>
+                    @error('notes')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-center">
+            <x-public.button 
+                type="submit" 
+                variant="primary" 
+                size="lg"
+                id="submit-btn"
+            >
+                {{ __('public.registration.submit') }}
+            </x-public.button>
+        </div>
+    </x-public.form>
+@endsection
+
+@push('scripts')
+<script>
+    const tracks = @json($tracks);
+    
+    function handleTrackChange() {
+        const trackSelect = document.getElementById('track_id');
+        const teamSection = document.getElementById('team-section');
+        
+        if (trackSelect.value) {
+            const selectedTrack = tracks.find(track => track.id == trackSelect.value);
+            if (selectedTrack && selectedTrack.allow_teams) {
+                teamSection.style.display = 'block';
+            } else {
+                teamSection.style.display = 'none';
+                // Reset team options
+                document.querySelector('input[name="team_option"][value="individual"]').checked = true;
+                handleTeamOptionChange();
+            }
+        } else {
+            teamSection.style.display = 'none';
+        }
+    }
+    
+    function handleTeamOptionChange() {
+        const teamInput = document.getElementById('team-input');
+        const selectedOption = document.querySelector('input[name="team_option"]:checked');
+        
+        if (selectedOption && selectedOption.value !== 'individual') {
+            teamInput.style.display = 'block';
+            const input = document.getElementById('team_name');
+            input.required = true;
+            
+            if (selectedOption.value === 'join') {
+                input.placeholder = '{{ __("public.registration.fields.team_placeholder") }}';
+            } else if (selectedOption.value === 'create') {
+                input.placeholder = '{{ __("public.registration.fields.team_placeholder") }}';
+            }
+        } else {
+            teamInput.style.display = 'none';
+            document.getElementById('team_name').required = false;
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        handleTrackChange();
+        handleTeamOptionChange();
+    });
+</script>
+@endpush

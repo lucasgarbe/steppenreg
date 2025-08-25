@@ -371,6 +371,30 @@ class RegistrationsTable
                                 ->success()
                                 ->send();
                         }),
+                    
+                    Action::make('send_draw_results')
+                        ->label(__('admin.registrations.actions.send_draw_results'))
+                        ->icon('heroicon-o-envelope')
+                        ->color('primary')
+                        ->visible(fn($record) => $record->draw_status !== 'not_drawn' && !$record->is_withdrawn)
+                        ->action(function ($record) {
+                            // Generate tokens if they don't exist
+                            if ($record->draw_status === 'drawn' && !$record->withdraw_token) {
+                                $record->generateWithdrawToken();
+                            }
+                            if (($record->draw_status === 'waitlist' || $record->can_join_waitlist) && !$record->waitlist_token) {
+                                $record->generateWaitlistToken();
+                            }
+                            
+                            // Send draw notification email
+                            \App\Jobs\Mail\SendDrawNotification::dispatch($record);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title(__('admin.registrations.notifications.draw_results_sent'))
+                                ->body(__('admin.registrations.notifications.draw_results_sent_body', ['email' => $record->email]))
+                                ->success()
+                                ->send();
+                        }),
                 ])
             ])
             ->bulkActions([
