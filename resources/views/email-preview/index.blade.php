@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Template Preview</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('your-logo.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('your-logo.png') }}">
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
         .template-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
