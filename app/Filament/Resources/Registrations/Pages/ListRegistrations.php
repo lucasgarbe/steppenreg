@@ -18,7 +18,7 @@ class ListRegistrations extends ListRecords
     {
         return [
             Action::make('manageDraw')
-                ->label('Draw Management')
+                ->label('Auslosung')
                 ->icon('heroicon-o-calculator')
                 ->color('gray')
                 ->url(static::$resource::getUrl('draw')),

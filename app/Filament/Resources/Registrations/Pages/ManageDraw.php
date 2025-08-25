@@ -23,7 +23,7 @@ class ManageDraw extends Page implements HasSchemas
     use InteractsWithSchemas;
 
     protected static string $resource = RegistrationResource::class;
-    protected static ?string $title = 'Draw Management';
+    protected static ?string $title = 'Auslosung';
     protected string $view = 'filament.resources.registrations.pages.manage-draw';
 
     public ?array $data = [];
@@ -266,9 +266,9 @@ class ManageDraw extends Page implements HasSchemas
         $drawn = Registration::where('draw_status', 'drawn')->get();
         $waitlist = Registration::where('draw_status', 'waitlist')->get();
         $rejected = Registration::where('draw_status', 'not_drawn')->get();
-        
+
         $sent = 0;
-        
+
         // Send to drawn participants (generate withdraw tokens first)
         foreach ($drawn as $registration) {
             if (!$registration->withdraw_token) {
@@ -277,13 +277,13 @@ class ManageDraw extends Page implements HasSchemas
             \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
             $sent++;
         }
-        
+
         // Send to waitlist participants
         foreach ($waitlist as $registration) {
             \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
             $sent++;
         }
-        
+
         // Send to rejected participants (generate waitlist tokens first)
         foreach ($rejected as $registration) {
             if (!$registration->waitlist_token) {
@@ -292,7 +292,7 @@ class ManageDraw extends Page implements HasSchemas
             \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
             $sent++;
         }
-        
+
         Notification::make()
             ->title("All draw notifications queued!")
             ->body("Sent {$sent} emails to queue: {$drawn->count()} drawn, {$waitlist->count()} waitlist, {$rejected->count()} rejected")
@@ -301,7 +301,7 @@ class ManageDraw extends Page implements HasSchemas
 
         Log::info('All draw notifications sent', [
             'drawn' => $drawn->count(),
-            'waitlist' => $waitlist->count(), 
+            'waitlist' => $waitlist->count(),
             'rejected' => $rejected->count(),
             'total_sent' => $sent
         ]);
