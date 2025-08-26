@@ -30,6 +30,11 @@ return [
             'notes_placeholder' => 'Zusätzliche Informationen oder Anmerkungen (optional)',
         ],
 
+        'flinta_notice' => [
+            'title' => 'FLINTA* Anmeldung geöffnet',
+            'message' => 'Derzeit nur für FLINTA* Teilnehmer*innen geöffnet.',
+        ],
+
         'team_options' => [
             'individual' => 'Einzelanmeldung',
             'join_team' => 'Bestehendem Team beitreten',
@@ -102,7 +107,7 @@ return [
         'subtitle' => 'Ziehe deine Anmeldung für das Event zurück',
         'confirmation_required' => 'Bestätigung erforderlich',
         'warning' => 'Warnung: Diese Aktion kann nicht rückgängig gemacht werden.',
-        'participant_info' => 'Teilnehmer:in: :name',
+        'participant_info' => 'Teilnehmer*in: :name',
         'track_info' => 'Strecke: :track',
         'starting_number_info' => 'Startnummer: :number',
         'withdraw_button' => 'Anmeldung zurückziehen',
@@ -121,7 +126,7 @@ return [
         'success' => [
             'title' => 'Rückzug erfolgreich',
             'message' => 'Du hast dich erfolgreich vom Event zurückgezogen.',
-            'next_participant_info' => 'Der nächste Teilnehmer auf der Warteliste wurde benachrichtigt.',
+            'next_participant_info' => 'Dein Platz wird an eine neue Person verlost',
             'refund_info' => 'Informationen zur Rückerstattung erhältst du per E-Mail.',
         ],
 

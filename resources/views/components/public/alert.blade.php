@@ -1,7 +1,8 @@
 @props([
     'type' => 'info', // info, success, warning, error
     'dismissible' => false,
-    'icon' => true
+    'icon' => true,
+    'class' => '',
 ])
 
 @php
@@ -10,11 +11,12 @@ $classes = [
     'success' => 'bg-green-50 border-green-200 text-green-700',
     'warning' => 'bg-yellow-50 border-yellow-200 text-yellow-700',
     'error' => 'bg-red-50 border-red-200 text-red-700',
+    'pride' => 'bg-pride',
 ];
 
 $iconClasses = [
     'info' => 'text-blue-400',
-    'success' => 'text-green-400', 
+    'success' => 'text-green-400',
     'warning' => 'text-yellow-400',
     'error' => 'text-red-400',
 ];
@@ -27,7 +29,7 @@ $icons = [
 ];
 @endphp
 
-<div class="border rounded-lg p-4 mb-4 {{ $classes[$type] }}">
+<div class="border rounded-lg p-4 mb-4 {{ $classes[$type] }} {{ $class }}">
     <div class="flex {{ $icon ? 'items-center' : '' }}">
         @if($icon)
             <div class="flex-shrink-0">
@@ -43,7 +45,7 @@ $icons = [
                 {{ $slot }}
             </div>
         @endif
-        
+
         @if($dismissible)
             <div class="flex-shrink-0 ml-3">
                 <button type="button" class="inline-flex rounded-md p-1.5 {{ $iconClasses[$type] }} hover:bg-white/20" onclick="this.closest('[role=alert]').remove()">

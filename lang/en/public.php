@@ -30,6 +30,11 @@ return [
             'notes_placeholder' => 'Additional information or notes (optional)',
         ],
 
+        'flinta_notice' => [
+            'title' => 'FLINTA* Registration Open',
+            'message' => 'Currently only open for FLINTA* participants.',
+        ],
+
         'team_options' => [
             'individual' => 'Individual registration',
             'join_team' => 'Join existing team',

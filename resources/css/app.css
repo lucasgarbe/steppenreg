@@ -13,3 +13,24 @@
     --color-spw-yellow: #F9C458;
     --color-spw-purple: #7a58fc;
 }
+
+@layer utilities {
+    .bg-pride {
+        background: linear-gradient(to right, rgba(237, 34, 36, 0.25), rgba(243, 91, 34, 0.25), rgba(249, 150, 33, 0.25), rgba(245, 193, 30, 0.25), rgba(241, 235, 27, 0.25) 27%, rgba(241, 235, 27, 0.25), rgba(241, 235, 27, 0.25) 33%, rgba(99, 199, 32, 0.25), rgba(12, 155, 73, 0.25), rgba(33, 135, 141, 0.25), rgba(57, 84, 165, 0.25), rgba(97, 55, 155, 0.25), rgba(147, 40, 142, 0.25));
+        background-size: 200%;
+        background-position: 0;
+        animation: prideanim 5s ease infinite;
+    }
+}
+
+@keyframes prideanim {
+    0% {
+        background-position: 0;
+    }
+    50% {
+        background-position: 100%;
+    }
+    100% {
+        background-position: 0;
+    }
+}
