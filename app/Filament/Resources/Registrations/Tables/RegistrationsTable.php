@@ -43,7 +43,10 @@ class RegistrationsTable
                 TextColumn::make('name')
                     ->label(__('admin.registrations.columns.name'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->icon(fn($record) => $record->notes ? 'heroicon-s-document-text' : null)
+                    ->iconColor('primary')
+                    ->tooltip(fn($record) => $record->notes ? __('admin.registrations.tooltips.has_notes') : null),
 
                 TextColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
@@ -138,6 +141,16 @@ class RegistrationsTable
                         'Registered' => 'gray',
                         default => 'gray',
                     }),
+
+                TextColumn::make('notes')
+                    ->label(__('admin.registrations.columns.notes'))
+                    ->wrap()
+                    ->limit(50)
+                    ->placeholder(__('admin.form.placeholders.no_notes'))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->icon(fn($record) => $record->notes ? 'heroicon-s-document-text' : null)
+                    ->color(fn($record) => $record->notes ? 'primary' : null),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.registrations.columns.created_at'))

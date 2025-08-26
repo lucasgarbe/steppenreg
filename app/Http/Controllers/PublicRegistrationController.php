@@ -65,6 +65,7 @@ class PublicRegistrationController extends Controller
             'gender' => 'required|string|in:flinta,all_gender',
             'track_id' => 'required|integer',
             'team_name' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
         ];
         
         // If only FLINTA* registration is open, restrict gender selection
@@ -127,6 +128,7 @@ class PublicRegistrationController extends Controller
             'gender' => $request->gender,
             'track_id' => $request->track_id,
             'team_id' => $teamId,
+            'notes' => $request->notes,
             'draw_status' => $drawStatus,
             'payed' => false,
             'starting' => false,

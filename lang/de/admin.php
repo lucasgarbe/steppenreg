@@ -32,6 +32,7 @@ return [
             'draw_status' => 'Auslosungsstatus',
             'finish_time' => 'Zielzeit',
             'status' => 'Status',
+            'notes' => 'Notizen',
             'created_at' => 'Angemeldet am',
         ],
         
@@ -179,6 +180,11 @@ return [
             'not_finished' => 'Nicht fertig',
             'individual' => 'Einzeln',
             'no_track_selected' => 'Keine Strecke ausgewählt',
+            'no_notes' => 'Keine Notizen',
+        ],
+        
+        'tooltips' => [
+            'has_notes' => 'Diese Anmeldung hat Notizen',
         ],
     ],
 ];
