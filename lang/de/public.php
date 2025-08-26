@@ -143,7 +143,8 @@ return [
         'title' => 'Anmeldung geschlossen',
         'message' => 'Die Anmeldung für dieses Event ist derzeit geschlossen.',
         'info' => 'Neue Anmeldungen sind nicht mehr möglich.',
-        'contact' => 'Bei Fragen wende dich an die Veranstalter.',
+        'help' => 'Hast du Fragen?',
+        'contact' => 'Schreib uns gerne eine Mail',
     ],
 
     'maintenance' => [
