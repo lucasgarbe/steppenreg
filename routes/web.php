@@ -4,12 +4,13 @@ use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\WaitlistController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Root route now points to registration
+Route::get('/', [PublicRegistrationController::class, 'create'])->name('registration.create');
 
-// Public Registration Routes
-Route::get('/register', [PublicRegistrationController::class, 'create'])->name('registration.create');
+// Redirect old /register route to root for backwards compatibility
+Route::get('/register', function () {
+    return redirect('/', 301);
+});
 Route::post('/register', [PublicRegistrationController::class, 'store'])->name('registration.store');
 Route::get('/registration/success', [PublicRegistrationController::class, 'success'])->name('registration.success');
 
