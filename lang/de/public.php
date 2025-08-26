@@ -3,14 +3,14 @@
 return [
     // Registration form
     'registration' => [
-        'title' => 'Event-Anmeldung',
-        'subtitle' => 'Melde dich für unser Event an',
+        'title' => 'Anmeldung',
+        'subtitle' => 'Hier kannst du dich anmelden',
         'form_title' => 'Anmeldeformular',
         'personal_information' => 'Persönliche Informationen',
         'event_information' => 'Event-Informationen',
         'submit' => 'Anmeldung abschicken',
         'submitting' => 'Wird gesendet...',
-        
+
         'fields' => [
             'name' => 'Vollständiger Name',
             'name_placeholder' => 'Dein vollständiger Name',
@@ -18,8 +18,8 @@ return [
             'email_placeholder' => 'deine@email.de',
             'age' => 'Alter',
             'age_placeholder' => 'Dein Alter in Jahren',
-            'gender' => 'Geschlecht',
-            'gender_placeholder' => 'Geschlecht auswählen',
+            'gender' => 'Gender',
+            'gender_placeholder' => 'Gender auswählen',
             'track' => 'Strecke',
             'track_placeholder' => 'Strecke auswählen',
             'team_option' => 'Team-Option',
@@ -29,18 +29,18 @@ return [
             'notes' => 'Anmerkungen',
             'notes_placeholder' => 'Zusätzliche Informationen oder Anmerkungen (optional)',
         ],
-        
+
         'team_options' => [
             'individual' => 'Einzelanmeldung',
             'join_team' => 'Bestehendem Team beitreten',
             'create_team' => 'Neues Team erstellen',
         ],
-        
+
         'gender_options' => [
             'flinta' => 'FLINTA*',
-            'all_gender' => 'Alle Geschlechter',
+            'all_gender' => 'All Gender',
         ],
-        
+
         'success' => [
             'title' => 'Anmeldung erfolgreich!',
             'message' => 'Deine Anmeldung wurde erfolgreich übermittelt.',
@@ -49,7 +49,7 @@ return [
             'wait_for_draw' => 'Warte auf die Auslosung - wir informieren dich per E-Mail über das Ergebnis.',
             'back_to_home' => 'Zur Startseite',
         ],
-        
+
         'errors' => [
             'validation_failed' => 'Bitte überprüfe deine Eingaben.',
             'submission_failed' => 'Anmeldung fehlgeschlagen. Bitte versuche es erneut.',
@@ -62,40 +62,40 @@ return [
             'team_full' => 'Das gewählte Team ist bereits voll.',
         ],
     ],
-    
+
     // Waitlist
     'waitlist' => [
         'join_title' => 'Der Warteliste beitreten',
         'join_subtitle' => 'Tritt der Warteliste bei, um eine Chance auf einen Platz zu erhalten',
         'join_button' => 'Warteliste beitreten',
         'joining' => 'Trete bei...',
-        
+
         'success' => [
             'title' => 'Warteliste beigetreten!',
             'message' => 'Du bist der Warteliste erfolgreich beigetreten.',
             'position_info' => 'Deine Position auf der Warteliste wird dir per E-Mail mitgeteilt.',
             'notification_info' => 'Du wirst benachrichtigt, falls ein Platz frei wird.',
         ],
-        
+
         'already_processed' => [
             'title' => 'Bereits verarbeitet',
             'message' => 'Dieser Wartelisten-Link wurde bereits verwendet oder ist abgelaufen.',
             'contact_info' => 'Falls du Fragen hast, kontaktiere uns bitte.',
         ],
-        
+
         'invalid_token' => [
             'title' => 'Ungültiger Link',
             'message' => 'Dieser Wartelisten-Link ist ungültig oder abgelaufen.',
             'contact_info' => 'Falls du Hilfe benötigst, kontaktiere uns bitte.',
         ],
-        
+
         'closed' => [
             'title' => 'Warteliste geschlossen',
             'message' => 'Die Warteliste für dieses Event ist derzeit geschlossen.',
             'info' => 'Anmeldungen sind nicht mehr möglich.',
         ],
     ],
-    
+
     // Withdrawal
     'withdrawal' => [
         'title' => 'Vom Event zurückziehen',
@@ -108,7 +108,7 @@ return [
         'withdraw_button' => 'Anmeldung zurückziehen',
         'withdrawing' => 'Wird zurückgezogen...',
         'cancel_button' => 'Abbrechen',
-        
+
         'reasons' => [
             'title' => 'Grund für den Rückzug (optional)',
             'injury' => 'Verletzung',
@@ -117,27 +117,27 @@ return [
             'schedule_conflict' => 'Terminkonflikt',
             'other' => 'Andere',
         ],
-        
+
         'success' => [
             'title' => 'Rückzug erfolgreich',
             'message' => 'Du hast dich erfolgreich vom Event zurückgezogen.',
             'next_participant_info' => 'Der nächste Teilnehmer auf der Warteliste wurde benachrichtigt.',
             'refund_info' => 'Informationen zur Rückerstattung erhältst du per E-Mail.',
         ],
-        
+
         'already_processed' => [
             'title' => 'Bereits verarbeitet',
             'message' => 'Dieser Rückzugs-Link wurde bereits verwendet oder ist abgelaufen.',
             'contact_info' => 'Falls du Fragen hast, kontaktiere uns bitte.',
         ],
-        
+
         'invalid_token' => [
             'title' => 'Ungültiger Link',
             'message' => 'Dieser Rückzugs-Link ist ungültig oder abgelaufen.',
             'contact_info' => 'Falls du Hilfe benötigst, kontaktiere uns bitte.',
         ],
     ],
-    
+
     // General messages
     'event_closed' => [
         'title' => 'Anmeldung geschlossen',
@@ -145,13 +145,13 @@ return [
         'info' => 'Neue Anmeldungen sind nicht mehr möglich.',
         'contact' => 'Bei Fragen wende dich an die Veranstalter.',
     ],
-    
+
     'maintenance' => [
         'title' => 'Wartungsmodus',
         'message' => 'Das Anmeldesystem wird gerade gewartet.',
         'info' => 'Bitte versuche es später erneut.',
     ],
-    
+
     // Navigation
     'navigation' => [
         'home' => 'Startseite',
@@ -160,7 +160,7 @@ return [
         'contact' => 'Kontakt',
         'language' => 'Sprache',
     ],
-    
+
     // Footer
     'footer' => [
         'contact' => 'Kontakt',

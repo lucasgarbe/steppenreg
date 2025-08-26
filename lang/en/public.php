@@ -3,14 +3,14 @@
 return [
     // Registration form
     'registration' => [
-        'title' => 'Event Registration',
-        'subtitle' => 'Register for our event',
+        'title' => 'Registration',
+        'subtitle' => 'You can register here',
         'form_title' => 'Registration Form',
         'personal_information' => 'Personal Information',
         'event_information' => 'Event Information',
         'submit' => 'Submit Registration',
         'submitting' => 'Submitting...',
-        
+
         'fields' => [
             'name' => 'Full Name',
             'name_placeholder' => 'Your full name',
@@ -29,18 +29,18 @@ return [
             'notes' => 'Notes',
             'notes_placeholder' => 'Additional information or notes (optional)',
         ],
-        
+
         'team_options' => [
             'individual' => 'Individual registration',
             'join_team' => 'Join existing team',
             'create_team' => 'Create new team',
         ],
-        
+
         'gender_options' => [
             'flinta' => 'FLINTA*',
             'all_gender' => 'All Gender',
         ],
-        
+
         'success' => [
             'title' => 'Registration Successful!',
             'message' => 'Your registration has been successfully submitted.',
@@ -49,7 +49,7 @@ return [
             'wait_for_draw' => 'Wait for the draw - we\'ll notify you by email about the results.',
             'back_to_home' => 'Back to Home',
         ],
-        
+
         'errors' => [
             'validation_failed' => 'Please check your input.',
             'submission_failed' => 'Registration failed. Please try again.',
@@ -62,40 +62,40 @@ return [
             'team_full' => 'The selected team is already full.',
         ],
     ],
-    
+
     // Waitlist
     'waitlist' => [
         'join_title' => 'Join Waitlist',
         'join_subtitle' => 'Join the waitlist to get a chance for a spot',
         'join_button' => 'Join Waitlist',
         'joining' => 'Joining...',
-        
+
         'success' => [
             'title' => 'Joined Waitlist!',
             'message' => 'You have successfully joined the waitlist.',
             'position_info' => 'Your waitlist position will be communicated via email.',
             'notification_info' => 'You will be notified if a spot becomes available.',
         ],
-        
+
         'already_processed' => [
             'title' => 'Already Processed',
             'message' => 'This waitlist link has already been used or expired.',
             'contact_info' => 'If you have questions, please contact us.',
         ],
-        
+
         'invalid_token' => [
             'title' => 'Invalid Link',
             'message' => 'This waitlist link is invalid or expired.',
             'contact_info' => 'If you need help, please contact us.',
         ],
-        
+
         'closed' => [
             'title' => 'Waitlist Closed',
             'message' => 'The waitlist for this event is currently closed.',
             'info' => 'Registration is no longer possible.',
         ],
     ],
-    
+
     // Withdrawal
     'withdrawal' => [
         'title' => 'Withdraw from Event',
@@ -108,7 +108,7 @@ return [
         'withdraw_button' => 'Withdraw Registration',
         'withdrawing' => 'Withdrawing...',
         'cancel_button' => 'Cancel',
-        
+
         'reasons' => [
             'title' => 'Reason for withdrawal (optional)',
             'injury' => 'Injury',
@@ -117,27 +117,27 @@ return [
             'schedule_conflict' => 'Schedule conflict',
             'other' => 'Other',
         ],
-        
+
         'success' => [
             'title' => 'Withdrawal Successful',
             'message' => 'You have successfully withdrawn from the event.',
             'next_participant_info' => 'The next participant on the waitlist has been notified.',
             'refund_info' => 'You will receive refund information via email.',
         ],
-        
+
         'already_processed' => [
             'title' => 'Already Processed',
             'message' => 'This withdrawal link has already been used or expired.',
             'contact_info' => 'If you have questions, please contact us.',
         ],
-        
+
         'invalid_token' => [
             'title' => 'Invalid Link',
             'message' => 'This withdrawal link is invalid or expired.',
             'contact_info' => 'If you need help, please contact us.',
         ],
     ],
-    
+
     // General messages
     'event_closed' => [
         'title' => 'Registration Closed',
@@ -145,13 +145,13 @@ return [
         'info' => 'New registrations are no longer possible.',
         'contact' => 'Contact the organizers if you have questions.',
     ],
-    
+
     'maintenance' => [
         'title' => 'Maintenance Mode',
         'message' => 'The registration system is currently under maintenance.',
         'info' => 'Please try again later.',
     ],
-    
+
     // Navigation
     'navigation' => [
         'home' => 'Home',
@@ -160,7 +160,7 @@ return [
         'contact' => 'Contact',
         'language' => 'Language',
     ],
-    
+
     // Footer
     'footer' => [
         'contact' => 'Contact',
