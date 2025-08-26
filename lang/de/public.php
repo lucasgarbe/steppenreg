@@ -32,7 +32,7 @@ return [
 
         'flinta_notice' => [
             'title' => 'FLINTA* Anmeldung geöffnet',
-            'message' => 'Derzeit nur für FLINTA* Teilnehmer*innen geöffnet.',
+            'message' => 'Derzeit nur für FLINTA* *innen geöffnet.',
         ],
 
         'team_options' => [
@@ -107,7 +107,7 @@ return [
         'subtitle' => 'Ziehe deine Anmeldung für das Event zurück',
         'confirmation_required' => 'Bestätigung erforderlich',
         'warning' => 'Warnung: Diese Aktion kann nicht rückgängig gemacht werden.',
-        'participant_info' => 'Teilnehmer*in: :name',
+        'participant_info' => '*in: :name',
         'track_info' => 'Strecke: :track',
         'starting_number_info' => 'Startnummer: :number',
         'withdraw_button' => 'Anmeldung zurückziehen',
@@ -147,9 +147,19 @@ return [
     'event_closed' => [
         'title' => 'Anmeldung geschlossen',
         'message' => 'Die Anmeldung für dieses Event ist derzeit geschlossen.',
-        'info' => 'Neue Anmeldungen sind nicht mehr möglich.',
-        'help' => 'Hast du Fragen?',
-        'contact' => 'Schreib uns gerne eine Mail',
+        'info' => 'Anmeldungen sind aktuell nicht möglich.',
+        'help' => 'Brauchst du Hilfe?',
+        'contact' => 'Kontaktiere uns:',
+        'click_to_reveal_email' => 'Klicken um E-Mail-Adresse anzuzeigen',
+        'click_to_send_email' => 'Klicken um E-Mail zu senden',
+        'email_subject' => 'Frage zu :event',
+        'not_available' => 'Anmeldung ist derzeit nicht verfügbar.',
+    ],
+
+    'waitlist_closed' => [
+        'message' => 'Die Anmeldung für :event ist derzeit geschlossen.',
+        'info' => 'Die Wartelisten-Verwaltung erfolgt über personalisierte E-Mail-Benachrichtigungen an registrierte Teilnehmer*innen.',
+        'email_instruction' => 'Falls du eine Wartelisten-Einladung per E-Mail erhalten hast, verwende bitte den Link in dieser Nachricht.',
     ],
 
     'maintenance' => [

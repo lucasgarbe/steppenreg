@@ -147,9 +147,19 @@ return [
     'event_closed' => [
         'title' => 'Registration Closed',
         'message' => 'Registration for this event is currently closed.',
-        'info' => 'New registrations are no longer possible.',
-        'help' => 'Need help?',
-        'contact' => 'Write us an e-mail',
+        'info' => 'Registrations are currently not possible.',
+        'help' => 'Need Help?',
+        'contact' => 'Contact us:',
+        'click_to_reveal_email' => 'Click to reveal email address',
+        'click_to_send_email' => 'Click to send email',
+        'email_subject' => 'Question about :event',
+        'not_available' => 'Registration is not currently available.',
+    ],
+
+    'waitlist_closed' => [
+        'message' => 'Registration for :event is currently closed.',
+        'info' => 'Waitlist management is handled through personalized email notifications to registered participants.',
+        'email_instruction' => 'If you have received a waitlist invitation email, please use the link provided in that message.',
     ],
 
     'maintenance' => [

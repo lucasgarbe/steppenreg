@@ -15,11 +15,11 @@
                 <p class="text-lg">{{ __('public.event_closed.message') }}</p>
                 <p>{{ __('public.event_closed.info') }}</p>
             @elseif($state === 'closed_waitlist')
-                <p class="text-lg">Registration for {{ $eventSettings->event_name }} is currently closed.</p>
-                <p>Waitlist management is handled through personalized email notifications to registered participants.</p>
-                <p class="text-sm text-gray-500">If you have received a waitlist invitation email, please use the link provided in that message.</p>
+                <p class="text-lg">{{ __('public.waitlist_closed.message', ['event' => $eventSettings->event_name]) }}</p>
+                <p>{{ __('public.waitlist_closed.info') }}</p>
+                <p class="text-sm text-gray-500">{{ __('public.waitlist_closed.email_instruction') }}</p>
             @else
-                <p class="text-lg">Registration is not currently available.</p>
+                <p class="text-lg">{{ __('public.event_closed.not_available') }}</p>
             @endif
         </div>
 
