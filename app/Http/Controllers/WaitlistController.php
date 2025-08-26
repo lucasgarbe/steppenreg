@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Registration;
+use App\Models\WaitlistEntry;
+use App\Models\WithdrawalRequest;
 use App\Settings\EventSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -12,13 +14,14 @@ class WaitlistController extends Controller
 {
     public function showJoinForm(string $token): View|RedirectResponse
     {
-        $registration = Registration::findByWaitlistToken($token);
+        $waitlistEntry = WaitlistEntry::findByToken($token);
+        $registration = $waitlistEntry?->registration;
         
-        if (!$registration) {
+        if (!$registration || !$waitlistEntry) {
             return $this->invalidTokenResponse('Waitlist link not found or expired.');
         }
 
-        if (!$registration->can_join_waitlist) {
+        if (!$waitlistEntry->can_join) {
             return $this->alreadyProcessedResponse($registration, 'waitlist');
         }
 
@@ -29,18 +32,19 @@ class WaitlistController extends Controller
 
     public function joinWaitlist(string $token, Request $request): RedirectResponse|View
     {
-        $registration = Registration::findByWaitlistToken($token);
+        $waitlistEntry = WaitlistEntry::findByToken($token);
+        $registration = $waitlistEntry?->registration;
         
-        if (!$registration) {
+        if (!$registration || !$waitlistEntry) {
             return redirect()->route('registration.create')
                 ->withErrors(['token' => 'Waitlist link not found or expired.']);
         }
 
-        if (!$registration->can_join_waitlist) {
+        if (!$waitlistEntry->can_join) {
             return $this->alreadyProcessedResponse($registration, 'waitlist');
         }
 
-        // Join waitlist
+        // Join waitlist using the Registration model method
         if ($registration->joinWaitlist()) {
             $position = $registration->getWaitlistPosition();
             
@@ -52,13 +56,14 @@ class WaitlistController extends Controller
 
     public function showWithdrawForm(string $token): View|RedirectResponse
     {
-        $registration = Registration::findByWithdrawToken($token);
+        $withdrawalRequest = WithdrawalRequest::findByToken($token);
+        $registration = $withdrawalRequest?->registration;
         
-        if (!$registration) {
+        if (!$registration || !$withdrawalRequest) {
             return $this->invalidTokenResponse('Withdrawal link not found or expired.');
         }
 
-        if (!$registration->can_withdraw) {
+        if (!$withdrawalRequest->can_withdraw) {
             return $this->alreadyProcessedResponse($registration, 'withdraw');
         }
 
@@ -69,14 +74,15 @@ class WaitlistController extends Controller
 
     public function withdraw(string $token, Request $request): RedirectResponse|View
     {
-        $registration = Registration::findByWithdrawToken($token);
+        $withdrawalRequest = WithdrawalRequest::findByToken($token);
+        $registration = $withdrawalRequest?->registration;
         
-        if (!$registration) {
+        if (!$registration || !$withdrawalRequest) {
             return redirect()->route('registration.create')
                 ->withErrors(['token' => 'Withdrawal link not found or expired.']);
         }
 
-        if (!$registration->can_withdraw) {
+        if (!$withdrawalRequest->can_withdraw) {
             return $this->alreadyProcessedResponse($registration, 'withdraw');
         }
 
@@ -85,8 +91,8 @@ class WaitlistController extends Controller
             'confirm' => 'required|accepted',
         ]);
 
-        // Process withdrawal
-        if ($registration->withdraw($request->reason)) {
+        // Process withdrawal using the new method
+        if ($withdrawalRequest->processWithdrawal($request->reason)) {
             // Try to promote next person on waitlist
             $this->promoteNextWaitlistParticipant($registration->track_id);
             
@@ -115,21 +121,27 @@ class WaitlistController extends Controller
 
     private function promoteNextWaitlistParticipant(int $trackId): ?Registration
     {
-        // Find next person in waitlist for this track
-        $nextParticipant = Registration::where('track_id', $trackId)
-            ->where('draw_status', 'waitlist')
-            ->whereNull('withdrawn_at')
-            ->orderBy('waitlist_registered_at', 'asc')
+        // Find next person in waitlist for this track using the new relationship
+        $nextWaitlistEntry = WaitlistEntry::forTrack($trackId)
+            ->active()
+            ->orderedByRegistration()
             ->first();
 
-        if (!$nextParticipant) {
+        if (!$nextWaitlistEntry) {
             return null;
         }
 
+        $nextParticipant = $nextWaitlistEntry->registration;
+
         // Promote to drawn status
-        $nextParticipant->draw_status = 'drawn';
-        $nextParticipant->drawn_at = now();
-        $nextParticipant->save();
+        $nextParticipant->update([
+            'draw_status' => 'drawn',
+            'drawn_at' => now(),
+            'promoted_from_waitlist_at' => now(),
+        ]);
+
+        // Recalculate waitlist positions for remaining entries
+        $this->recalculateWaitlistPositions($trackId);
 
         // TODO: Send "Spot Available" email to promoted participant
         // This would be implemented when we update the mail system
@@ -137,11 +149,29 @@ class WaitlistController extends Controller
         return $nextParticipant;
     }
 
+    private function recalculateWaitlistPositions(int $trackId): void
+    {
+        $waitlistEntries = WaitlistEntry::forTrack($trackId)
+            ->active()
+            ->orderedByRegistration()
+            ->get();
+
+        foreach ($waitlistEntries as $index => $entry) {
+            $entry->update(['position' => $index + 1]);
+        }
+    }
+
     public function status(string $token): View|RedirectResponse
     {
-        // Check if it's a waitlist or withdraw token
-        $registration = Registration::findByWaitlistToken($token) 
-                     ?? Registration::findByWithdrawToken($token);
+        // Check if it's a waitlist token
+        $waitlistEntry = WaitlistEntry::findByToken($token);
+        if ($waitlistEntry) {
+            $registration = $waitlistEntry->registration;
+        } else {
+            // Check if it's a withdrawal token
+            $withdrawalRequest = WithdrawalRequest::findByToken($token);
+            $registration = $withdrawalRequest?->registration;
+        }
         
         if (!$registration) {
             return $this->invalidTokenResponse('Link not found or expired.');
