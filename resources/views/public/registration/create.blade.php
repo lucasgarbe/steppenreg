@@ -13,10 +13,10 @@
         :subtitle="__('public.registration.subtitle')"
     >
         @if($isFlintaOnly)
-            <x-public.alert type="info" class="mt-4">
-                <h3 class="text-sm font-medium">FLINTA* Registration Open</h3>
+            <x-public.alert type="pride" :icon="false" class="mt-4">
+                <h3 class="text-sm font-medium">{{ __('public.registration.flinta_notice.title') }}</h3>
                 <div class="mt-1 text-sm">
-                    <p>Currently only open for FLINTA* participants (women, lesbians, inter, non-binary, trans, and agender people).</p>
+                    <p>{{ __('public.registration.flinta_notice.message') }}</p>
                 </div>
             </x-public.alert>
         @endif
@@ -39,7 +39,7 @@
                         type="text"
                         id="name"
                         name="name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="{{ __('public.registration.fields.name_placeholder') }}"
                         required
                         value="{{ old('name') }}"
@@ -58,7 +58,7 @@
                         type="email"
                         id="email"
                         name="email"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="{{ __('public.registration.fields.email_placeholder') }}"
                         required
                         value="{{ old('email') }}"
@@ -79,7 +79,7 @@
                         name="age"
                         min="16"
                         max="99"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="{{ __('public.registration.fields.age_placeholder') }}"
                         required
                         value="{{ old('age') }}"
@@ -97,7 +97,7 @@
                     <select
                         id="gender"
                         name="gender"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                     >
                         <option value="">{{ __('public.registration.fields.gender_placeholder') }}</option>
                         @foreach(\App\Models\Registration::getGenderOptions() as $value => $label)
@@ -128,7 +128,7 @@
                     <select
                         id="track_id"
                         name="track_id"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         required
                     >
                         <option value="">{{ __('public.registration.fields.track_placeholder') }}</option>
@@ -155,7 +155,7 @@
                         type="text"
                         id="team_name"
                         name="team_name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="{{ __('public.registration.fields.team_placeholder') }}"
                         value="{{ old('team_name') }}"
                     >
@@ -176,7 +176,7 @@
                         id="notes"
                         name="notes"
                         rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="{{ __('public.registration.fields.notes_placeholder') }}"
                     >{{ old('notes') }}</textarea>
                     @error('notes')
