@@ -8,4 +8,8 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-spw-black: #1a1a1a;
+    --color-spw-offwhite: #fffdf8c2;
+    --color-spw-yellow: #F9C458;
+    --color-spw-purple: #7a58fc;
 }
