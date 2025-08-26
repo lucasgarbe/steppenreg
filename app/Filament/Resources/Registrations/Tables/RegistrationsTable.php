@@ -271,7 +271,7 @@ class RegistrationsTable
                                     'promoted_from_waitlist_at' => now()
                                 ]);
                                 
-                                // Generate withdraw token
+                                // Generate withdraw token using new relationship
                                 $record->generateWithdrawToken();
                             });
                             
@@ -300,19 +300,17 @@ class RegistrationsTable
                         ->modalHeading(__('admin.registrations.actions.add_to_waitlist'))
                         ->modalDescription(fn($record) => __('admin.registrations.confirmations.add_to_waitlist', ['name' => $record->name]))
                         ->action(function ($record) {
-                            $record->update([
-                                'draw_status' => 'waitlist',
-                                'drawn_at' => now()
-                            ]);
-                            
-                            // Generate waitlist token
-                            $record->generateWaitlistToken();
-                            
-                            \Filament\Notifications\Notification::make()
-                                ->title(__('admin.registrations.notifications.added_to_waitlist'))
-                                ->body(__('admin.registrations.notifications.added_to_waitlist_body', ['name' => $record->name]))
-                                ->success()
-                                ->send();
+                            // Use the Registration model's joinWaitlist method
+                            if ($record->joinWaitlist()) {
+                                // Generate waitlist token using new relationship
+                                $record->generateWaitlistToken();
+                                
+                                \Filament\Notifications\Notification::make()
+                                    ->title(__('admin.registrations.notifications.added_to_waitlist'))
+                                    ->body(__('admin.registrations.notifications.added_to_waitlist_body', ['name' => $record->name]))
+                                    ->success()
+                                    ->send();
+                            }
                         }),
                     
                     Action::make('manual_withdraw')
@@ -324,43 +322,40 @@ class RegistrationsTable
                         ->modalHeading(__('admin.registrations.actions.manual_withdraw'))
                         ->modalDescription(fn($record) => __('admin.registrations.confirmations.manual_withdraw', ['name' => $record->name]))
                         ->action(function ($record) {
-                            $record->update([
-                                'is_withdrawn' => true,
-                                'withdrawn_at' => now(),
-                                'withdrawal_reason' => 'admin_manual'
-                            ]);
-                            
-                            // Try to promote next waitlist registration
-                            $nextWaitlisted = \App\Models\Registration::where('draw_status', 'waitlist')
-                                ->where('track_id', $record->track_id)
-                                ->where('is_withdrawn', false)
-                                ->whereNull('promoted_from_waitlist_at')
-                                ->orderBy('drawn_at')
-                                ->first();
-                                
-                            if ($nextWaitlisted) {
-                                $nextWaitlisted->update([
-                                    'draw_status' => 'drawn',
-                                    'promoted_from_waitlist_at' => now()
-                                ]);
-                                
-                                // Generate withdraw token for the newly promoted
-                                $nextWaitlisted->generateWithdrawToken();
-                                
-                                \Filament\Notifications\Notification::make()
-                                    ->title(__('admin.registrations.notifications.withdrawal_completed'))
-                                    ->body(__('admin.registrations.notifications.withdrew_and_promoted', [
-                                        'withdrawn' => $record->name,
-                                        'promoted' => $nextWaitlisted->name
-                                    ]))
-                                    ->success()
-                                    ->send();
-                            } else {
-                                \Filament\Notifications\Notification::make()
-                                    ->title(__('admin.registrations.notifications.withdrawal_completed'))
-                                    ->body(__('admin.registrations.notifications.withdrew_no_promotion', ['name' => $record->name]))
-                                    ->success()
-                                    ->send();
+                            // Use the Registration model's withdraw method
+                            if ($record->withdraw('admin_manual')) {
+                                // Try to promote next waitlist registration using the new method
+                                $nextWaitlisted = \App\Models\WaitlistEntry::forTrack($record->track_id)
+                                    ->active()
+                                    ->orderedByRegistration()
+                                    ->first();
+                                    
+                                if ($nextWaitlisted) {
+                                    $nextRegistration = $nextWaitlisted->registration;
+                                    $nextRegistration->update([
+                                        'draw_status' => 'drawn',
+                                        'drawn_at' => now(),
+                                        'promoted_from_waitlist_at' => now()
+                                    ]);
+                                    
+                                    // Generate withdraw token for the newly promoted
+                                    $nextRegistration->generateWithdrawToken();
+                                    
+                                    \Filament\Notifications\Notification::make()
+                                        ->title(__('admin.registrations.notifications.withdrawal_completed'))
+                                        ->body(__('admin.registrations.notifications.withdrew_and_promoted', [
+                                            'withdrawn' => $record->name,
+                                            'promoted' => $nextRegistration->name
+                                        ]))
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title(__('admin.registrations.notifications.withdrawal_completed'))
+                                        ->body(__('admin.registrations.notifications.withdrew_no_promotion', ['name' => $record->name]))
+                                        ->success()
+                                        ->send();
+                                }
                             }
                         }),
                     
@@ -370,10 +365,8 @@ class RegistrationsTable
                         ->color('warning')
                         ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
                         ->action(function ($record) {
-                            // Generate token if not exists
-                            if (!$record->withdraw_token) {
-                                $record->generateWithdrawToken();
-                            }
+                            // Generate token using new relationship
+                            $record->generateWithdrawToken();
                             
                             // Send notification email
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
@@ -391,11 +384,11 @@ class RegistrationsTable
                         ->color('primary')
                         ->visible(fn($record) => $record->draw_status !== 'not_drawn' && !$record->is_withdrawn)
                         ->action(function ($record) {
-                            // Generate tokens if they don't exist
-                            if ($record->draw_status === 'drawn' && !$record->withdraw_token) {
+                            // Generate tokens using new relationships
+                            if ($record->draw_status === 'drawn') {
                                 $record->generateWithdrawToken();
                             }
-                            if (($record->draw_status === 'waitlist' || $record->can_join_waitlist) && !$record->waitlist_token) {
+                            if ($record->draw_status === 'waitlist' || $record->can_join_waitlist) {
                                 $record->generateWaitlistToken();
                             }
                             
@@ -440,10 +433,9 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_waitlist'))
                         ->icon('heroicon-o-clock')
                         ->color('warning')
-                        ->action(fn(Collection $records) => $records->each->update([
-                            'draw_status' => 'waitlist',
-                            'drawn_at' => now()
-                        ]))
+                        ->action(fn(Collection $records) => $records->each(function ($record) {
+                            $record->joinWaitlist();
+                        }))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_not_drawn')
@@ -529,11 +521,11 @@ class RegistrationsTable
                             foreach ($records as $record) {
                                 // Only send to records that have a draw result (not 'not_drawn')
                                 if ($record->draw_status !== 'not_drawn') {
-                                    // Generate tokens first if needed
-                                    if ($record->draw_status === 'drawn' && !$record->withdraw_token) {
+                                    // Generate tokens first if needed using new relationships
+                                    if ($record->draw_status === 'drawn') {
                                         $record->generateWithdrawToken();
                                     }
-                                    if (($record->draw_status === 'not_drawn' || $record->can_join_waitlist) && !$record->waitlist_token) {
+                                    if ($record->draw_status === 'waitlist' || $record->can_join_waitlist) {
                                         $record->generateWaitlistToken();
                                     }
                                     

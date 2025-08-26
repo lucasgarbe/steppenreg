@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
-            $table->text('description')->nullable();
-            $table->integer('max_members')->default(4);
+            $table->string('name');
+            $table->integer('max_members')->default(5);
+            $table->integer('track_id')->nullable();
+            $table->index('track_id');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->unique(['name', 'track_id']);
         });
     }
 

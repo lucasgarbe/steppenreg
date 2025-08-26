@@ -20,9 +20,9 @@ class MailLogResource extends Resource
     protected static ?string $model = MailLog::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
-    
+
     protected static ?string $navigationLabel = 'Mail Logs';
-    
+
     protected static ?int $navigationSort = 25;
 
     public static function table(Table $table): Table
@@ -33,49 +33,49 @@ class MailLogResource extends Resource
                     ->label('Recipient')
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('template_key')
                     ->label('Template')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'registration_confirmation' => 'Registration',
                         'draw_success' => 'Draw Success',
                         'draw_waitlist' => 'Waitlist',
                         'draw_rejection' => 'Rejection',
                         default => $state,
                     })
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'registration_confirmation' => 'success',
                         'draw_success' => 'success',
                         'draw_waitlist' => 'warning',
                         'draw_rejection' => 'danger',
                         default => 'gray',
                     }),
-                
+
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'sent' => 'success',
                         'failed' => 'danger',
                         'queued' => 'warning',
                         default => 'gray',
                     }),
-                
+
                 TextColumn::make('registration.name')
                     ->label('Participant')
                     ->sortable(),
-                
+
                 TextColumn::make('created_at')
                     ->label('Queued')
                     ->dateTime()
                     ->sortable(),
-                
+
                 TextColumn::make('sent_at')
                     ->label('Sent')
                     ->dateTime()
                     ->sortable()
                     ->placeholder('Not sent'),
-                
+
                 TextColumn::make('error_message')
                     ->label('Error')
                     ->limit(30)
@@ -92,7 +92,7 @@ class MailLogResource extends Resource
                         'sent' => 'Sent',
                         'failed' => 'Failed',
                     ]),
-                
+
                 SelectFilter::make('template_key')
                     ->label('Template')
                     ->options([
@@ -101,26 +101,11 @@ class MailLogResource extends Resource
                         'draw_waitlist' => 'Draw Waitlist',
                         'draw_rejection' => 'Draw Rejection',
                     ]),
-                
+
                 Filter::make('recent')
                     ->label('Recent (Last 24h)')
-                    ->query(fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDay()))
+                    ->query(fn(Builder $query): Builder => $query->where('created_at', '>=', now()->subDay()))
                     ->default(),
-            ])
-            ->recordActions([
-                Action::make('retry')
-                    ->label('Retry')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
-                    ->visible(fn ($record) => $record->status === 'failed')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'queued', 'error_message' => null]);
-                    }),
-            ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
             ])
             ->defaultSort('created_at', 'desc');
     }
@@ -131,14 +116,15 @@ class MailLogResource extends Resource
             'index' => \App\Filament\Resources\MailLogResource\Pages\ListMailLogs::route('/'),
         ];
     }
-    
+
     public static function canCreate(): bool
     {
         return false;
     }
-    
+
     public static function canEdit($record): bool
     {
         return false;
     }
 }
+

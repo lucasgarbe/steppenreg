@@ -19,7 +19,7 @@
     <!-- Additional head content -->
     @stack('head')
 </head>
-<body class="bg-spw-offwhite min-h-screen @yield('body-class', 'py-8')">
+<body class="bg-spw-offwhite min-h-screen font-sans @yield('body-class', 'py-8')">
     <!-- Header -->
     @if(!isset($hideHeader) || !$hideHeader)
         <x-public.header />
