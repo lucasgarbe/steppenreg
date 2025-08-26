@@ -143,7 +143,8 @@ return [
         'title' => 'Registration Closed',
         'message' => 'Registration for this event is currently closed.',
         'info' => 'New registrations are no longer possible.',
-        'contact' => 'Contact the organizers if you have questions.',
+        'help' => 'Need help?',
+        'contact' => 'Write us an e-mail',
     ],
 
     'maintenance' => [
