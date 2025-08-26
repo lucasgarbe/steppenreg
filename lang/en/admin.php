@@ -32,6 +32,7 @@ return [
             'draw_status' => 'Draw Status',
             'finish_time' => 'Finish Time',
             'status' => 'Status',
+            'notes' => 'Notes',
             'created_at' => 'Registered At',
         ],
         
@@ -179,6 +180,11 @@ return [
             'not_finished' => 'Not finished',
             'individual' => 'Individual',
             'no_track_selected' => 'No track selected',
+            'no_notes' => 'No notes',
+        ],
+        
+        'tooltips' => [
+            'has_notes' => 'This registration has notes',
         ],
     ],
 ];
