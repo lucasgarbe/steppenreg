@@ -178,13 +178,12 @@ class Registration extends Model
 
     public function getIsWaitlistRegisteredAttribute(): bool
     {
-        return $this->waitlistEntry !== null;
+        return $this->draw_status === 'waitlist';
     }
 
     public function getCanJoinWaitlistAttribute(): bool
     {
         return $this->draw_status === 'not_drawn' && 
-               !$this->is_waitlist_registered && 
                !$this->is_withdrawn;
     }
 

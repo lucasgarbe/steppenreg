@@ -87,7 +87,7 @@ class WaitlistController extends Controller
         }
 
         $request->validate([
-            'reason' => 'nullable|string|max:1000',
+            'reason' => 'nullable|string|max:2000',
             'confirm' => 'required|accepted',
         ]);
 
