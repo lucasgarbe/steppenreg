@@ -7,8 +7,10 @@ use App\Filament\Widgets\DailyRegistrations;
 use App\Filament\Widgets\RegistrationTimelineByGender;
 use App\Filament\Widgets\RegistrationTimelineByTrack;
 use App\Filament\Widgets\RegistrationStats;
+use App\Filament\Widgets\StateTransitionWidget;
 use App\Filament\Widgets\TeamStats;
 use BackedEnum;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -35,13 +37,78 @@ class ManageEvent extends SettingsPage
                         Toggle::make('site_active')
                             ->required(),
                         Select::make('application_state')
-                            ->label('Application State')
+                            ->label('Current Application State')
                             ->options(EventSettings::getApplicationStates())
                             ->required()
-                            ->helperText('Controls what type of registrations are accepted')
+                            ->helperText('Current state - may be overridden by automatic transitions')
                             ->native(false),
                     ])
                     ->columns(2),
+
+                Section::make('Automatic State Management')
+                    ->schema([
+                        Toggle::make('automatic_state_transitions')
+                            ->label('Enable Automatic State Transitions')
+                            ->helperText('When enabled, application state will change automatically based on scheduled times')
+                            ->reactive()
+                            ->columnSpanFull(),
+
+                        Toggle::make('manual_override_active')
+                            ->label('Manual Override Active')
+                            ->helperText('Temporarily override automatic transitions')
+                            ->visible(fn($get) => $get('automatic_state_transitions'))
+                            ->reactive(),
+
+                        Select::make('manual_override_state')
+                            ->label('Override State')
+                            ->options(EventSettings::getApplicationStates())
+                            ->visible(fn($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
+                            ->helperText('This state will be used instead of automatic transitions')
+                            ->native(false),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
+                Section::make('Registration Timeline')
+                    ->schema([
+                        DateTimePicker::make('flinta_registration_opens_at')
+                            ->label('FLINTA* Registration Opens')
+                            ->helperText('When registration opens for FLINTA* participants only')
+                            ->seconds(false)
+                            ->timezone(config('app.timezone')),
+
+                        DateTimePicker::make('everyone_registration_opens_at')
+                            ->label('Everyone Registration Opens')
+                            ->helperText('When registration opens for all participants')
+                            ->seconds(false)
+                            ->timezone(config('app.timezone')),
+
+                        DateTimePicker::make('registration_closes_at')
+                            ->label('Registration Closes')
+                            ->helperText('When new registrations are no longer accepted')
+                            ->seconds(false)
+                            ->timezone(config('app.timezone')),
+
+                        DateTimePicker::make('waitlist_only_starts_at')
+                            ->label('Waitlist Only Begins')
+                            ->helperText('When only waitlist registrations are allowed')
+                            ->seconds(false)
+                            ->timezone(config('app.timezone')),
+
+                        DateTimePicker::make('event_starts_at')
+                            ->label('Event Starts')
+                            ->helperText('When the actual event begins (switches to live mode)')
+                            ->seconds(false)
+                            ->timezone(config('app.timezone')),
+
+                        DateTimePicker::make('event_ends_at')
+                            ->label('Event Ends')
+                            ->helperText('When the event officially ends (switches to closed)')
+                            ->seconds(false)
+                            ->timezone(config('app.timezone')),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
                 Section::make('Tracks')
                     ->schema([
                         Repeater::make('tracks')
@@ -76,6 +143,7 @@ class ManageEvent extends SettingsPage
     public function getWidgets(): array
     {
         return [
+            StateTransitionWidget::class,
             RegistrationStats::class,
             TeamStats::class,
             DailyRegistrations::class,
