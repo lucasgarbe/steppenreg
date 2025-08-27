@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Models\Registration;
 use App\Observers\RegistrationObserver;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Registration::observe(RegistrationObserver::class);
-        
+
         // Configure supported locales
         config([
             'app.supported_locales' => [
@@ -32,5 +34,12 @@ class AppServiceProvider extends ServiceProvider
                 'en' => ['name' => 'English', 'flag' => 'EN'],
             ]
         ]);
+
+        Gate::define('viewPulse', function (User $user) {
+            if ($user === null) {
+                return false;
+            }
+            return true;
+        });
     }
 }
