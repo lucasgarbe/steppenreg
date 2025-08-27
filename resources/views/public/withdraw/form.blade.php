@@ -61,7 +61,7 @@
     </x-public.alert>
 
     <!-- Withdrawal Form -->
-    <x-public.form action="{{ route('withdraw.store', $registration->withdraw_token) }}" method="POST" id="withdraw-form">
+    <x-public.form action="{{ route('withdraw.store', $token) }}" method="POST" id="withdraw-form">
         <!-- Reason (Optional) -->
         <div class="mb-8">
             <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">

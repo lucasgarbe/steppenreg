@@ -108,6 +108,14 @@ class MailTemplateSeeder extends Seeder
                 <li>Ensure your contact information is up to date</li>
             </ul>
             
+            <div style="background-color: #fee2e2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                <p><strong>Need to withdraw?</strong></p>
+                <p>If your plans change and you can\'t participate, please let us know as soon as possible so we can offer your spot to someone on the waitlist.</p>
+                <p style="text-align: center;">
+                    <a href="{{withdraw_url}}" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Withdraw from Event</a>
+                </p>
+            </div>
+            
             <p>We\'re excited to see you at {{event_name}}!</p>
             
             <p>Best regards,<br>
@@ -168,7 +176,15 @@ class MailTemplateSeeder extends Seeder
             
             <p>We know this is disappointing news, and we truly appreciate your interest in participating.</p>
             
-            <p><strong>Don\'t lose hope!</strong></p>
+            <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                <p><strong>Still want to participate?</strong></p>
+                <p>You can join our waitlist! If someone withdraws, you might still get a chance to participate.</p>
+                <p style="text-align: center;">
+                    <a href="{{waitlist_url}}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Join Waitlist</a>
+                </p>
+            </div>
+            
+            <p><strong>Other ways to stay involved:</strong></p>
             <ul>
                 <li>Keep training for future events</li>
                 <li>Follow us for updates about next year\'s registration</li>

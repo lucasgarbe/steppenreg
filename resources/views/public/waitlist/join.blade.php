@@ -52,7 +52,7 @@
 
     <!-- Join Waitlist Form -->
     <div class="text-center">
-        <x-public.form action="{{ route('waitlist.store', $registration->waitlist_token) }}" method="POST">
+        <x-public.form action="{{ route('waitlist.store', $token) }}" method="POST">
             <x-public.button 
                 type="submit" 
                 variant="warning"
