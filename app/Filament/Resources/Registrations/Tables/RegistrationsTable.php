@@ -32,8 +32,8 @@ class RegistrationsTable
                     ->searchable(isIndividual: false, isGlobal: false)
                     ->placeholder('—')
                     ->badge()
-                    ->formatStateUsing(fn($record) => $record->starting_number_label)
-                    ->color(fn($record) => match ($record->starting_number_type) {
+                    ->formatStateUsing(fn($record) => $record?->starting_number_label)
+                    ->color(fn($record) => match ($record?->starting_number_type) {
                         'main' => 'success',
                         'waitlist' => 'warning',
                         'waitlist_overflow' => 'danger',
@@ -44,9 +44,9 @@ class RegistrationsTable
                     ->label(__('admin.registrations.columns.name'))
                     ->searchable()
                     ->sortable()
-                    ->icon(fn($record) => $record->notes ? 'heroicon-s-document-text' : null)
+                    ->icon(fn($record) => $record?->notes ? 'heroicon-s-document-text' : null)
                     ->iconColor('primary')
-                    ->tooltip(fn($record) => $record->notes ? __('admin.registrations.tooltips.has_notes') : null),
+                    ->tooltip(fn($record) => $record?->notes ? __('admin.registrations.tooltips.has_notes') : null),
 
                 TextColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
@@ -88,25 +88,25 @@ class RegistrationsTable
                 TextColumn::make('draw_status')
                     ->label(__('admin.registrations.columns.draw_status'))
                     ->badge()
-                    ->color(fn($record): string => match ($record->draw_status) {
-                        'drawn' => $record->is_withdrawn ? 'danger' : 'success',
+                    ->color(fn($record): string => match ($record?->draw_status) {
+                        'drawn' => $record?->is_withdrawn ? 'danger' : 'success',
                         'waitlist' => 'warning',
                         'not_drawn' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(function($record): string {
-                        if ($record->is_withdrawn) {
+                        if ($record?->is_withdrawn) {
                             return __('admin.registrations.draw_status.withdrawn');
                         }
-                        if ($record->is_waitlist_registered && $record->draw_status === 'waitlist') {
+                        if ($record?->is_waitlist_registered && $record?->draw_status === 'waitlist') {
                             $position = $record->getWaitlistPosition();
                             return __('messages.waitlist') . " #{$position}";
                         }
-                        return match ($record->draw_status) {
+                        return match ($record?->draw_status) {
                             'drawn' => __('admin.registrations.draw_status.drawn'),
                             'waitlist' => __('admin.registrations.draw_status.waitlist'),
                             'not_drawn' => __('admin.registrations.draw_status.not_drawn'),
-                            default => $record->draw_status,
+                            default => $record?->draw_status ?? '',
                         };
                     })
                     ->sortable(),
@@ -122,14 +122,14 @@ class RegistrationsTable
                     ->label(__('admin.registrations.columns.status'))
                     ->badge()
                     ->formatStateUsing(function($record): string {
-                        return match ($record->status) {
+                        return match ($record?->status) {
                             'Finished' => __('admin.registrations.status.finished'),
                             'Starting' => __('admin.registrations.status.starting'),
                             'Paid' => __('admin.registrations.status.paid'),
                             'Drawn' => __('admin.registrations.status.drawn'),
                             'Waitlist' => __('admin.registrations.status.waitlist'),
                             'Registered' => __('admin.registrations.status.registered'),
-                            default => $record->status,
+                            default => $record?->status ?? '',
                         };
                     })
                     ->color(fn(string $state): string => match ($state) {
@@ -149,8 +149,21 @@ class RegistrationsTable
                     ->placeholder(__('admin.form.placeholders.no_notes'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->icon(fn($record) => $record->notes ? 'heroicon-s-document-text' : null)
-                    ->color(fn($record) => $record->notes ? 'primary' : null),
+                    ->icon(fn($record) => $record?->notes ? 'heroicon-s-document-text' : null)
+                    ->color(fn($record) => $record?->notes ? 'primary' : null),
+
+                TextColumn::make('withdrawalRequest.withdrawal_reason')
+                    ->label('Withdrawal Reason')
+                    ->wrap()
+                    ->limit(60)
+                    ->placeholder('No withdrawal reason')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->visible(fn($record) => $record?->is_withdrawn)
+                    ->icon(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ? 'heroicon-s-exclamation-triangle' : null)
+                    ->iconColor('orange')
+                    ->tooltip(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ? 
+                        'Full reason: ' . $record->withdrawalRequest->withdrawal_reason : null),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.registrations.columns.created_at'))
@@ -259,7 +272,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.promote_from_waitlist'))
                         ->icon('heroicon-o-arrow-up')
                         ->color('success')
-                        ->visible(fn($record) => $record->draw_status === 'waitlist' && !$record->is_withdrawn)
+                        ->visible(fn($record) => $record?->draw_status === 'waitlist' && !$record?->is_withdrawn)
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.promote_from_waitlist'))
                         ->modalDescription(fn($record) => __('admin.registrations.confirmations.promote_from_waitlist', ['name' => $record->name]))
@@ -295,7 +308,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.add_to_waitlist'))
                         ->icon('heroicon-o-clock')
                         ->color('warning')
-                        ->visible(fn($record) => $record->draw_status === 'not_drawn' && !$record->is_withdrawn)
+                        ->visible(fn($record) => $record?->draw_status === 'not_drawn' && !$record?->is_withdrawn)
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.add_to_waitlist'))
                         ->modalDescription(fn($record) => __('admin.registrations.confirmations.add_to_waitlist', ['name' => $record->name]))
@@ -317,13 +330,20 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.manual_withdraw'))
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
-                        ->requiresConfirmation()
+                        ->visible(fn($record) => $record?->draw_status === 'drawn' && !$record?->is_withdrawn)
+                        ->form([
+                            \Filament\Forms\Components\Textarea::make('withdrawal_reason')
+                                ->label('Withdrawal Reason')
+                                ->placeholder('Optional: Enter the reason for withdrawal...')
+                                ->rows(3)
+                                ->maxLength(2000)
+                        ])
                         ->modalHeading(__('admin.registrations.actions.manual_withdraw'))
                         ->modalDescription(fn($record) => __('admin.registrations.confirmations.manual_withdraw', ['name' => $record->name]))
-                        ->action(function ($record) {
-                            // Use the Registration model's withdraw method
-                            if ($record->withdraw('admin_manual')) {
+                        ->action(function ($record, array $data) {
+                            // Use the Registration model's withdraw method with custom reason
+                            $reason = !empty($data['withdrawal_reason']) ? $data['withdrawal_reason'] : 'admin_manual';
+                            if ($record->withdraw($reason)) {
                                 // Try to promote next waitlist registration using the new method
                                 $nextWaitlisted = \App\Models\WaitlistEntry::forTrack($record->track_id)
                                     ->active()
@@ -363,7 +383,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.send_withdrawal_link'))
                         ->icon('heroicon-o-envelope')
                         ->color('warning')
-                        ->visible(fn($record) => $record->draw_status === 'drawn' && !$record->is_withdrawn)
+                        ->visible(fn($record) => $record?->draw_status === 'drawn' && !$record?->is_withdrawn)
                         ->action(function ($record) {
                             // Generate token using new relationship
                             $record->generateWithdrawToken();
@@ -382,7 +402,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.send_draw_results'))
                         ->icon('heroicon-o-envelope')
                         ->color('primary')
-                        ->visible(fn($record) => $record->draw_status !== 'not_drawn' && !$record->is_withdrawn)
+                        ->visible(fn($record) => $record?->draw_status !== 'not_drawn' && !$record?->is_withdrawn)
                         ->action(function ($record) {
                             // Generate tokens using new relationships
                             if ($record->draw_status === 'drawn') {

@@ -67,18 +67,22 @@
             <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">
                 {{ __('public.withdrawal.reasons.title') }}
             </label>
-            <select 
+            <textarea 
                 id="reason" 
                 name="reason" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-                <option value="">Select a reason (optional)</option>
-                <option value="injury">{{ __('public.withdrawal.reasons.injury') }}</option>
-                <option value="illness">{{ __('public.withdrawal.reasons.illness') }}</option>
-                <option value="personal">{{ __('public.withdrawal.reasons.personal') }}</option>
-                <option value="schedule_conflict">{{ __('public.withdrawal.reasons.schedule_conflict') }}</option>
-                <option value="other">{{ __('public.withdrawal.reasons.other') }}</option>
-            </select>
+                rows="3"
+                maxlength="2000"
+                placeholder="Please tell us why you're withdrawing (optional)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+            ></textarea>
+            <div class="mt-1 flex justify-between">
+                <p class="text-xs text-gray-500">
+                    This helps us improve our event planning for the future.
+                </p>
+                <p class="text-xs text-gray-400">
+                    <span id="char-count">0</span>/2000 characters
+                </p>
+            </div>
         </div>
 
         <!-- Confirmation -->
@@ -114,6 +118,22 @@
 
 @push('scripts')
 <script>
+    // Character counter for withdrawal reason
+    document.getElementById('reason').addEventListener('input', function() {
+        const charCount = this.value.length;
+        const charCountElement = document.getElementById('char-count');
+        charCountElement.textContent = charCount;
+        
+        // Change color when approaching or exceeding limit
+        if (charCount > 1800) {
+            charCountElement.className = 'text-red-500 font-medium';
+        } else if (charCount > 1500) {
+            charCountElement.className = 'text-orange-500';
+        } else {
+            charCountElement.className = 'text-gray-400';
+        }
+    });
+
     document.getElementById('withdraw-form').addEventListener('submit', function(e) {
         const confirmCheckbox = document.getElementById('confirm');
         if (!confirmCheckbox.checked) {
