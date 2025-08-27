@@ -9,13 +9,13 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333333;
+            color: #1a1a1a;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #ffffff;
+            background-color: #fffdf8c2;
         }
-        
+
         .email-container {
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
@@ -23,49 +23,49 @@
             padding: 30px;
             margin: 20px 0;
         }
-        
+
         h1, h2, h3 {
             color: #2c3e50;
             margin-top: 0;
         }
-        
+
         h1 {
             font-size: 24px;
             margin-bottom: 20px;
         }
-        
+
         h2 {
             font-size: 20px;
             margin-bottom: 16px;
         }
-        
+
         h3 {
             font-size: 18px;
             margin-bottom: 12px;
         }
-        
+
         p {
             margin: 0 0 16px 0;
         }
-        
+
         ul {
             margin: 0 0 16px 0;
             padding-left: 20px;
         }
-        
+
         li {
             margin-bottom: 8px;
         }
-        
+
         a {
             color: #3498db;
             text-decoration: none;
         }
-        
+
         a:hover {
             text-decoration: underline;
         }
-        
+
         .button {
             display: inline-block;
             padding: 12px 24px;
@@ -76,58 +76,58 @@
             font-weight: bold;
             margin: 10px 0;
         }
-        
+
         .button:hover {
             background-color: #2980b9;
             text-decoration: none;
         }
-        
+
         .button.success {
             background-color: #27ae60;
         }
-        
+
         .button.success:hover {
             background-color: #229954;
         }
-        
+
         .button.warning {
             background-color: #f39c12;
         }
-        
+
         .button.warning:hover {
             background-color: #d68910;
         }
-        
+
         .button.danger {
             background-color: #e74c3c;
         }
-        
+
         .button.danger:hover {
             background-color: #c0392b;
         }
-        
+
         .panel {
             background-color: #f8f9fa;
             border-left: 4px solid #3498db;
             padding: 15px;
             margin: 20px 0;
         }
-        
+
         .panel.success {
             border-left-color: #27ae60;
             background-color: #d5f4e6;
         }
-        
+
         .panel.warning {
             border-left-color: #f39c12;
             background-color: #fef9e7;
         }
-        
+
         .panel.danger {
             border-left-color: #e74c3c;
             background-color: #fadbd8;
         }
-        
+
         .footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -136,21 +136,21 @@
             color: #7f8c8d;
             text-align: center;
         }
-        
+
         @media only screen and (max-width: 600px) {
             body {
                 padding: 10px;
             }
-            
+
             .email-container {
                 padding: 20px;
                 margin: 10px 0;
             }
-            
+
             h1 {
                 font-size: 20px;
             }
-            
+
             .button {
                 display: block;
                 text-align: center;
@@ -163,28 +163,28 @@
     <div class="email-container">
         @php
             $body = $template->body;
-            
+
             // Replace variables in body
             foreach ($variables as $key => $value) {
                 $placeholder = '{{' . $key . '}}';
                 $body = str_replace($placeholder, $value, $body);
             }
-            
+
             // Replace Mustache-style conditionals with simple logic
             $body = preg_replace('/\{\{#([^}]+)\}\}/', '<!-- START: $1 -->', $body);
             $body = preg_replace('/\{\{\/([^}]+)\}\}/', '<!-- END: $1 -->', $body);
-            
+
             // Handle team name conditional
             if (!empty($variables['team_name'])) {
                 $body = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '$1', $body);
             } else {
                 $body = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '', $body);
             }
-            
+
             echo $body;
         @endphp
     </div>
-    
+
     <div class="footer">
         <p>This email was sent to {{ $registration->email }}</p>
         <p>{{ $variables['event_name'] ?? 'Event' }} &copy; {{ date('Y') }}</p>
