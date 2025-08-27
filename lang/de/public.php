@@ -32,7 +32,7 @@ return [
 
         'flinta_notice' => [
             'title' => 'FLINTA* Anmeldung geöffnet',
-            'message' => 'Derzeit nur für FLINTA* *innen geöffnet.',
+            'message' => 'Derzeit nur für FLINTA* Teilnehmer*innen geöffnet.',
         ],
 
         'team_options' => [
