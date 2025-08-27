@@ -34,3 +34,6 @@ task('pnpm:build', function () {
 // Add the tasks to the deployment flow
 after('deploy:vendors', 'pnpm:install');
 after('deploy:vendors', 'pnpm:build');
+
+before('deploy:publish', 'artisan:queue:restart');
+before('deploy:publish', 'artisan:pulse:restart');
