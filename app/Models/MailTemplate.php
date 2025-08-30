@@ -62,6 +62,7 @@ class MailTemplate extends Model
             'track_distance' => 'Track distance',
             'waitlist_url' => 'Waitlist registration URL',
             'withdraw_url' => 'Withdrawal URL',
+            'contact_email_link' => 'Contact email link (clickable)',
         ];
     }
 }

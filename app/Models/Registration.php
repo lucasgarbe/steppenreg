@@ -16,7 +16,7 @@ class Registration extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         // Auto-leave team if track changes to maintain consistency
         static::updating(function ($registration) {
             if ($registration->isDirty('track_id') && $registration->team_id) {
@@ -131,18 +131,18 @@ class Registration extends Model
     public function scopeCanJoinWaitlist($query)
     {
         return $query->where('draw_status', 'not_drawn')
-                    ->whereDoesntHave('waitlistEntry')
-                    ->whereDoesntHave('withdrawalRequest', function ($q) {
-                        $q->where('is_withdrawn', true);
-                    });
+            ->whereDoesntHave('waitlistEntry')
+            ->whereDoesntHave('withdrawalRequest', function ($q) {
+                $q->where('is_withdrawn', true);
+            });
     }
 
     public function scopeCanWithdraw($query)
     {
         return $query->where('draw_status', 'drawn')
-                    ->whereDoesntHave('withdrawalRequest', function ($q) {
-                        $q->where('is_withdrawn', true);
-                    });
+            ->whereDoesntHave('withdrawalRequest', function ($q) {
+                $q->where('is_withdrawn', true);
+            });
     }
 
     // Accessors - Updated to use new relationships where possible
@@ -183,8 +183,8 @@ class Registration extends Model
 
     public function getCanJoinWaitlistAttribute(): bool
     {
-        return $this->draw_status === 'not_drawn' && 
-               !$this->is_withdrawn;
+        return $this->draw_status === 'not_drawn' &&
+            !$this->is_withdrawn;
     }
 
     public function getCanWithdrawAttribute(): bool
@@ -198,9 +198,9 @@ class Registration extends Model
         if (!$this->track_id) {
             return null;
         }
-        
+
         $tracks = app(EventSettings::class)->tracks ?? [];
-        
+
         return collect($tracks)->firstWhere('id', $this->track_id);
     }
 
@@ -211,7 +211,7 @@ class Registration extends Model
 
     public function getGenderLabelAttribute(): ?string
     {
-        return match($this->gender) {
+        return match ($this->gender) {
             'flinta' => __('messages.gender_flinta'),
             'all_gender' => __('messages.gender_all_gender'),
             default => null,
@@ -231,21 +231,23 @@ class Registration extends Model
         }
 
         $ranges = app(\App\Services\StartingNumberService::class)->getTrackRanges($this->track_id);
-        
+
         if ($this->starting_number >= $ranges['main']['start'] && $this->starting_number <= $ranges['main']['end']) {
             return 'main';
         }
-        
+
         if ($this->starting_number >= $ranges['waitlist']['start'] && $this->starting_number <= $ranges['waitlist']['end']) {
             return 'waitlist';
         }
-        
-        if (isset($ranges['waitlist_overflow']) && 
-            $this->starting_number >= $ranges['waitlist_overflow']['start'] && 
-            $this->starting_number <= $ranges['waitlist_overflow']['end']) {
+
+        if (
+            isset($ranges['waitlist_overflow']) &&
+            $this->starting_number >= $ranges['waitlist_overflow']['start'] &&
+            $this->starting_number <= $ranges['waitlist_overflow']['end']
+        ) {
             return 'waitlist_overflow';
         }
-        
+
         return 'unknown';
     }
 
@@ -255,7 +257,7 @@ class Registration extends Model
             return null;
         }
 
-        return match($this->starting_number_type) {
+        return match ($this->starting_number_type) {
             'main' => $this->formatted_starting_number,
             'waitlist' => $this->formatted_starting_number . ' (W)',
             'waitlist_overflow' => $this->formatted_starting_number . ' (W+)',
@@ -276,23 +278,23 @@ class Registration extends Model
         if ($this->has_finished) {
             return __('messages.finished');
         }
-        
+
         if ($this->is_starting) {
             return __('messages.starting');
         }
-        
+
         if ($this->is_payed) {
             return __('messages.paid');
         }
-        
+
         if ($this->is_drawn) {
             return __('messages.drawn');
         }
-        
+
         if ($this->is_on_waitlist) {
             return __('messages.waitlist');
         }
-        
+
         return __('messages.registered');
     }
 
@@ -342,7 +344,7 @@ class Registration extends Model
         if (!$this->waitlistEntry) {
             $this->generateWaitlistToken();
         }
-        
+
         return $this->waitlistEntry->getWaitlistUrl();
     }
 
@@ -351,7 +353,7 @@ class Registration extends Model
         if (!$this->withdrawalRequest) {
             $this->generateWithdrawToken();
         }
-        
+
         return $this->withdrawalRequest->getWithdrawUrl();
     }
 
@@ -392,7 +394,7 @@ class Registration extends Model
         if ($this->waitlistEntry) {
             $this->waitlistEntry->calculatePosition();
         }
-        
+
         return true;
     }
 

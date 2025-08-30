@@ -11,7 +11,7 @@ class MailVariableResolver
     public function resolve(Registration $registration): array
     {
         $eventSettings = app(EventSettings::class);
-        
+
         $trackInfo = $this->getTrackInfo($registration->track_id, $eventSettings);
 
         return [
@@ -25,6 +25,8 @@ class MailVariableResolver
             'team_name' => $registration->team?->name ?? '',
             'waitlist_url' => $registration->getWaitlistUrl(),
             'withdraw_url' => $registration->getWithdrawUrl(),
+            // Email link using mail config
+            'contact_email_link' => $this->getContactEmailLink(),
         ];
     }
 
@@ -43,6 +45,8 @@ class MailVariableResolver
             'team_name' => 'Sample Team',
             'waitlist_url' => 'https://example.com/waitlist/join/sample-token',
             'withdraw_url' => 'https://example.com/withdraw/sample-token',
+            // Email link using mail config
+            'contact_email_link' => $this->getContactEmailLink(),
         ];
     }
 
@@ -73,4 +77,34 @@ class MailVariableResolver
             default => 'Not drawn yet',
         };
     }
+
+    private function getEmailDomain(): string
+    {
+        // Try to get domain from app.url config
+        $appUrl = config('app.url');
+        if ($appUrl) {
+            $domain = parse_url($appUrl, PHP_URL_HOST);
+            if ($domain && $domain !== 'localhost' && $domain !== '127.0.0.1') {
+                return $domain;
+            }
+        }
+
+        // Try to get from mail.from.address config
+        $mailFrom = config('mail.from.address');
+        if ($mailFrom && str_contains($mailFrom, '@')) {
+            return explode('@', $mailFrom)[1];
+        }
+
+        // Fallback to generic domain
+        return 'event.com';
+    }
+
+    private function getContactEmailLink(): string
+    {
+        // Use mail config or fallback
+        $contactEmail = config('mail.from.address', 'contact@' . $this->getEmailDomain());
+
+        return '<a href="mailto:' . $contactEmail . '">E-Mail</a>';
+    }
 }
+
