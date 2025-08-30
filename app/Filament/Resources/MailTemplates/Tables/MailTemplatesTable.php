@@ -22,41 +22,41 @@ class MailTemplatesTable
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('key')
                     ->label('Type')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'registration_confirmation' => 'Registration',
                         'draw_success' => 'Draw Success',
                         'draw_waitlist' => 'Waitlist',
                         'draw_rejection' => 'Rejection',
                         default => $state,
                     })
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'registration_confirmation' => 'success',
                         'draw_success' => 'success',
                         'draw_waitlist' => 'warning',
                         'draw_rejection' => 'danger',
                         default => 'gray',
                     }),
-                
+
                 TextColumn::make('subject')
                     ->limit(50)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         return strlen($state) > 50 ? $state : null;
                     }),
-                
+
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean(),
-                
+
                 TextColumn::make('mailLogs_count')
                     ->label('Sent Count')
                     ->counts('mailLogs')
                     ->sortable(),
-                
+
                 TextColumn::make('updated_at')
                     ->label('Last Modified')
                     ->dateTime()
@@ -69,7 +69,7 @@ class MailTemplatesTable
                         1 => 'Active',
                         0 => 'Inactive',
                     ]),
-                
+
                 SelectFilter::make('key')
                     ->label('Type')
                     ->options([
@@ -80,32 +80,14 @@ class MailTemplatesTable
                     ]),
             ])
             ->recordActions([
-                Action::make('preview')
+                Action::make('quick_preview')
                     ->label('Preview')
-                    ->icon('heroicon-o-eye')
+                    ->icon('heroicon-o-document-magnifying-glass')
                     ->color('info')
-                    ->form([
-                        Textarea::make('preview_subject')
-                            ->label('Subject')
-                            ->disabled()
-                            ->rows(2),
-                        
-                        Textarea::make('preview_body')
-                            ->label('Body')
-                            ->disabled()
-                            ->rows(10),
-                    ])
-                    ->fillForm(function ($record) {
-                        $service = app(MailTemplateService::class);
-                        $preview = $service->previewTemplate($record->key);
-                        
-                        return [
-                            'preview_subject' => $preview['subject'] ?? '',
-                            'preview_body' => strip_tags($preview['body'] ?? ''),
-                        ];
-                    })
-                    ->modalWidth('xl'),
-                
+                    ->url(fn($record) => route('email.preview', $record->key))
+                    ->openUrlInNewTab()
+                    ->tooltip('Open email preview in new tab'),
+
                 EditAction::make(),
             ])
             ->toolbarActions([

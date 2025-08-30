@@ -29,6 +29,14 @@ class EmailPreviewController extends Controller
         
         $mailable = new TemplateBasedEmail($template, $registration, $variables);
         
+        // If source code is requested, return HTML source
+        if ($request->has('source')) {
+            $html = $mailable->render();
+            return response($html, 200, [
+                'Content-Type' => 'text/plain; charset=UTF-8'
+            ]);
+        }
+        
         return $mailable;
     }
     

@@ -128,6 +128,34 @@
             background-color: #fadbd8;
         }
 
+        /* Table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
         .footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -156,6 +184,15 @@
                 text-align: center;
                 margin: 15px 0;
             }
+
+            /* Responsive table styles */
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 6px 8px;
+            }
         }
     </style>
 </head>
@@ -164,7 +201,7 @@
         @php
             $body = $template->body;
 
-            // Replace variables in body
+            // Replace variables in body before processing Markdown
             foreach ($variables as $key => $value) {
                 $placeholder = '{{' . $key . '}}';
                 $body = str_replace($placeholder, $value, $body);
@@ -181,7 +218,21 @@
                 $body = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '', $body);
             }
 
-            echo $body;
+            // Convert Markdown to HTML with table support
+            $config = [
+                'html_input' => 'allow',
+                'allow_unsafe_links' => false,
+            ];
+            
+            $environment = new \League\CommonMark\Environment\Environment($config);
+            $environment->addExtension(new \League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension());
+            $environment->addExtension(new \League\CommonMark\Extension\Table\TableExtension());
+            
+            $converter = new \League\CommonMark\MarkdownConverter($environment);
+            
+            $htmlContent = $converter->convert($body)->getContent();
+            
+            echo $htmlContent;
         @endphp
     </div>
 
