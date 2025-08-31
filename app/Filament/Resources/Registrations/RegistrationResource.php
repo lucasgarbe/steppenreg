@@ -5,11 +5,11 @@ namespace App\Filament\Resources\Registrations;
 use App\Filament\Resources\Registrations\Pages\CreateRegistration;
 use App\Filament\Resources\Registrations\Pages\EditRegistration;
 use App\Filament\Resources\Registrations\Pages\ListRegistrations;
-use App\Filament\Resources\Registrations\Pages\ManageDraw;
 use App\Filament\Resources\Registrations\Schemas\RegistrationForm;
 use App\Filament\Resources\Registrations\Tables\RegistrationsTable;
 use App\Models\Registration;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,14 +21,11 @@ class RegistrationResource extends Resource
 {
     protected static ?string $model = Registration::class;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Registration';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     
-    protected static ?string $navigationLabel = null;
-    
-    public static function getNavigationLabel(): string
-    {
-        return __('admin.navigation.registrations');
-    }
+    protected static ?string $navigationLabel = 'Registrations';
     
     protected static ?int $navigationSort = 10;
 
@@ -57,7 +54,6 @@ class RegistrationResource extends Resource
             'index' => ListRegistrations::route('/'),
             'create' => CreateRegistration::route('/create'),
             'edit' => EditRegistration::route('/{record}/edit'),
-            'draw' => ManageDraw::route('/draw'),
         ];
     }
 
