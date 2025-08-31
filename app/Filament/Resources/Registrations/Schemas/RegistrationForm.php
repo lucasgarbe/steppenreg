@@ -29,7 +29,6 @@ class RegistrationForm
                             ->email()
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignorable: fn($record) => $record)
                             ->placeholder('participant@example.com'),
 
                         Forms\Components\TextInput::make('age')

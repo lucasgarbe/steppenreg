@@ -62,7 +62,7 @@ class PublicRegistrationController extends Controller
         // Prepare validation rules
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:registrations,email',
+            'email' => 'required|email|max:255',
             'age' => 'required|integer|min:1|max:120',
             'gender' => 'required|string|in:flinta,all_gender',
             'track_id' => 'required|integer',
