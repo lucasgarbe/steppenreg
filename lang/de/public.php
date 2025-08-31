@@ -61,7 +61,7 @@ return [
             'confirmation_sent' => 'Du erhältst in Kürze eine Bestätigung per Mail.',
             'what_next' => 'Wie geht es weiter?',
             'wait_for_draw' => 'Warte auf die Auslosung - wir informieren dich per E-Mail über das Ergebnis.',
-            'mail' => 'Bei Fragen kannst du unse schreiben',
+            'mail' => 'Bei Fragen kannst du uns schreiben',
             'back_to_home' => 'Zur Hauptseite',
         ],
 
