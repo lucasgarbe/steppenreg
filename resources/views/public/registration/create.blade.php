@@ -39,7 +39,7 @@
                         type="text"
                         id="name"
                         name="name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         placeholder="{{ __('public.registration.fields.name_placeholder') }}"
                         required
                         value="{{ old('name') }}"
@@ -58,7 +58,7 @@
                         type="email"
                         id="email"
                         name="email"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         placeholder="{{ __('public.registration.fields.email_placeholder') }}"
                         required
                         value="{{ old('email') }}"
@@ -79,7 +79,7 @@
                         name="age"
                         min="16"
                         max="99"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         placeholder="{{ __('public.registration.fields.age_placeholder') }}"
                         required
                         value="{{ old('age') }}"
@@ -97,7 +97,7 @@
                     <select
                         id="gender"
                         name="gender"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                     >
                         <option value="">{{ __('public.registration.fields.gender_placeholder') }}</option>
                         @foreach(\App\Models\Registration::getGenderOptions() as $value => $label)
@@ -128,7 +128,7 @@
                     <select
                         id="track_id"
                         name="track_id"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         required
                     >
                         <option value="">{{ __('public.registration.fields.track_placeholder') }}</option>
@@ -155,7 +155,7 @@
                         type="text"
                         id="team_name"
                         name="team_name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         placeholder="{{ __('public.registration.fields.team_placeholder') }}"
                         value="{{ old('team_name') }}"
                     >
@@ -176,13 +176,78 @@
                         id="notes"
                         name="notes"
                         rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         placeholder="{{ __('public.registration.fields.notes_placeholder') }}"
                     >{{ old('notes') }}</textarea>
                     @error('notes')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+
+                <!-- Participation Count -->
+                <fieldset aria-label="{{ __('public.registration.fields.participation_count') }}">
+                    <div class="text-sm font-medium text-gray-900 mb-1">
+                        {{ __('public.registration.fields.participation_count') }}
+                    </div>
+                    <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <label aria-label="{{ __('public.registration.fields.participation_count_options.first_time') }}" class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-spw-yellow has-checked:bg-spw-yellow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-spw-yellow cursor-pointer hover:bg-yellow-50">
+                            <input
+                                type="radio"
+                                name="participation_count"
+                                value="1"
+                                class="absolute inset-0 appearance-none focus:outline-none cursor-pointer"
+                                {{ old('participation_count') == '1' ? 'checked' : '' }}
+                            />
+                            <span class="text-sm font-medium text-gray-900 text-center group-has-checked:text-black">
+                                {{ __('public.registration.fields.participation_count_options.first_time') }}
+                            </span>
+                        </label>
+                        <label aria-label="{{ __('public.registration.fields.participation_count_options.second_time') }}" class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-spw-yellow has-checked:bg-spw-yellow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-spw-yellow cursor-pointer hover:bg-yellow-50">
+                            <input
+                                type="radio"
+                                name="participation_count"
+                                value="2"
+                                class="absolute inset-0 appearance-none focus:outline-none cursor-pointer"
+                                {{ old('participation_count') == '2' ? 'checked' : '' }}
+                            />
+                            <span class="text-sm font-medium text-gray-900 text-center group-has-checked:text-black">
+                                {{ __('public.registration.fields.participation_count_options.second_time') }}
+                            </span>
+                        </label>
+                        <label aria-label="{{ __('public.registration.fields.participation_count_options.third_time') }}" class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-spw-yellow has-checked:bg-spw-yellow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-spw-yellow cursor-pointer hover:bg-yellow-50">
+                            <input
+                                type="radio"
+                                name="participation_count"
+                                value="3"
+                                class="absolute inset-0 appearance-none focus:outline-none cursor-pointer"
+                                {{ old('participation_count') == '3' ? 'checked' : '' }}
+                            />
+                            <span class="text-sm font-medium text-gray-900 text-center group-has-checked:text-black">
+                                {{ __('public.registration.fields.participation_count_options.third_time') }}
+                            </span>
+                        </label>
+                        <label aria-label="{{ __('public.registration.fields.participation_count_options.fourth_time') }}" class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-spw-yellow has-checked:bg-spw-yellow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-spw-yellow cursor-pointer hover:bg-yellow-50">
+                            <input
+                                type="radio"
+                                name="participation_count"
+                                value="4"
+                                class="absolute inset-0 appearance-none focus:outline-none cursor-pointer"
+                                {{ old('participation_count') == '4' ? 'checked' : '' }}
+                            />
+                            <span class="text-sm font-medium text-gray-900 text-center group-has-checked:text-black">
+                                {{ __('public.registration.fields.participation_count_options.fourth_time') }}
+                            </span>
+                        </label>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">
+                        {{ __('public.registration.fields.participation_count_help') }}
+                    </p>
+                    @error('participation_count')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </fieldset>
+
+
             </div>
         </div>
 
