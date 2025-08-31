@@ -23,6 +23,8 @@ class MailVariableResolver
             'registration_date' => $registration->created_at->format('d.m.Y'),
             'draw_status' => $this->formatDrawStatus($registration->draw_status),
             'team_name' => $registration->team?->name ?? '',
+            'participation_count' => $registration->participation_count ?? 0,
+            'participation_experience' => $this->getParticipationExperience($registration->participation_count ?? 0),
             'waitlist_url' => $registration->getWaitlistUrl(),
             'withdraw_url' => $registration->getWithdrawUrl(),
             // Email link using mail config
@@ -43,6 +45,8 @@ class MailVariableResolver
             'registration_date' => Carbon::now()->format('d.m.Y'),
             'draw_status' => 'Not drawn yet',
             'team_name' => 'Sample Team',
+            'participation_count' => 2,
+            'participation_experience' => 'Veteran (3rd time)',
             'waitlist_url' => 'https://example.com/waitlist/join/sample-token',
             'withdraw_url' => 'https://example.com/withdraw/sample-token',
             // Email link using mail config
@@ -105,6 +109,16 @@ class MailVariableResolver
         $contactEmail = config('mail.from.address', 'contact@' . $this->getEmailDomain());
 
         return '<a href="mailto:' . $contactEmail . '">E-Mail</a>';
+    }
+
+    private function getParticipationExperience(int $count): string
+    {
+        return match (true) {
+            $count === 0 => 'First-time participant',
+            $count === 1 => 'Returning participant (2nd time)',
+            $count >= 2 => 'Veteran (' . ($count + 1) . 'x participant)',
+            default => 'Unknown'
+        };
     }
 }
 

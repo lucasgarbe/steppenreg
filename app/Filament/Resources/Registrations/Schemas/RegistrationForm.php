@@ -50,6 +50,15 @@ class RegistrationForm
                             ->placeholder('Select gender category')
                             ->helperText('FLINTA* includes women, lesbians, inter, non-binary, trans, and agender people'),
 
+                        Forms\Components\TextInput::make('participation_count')
+                            ->label('Previous Participations')
+                            ->numeric()
+                            ->default(0)
+                            ->minValue(0)
+                            ->maxValue(50)
+                            ->placeholder('0')
+                            ->helperText('How many times has this person participated in this event before? (0 for first-time participants)'),
+
                         Forms\Components\Select::make('track_id')
                             ->label('Track Selection')
                             ->options(function () {
