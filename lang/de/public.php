@@ -57,11 +57,12 @@ return [
 
         'success' => [
             'title' => 'Anmeldung erfolgreich!',
-            'message' => 'Deine Anmeldung wurde erfolgreich übermittelt.',
-            'confirmation_sent' => 'Du erhältst in Kürze eine Bestätigungs-E-Mail.',
+            'message' => 'Jawollo! Deine Anmeldung ist bei uns eingegangen.',
+            'confirmation_sent' => 'Du erhältst in Kürze eine Bestätigung per Mail.',
             'what_next' => 'Wie geht es weiter?',
             'wait_for_draw' => 'Warte auf die Auslosung - wir informieren dich per E-Mail über das Ergebnis.',
-            'back_to_home' => 'Zur Startseite',
+            'mail' => 'Bei Fragen kannst du unse schreiben',
+            'back_to_home' => 'Zur Hauptseite',
         ],
 
         'errors' => [

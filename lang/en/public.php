@@ -57,10 +57,11 @@ return [
 
         'success' => [
             'title' => 'Registration Successful!',
-            'message' => 'Your registration has been successfully submitted.',
+            'message' => 'Yeah! Your registration has been successfully submitted.',
             'confirmation_sent' => 'You will receive a confirmation email shortly.',
             'what_next' => 'What\'s next?',
             'wait_for_draw' => 'Wait for the draw - we\'ll notify you by email about the results.',
+            'mail' => 'Any questions? You can write us',
             'back_to_home' => 'Back to Home',
         ],
 
