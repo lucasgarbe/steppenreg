@@ -7,6 +7,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use BackedEnum;
+use UnitEnum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
@@ -19,11 +20,13 @@ class MailLogResource extends Resource
 {
     protected static ?string $model = MailLog::class;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Mail';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
-    protected static ?string $navigationLabel = 'Mail Logs';
+    protected static ?string $navigationLabel = 'Logs';
 
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 20;
 
     public static function table(Table $table): Table
     {

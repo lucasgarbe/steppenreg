@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Registrations\Pages;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Settings\EventSettings;
 use Filament\Actions\CreateAction;
-use Filament\Actions\Action;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,11 +16,6 @@ class ListRegistrations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('manageDraw')
-                ->label('Auslosung')
-                ->icon('heroicon-o-calculator')
-                ->color('gray')
-                ->url(static::$resource::getUrl('draw')),
             CreateAction::make()->color('success'),
         ];
     }
