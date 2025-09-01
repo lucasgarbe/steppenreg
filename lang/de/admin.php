@@ -10,7 +10,7 @@ return [
         'dashboard' => 'Dashboard',
         'manage_event' => 'Event verwalten',
     ],
-    
+
     // Registration management
     'registrations' => [
         'title' => 'Anmeldungen',
@@ -19,7 +19,7 @@ return [
         'edit' => 'Anmeldung bearbeiten',
         'view' => 'Anmeldung anzeigen',
         'delete' => 'Anmeldung löschen',
-        
+
         // Columns
         'columns' => [
             'start_number' => 'Start #',
@@ -34,8 +34,9 @@ return [
             'status' => 'Status',
             'notes' => 'Notizen',
             'created_at' => 'Angemeldet am',
+            'participation_count' => 'Fährt zu x Mal mit',
         ],
-        
+
         // Actions
         'actions' => [
             'edit' => 'Bearbeiten',
@@ -54,14 +55,14 @@ return [
             'generate_withdraw_tokens' => 'Rückzugs-Links erstellen',
             'send_draw_notifications' => 'Auslosungsbenachrichtigungen senden',
         ],
-        
+
         // Confirmations
         'confirmations' => [
             'promote_from_waitlist' => 'Sind Sie sicher, dass Sie :name von der Warteliste zur Auslosung befördern möchten?',
             'add_to_waitlist' => 'Sind Sie sicher, dass Sie :name zur Warteliste hinzufügen möchten?',
             'manual_withdraw' => 'Sind Sie sicher, dass Sie :name manuell vom Event zurückziehen möchten?',
         ],
-        
+
         // Notifications
         'notifications' => [
             'promotion_completed' => 'Beförderung abgeschlossen',
@@ -85,7 +86,7 @@ return [
             'draw_notifications_queued' => 'Auslosungsbenachrichtigungen in Warteschlange',
             'draw_notifications_result' => ':count Auslosungsbenachrichtigungen zur Verarbeitung in die Warteschlange eingereiht',
         ],
-        
+
         // Filters
         'filters' => [
             'track' => 'Strecke',
@@ -103,7 +104,7 @@ return [
             'select_status' => 'Status auswählen',
             'all_statuses' => 'Alle Status',
         ],
-        
+
         // Status values
         'status' => [
             'registered' => 'Angemeldet',
@@ -113,7 +114,7 @@ return [
             'starting' => 'Am Start',
             'finished' => 'Fertig',
         ],
-        
+
         // Draw status
         'draw_status' => [
             'not_drawn' => 'Nicht gelost',
@@ -122,7 +123,7 @@ return [
             'withdrawn' => 'Zurückgezogen',
         ],
     ],
-    
+
     // Teams
     'teams' => [
         'title' => 'Teams',
@@ -131,7 +132,7 @@ return [
         'edit' => 'Team bearbeiten',
         'view' => 'Team anzeigen',
         'delete' => 'Team löschen',
-        
+
         'columns' => [
             'name' => 'Team-Name',
             'track' => 'Strecke',
@@ -140,7 +141,7 @@ return [
             'created_at' => 'Erstellt am',
         ],
     ],
-    
+
     // Dashboard widgets
     'widgets' => [
         'registration_stats' => 'Anmeldungsstatistiken',
@@ -148,7 +149,7 @@ return [
         'daily_registrations' => 'Tägliche Anmeldungen',
         'registration_timeline_by_gender' => 'Anmeldungsverlauf nach Geschlecht',
         'registration_timeline_by_track' => 'Anmeldungsverlauf nach Strecke',
-        
+
         'stats' => [
             'total_registrations' => 'Gesamtanmeldungen',
             'drawn_registrations' => 'Geloste Anmeldungen',
@@ -160,7 +161,7 @@ return [
             'full_teams' => 'Volle Teams',
         ],
     ],
-    
+
     // General form labels
     'form' => [
         'name' => 'Name',
@@ -174,7 +175,7 @@ return [
         'starting' => 'Am Start',
         'finish_time' => 'Zielzeit',
         'starting_number' => 'Startnummer',
-        
+
         'placeholders' => [
             'not_specified' => 'Nicht angegeben',
             'not_finished' => 'Nicht fertig',
@@ -182,9 +183,10 @@ return [
             'no_track_selected' => 'Keine Strecke ausgewählt',
             'no_notes' => 'Keine Notizen',
         ],
-        
+
         'tooltips' => [
             'has_notes' => 'Diese Anmeldung hat Notizen',
         ],
     ],
 ];
+

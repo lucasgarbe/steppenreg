@@ -10,7 +10,7 @@ return [
         'dashboard' => 'Dashboard',
         'manage_event' => 'Manage Event',
     ],
-    
+
     // Registration management
     'registrations' => [
         'title' => 'Registrations',
@@ -19,7 +19,7 @@ return [
         'edit' => 'Edit Registration',
         'view' => 'View Registration',
         'delete' => 'Delete Registration',
-        
+
         // Columns
         'columns' => [
             'start_number' => 'Start #',
@@ -34,8 +34,9 @@ return [
             'status' => 'Status',
             'notes' => 'Notes',
             'created_at' => 'Registered At',
+            'participation_count' => 'Participates the nth time',
         ],
-        
+
         // Actions
         'actions' => [
             'edit' => 'Edit',
@@ -54,14 +55,14 @@ return [
             'generate_withdraw_tokens' => 'Generate Withdraw Links',
             'send_draw_notifications' => 'Send Draw Result Emails',
         ],
-        
+
         // Confirmations
         'confirmations' => [
             'promote_from_waitlist' => 'Are you sure you want to promote :name from waitlist to drawn status?',
             'add_to_waitlist' => 'Are you sure you want to add :name to the waitlist?',
             'manual_withdraw' => 'Are you sure you want to manually withdraw :name from the event?',
         ],
-        
+
         // Notifications
         'notifications' => [
             'promotion_completed' => 'Promotion Completed',
@@ -85,7 +86,7 @@ return [
             'draw_notifications_queued' => 'Draw notification emails queued',
             'draw_notifications_result' => 'Sent :count draw result emails to queue for processing',
         ],
-        
+
         // Filters
         'filters' => [
             'track' => 'Track',
@@ -103,7 +104,7 @@ return [
             'select_status' => 'Select Status',
             'all_statuses' => 'All statuses',
         ],
-        
+
         // Status values
         'status' => [
             'registered' => 'Registered',
@@ -113,7 +114,7 @@ return [
             'starting' => 'Starting',
             'finished' => 'Finished',
         ],
-        
+
         // Draw status
         'draw_status' => [
             'not_drawn' => 'Not Drawn',
@@ -122,7 +123,7 @@ return [
             'withdrawn' => 'Withdrawn',
         ],
     ],
-    
+
     // Teams
     'teams' => [
         'title' => 'Teams',
@@ -131,7 +132,7 @@ return [
         'edit' => 'Edit Team',
         'view' => 'View Team',
         'delete' => 'Delete Team',
-        
+
         'columns' => [
             'name' => 'Team Name',
             'track' => 'Track',
@@ -140,7 +141,7 @@ return [
             'created_at' => 'Created At',
         ],
     ],
-    
+
     // Dashboard widgets
     'widgets' => [
         'registration_stats' => 'Registration Statistics',
@@ -148,7 +149,7 @@ return [
         'daily_registrations' => 'Daily Registrations',
         'registration_timeline_by_gender' => 'Registration Timeline by Gender',
         'registration_timeline_by_track' => 'Registration Timeline by Track',
-        
+
         'stats' => [
             'total_registrations' => 'Total Registrations',
             'drawn_registrations' => 'Drawn Registrations',
@@ -160,7 +161,7 @@ return [
             'full_teams' => 'Full Teams',
         ],
     ],
-    
+
     // General form labels
     'form' => [
         'name' => 'Name',
@@ -174,7 +175,7 @@ return [
         'starting' => 'Starting',
         'finish_time' => 'Finish Time',
         'starting_number' => 'Starting Number',
-        
+
         'placeholders' => [
             'not_specified' => 'Not specified',
             'not_finished' => 'Not finished',
@@ -182,9 +183,10 @@ return [
             'no_track_selected' => 'No track selected',
             'no_notes' => 'No notes',
         ],
-        
+
         'tooltips' => [
             'has_notes' => 'This registration has notes',
         ],
     ],
 ];
+

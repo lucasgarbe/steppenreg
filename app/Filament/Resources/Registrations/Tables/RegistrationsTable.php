@@ -48,7 +48,7 @@ class RegistrationsTable
                     ->tooltip(fn($record) => $record?->notes ? __('admin.registrations.tooltips.has_notes') : null),
 
                 TextColumn::make('participation_count')
-                    ->label('Times Participated')
+                    ->label(__('admin.registrations.columns.participation_count'))
                     ->sortable()
                     ->badge()
                     ->color(fn(?int $state): string => match (true) {
