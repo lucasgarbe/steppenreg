@@ -29,7 +29,6 @@ class RegistrationsTable
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->whereNotNull('starting_number')->orderBy('starting_number', $direction);
                     })
-                    ->searchable(isIndividual: false, isGlobal: false)
                     ->placeholder('—')
                     ->badge()
                     ->formatStateUsing(fn($record) => $record?->starting_number_label)
@@ -86,7 +85,6 @@ class RegistrationsTable
                 TextColumn::make('track_name')
                     ->label(__('admin.registrations.columns.track'))
                     ->placeholder(__('admin.form.placeholders.no_track_selected'))
-                    ->searchable()
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->whereNotNull('track_id')->orderBy('track_id', $direction);
                     })
@@ -160,7 +158,6 @@ class RegistrationsTable
                     ->wrap()
                     ->limit(50)
                     ->placeholder(__('admin.form.placeholders.no_notes'))
-                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->icon(fn($record) => $record?->notes ? 'heroicon-s-document-text' : null)
                     ->color(fn($record) => $record?->notes ? 'primary' : null),
@@ -170,7 +167,6 @@ class RegistrationsTable
                     ->wrap()
                     ->limit(60)
                     ->placeholder('No withdrawal reason')
-                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->visible(fn($record) => $record?->is_withdrawn)
                     ->icon(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ? 'heroicon-s-exclamation-triangle' : null)
