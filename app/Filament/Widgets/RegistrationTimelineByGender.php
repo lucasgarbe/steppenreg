@@ -13,23 +13,23 @@ use Illuminate\Support\Facades\DB;
 class RegistrationTimelineByGender extends ChartWidget
 {
     protected ?string $heading = 'Registration Timeline By Gender';
-    
+
     protected int | string | array $columnSpan = 1;
-    
-    protected static ?int $sort = 3;
-    
+
+    protected static ?int $sort = 4;
+
     public ?string $filter = '7days';
-    
+
     public ?string $trackFilter = 'all';
 
     protected function getData(): array
     {
         $filter = $this->filter;
         $trackFilter = $this->trackFilter;
-        
+
         // Get date range based on filter
         $endDate = now()->endOfDay();
-        $startDate = match($filter) {
+        $startDate = match ($filter) {
             '7days' => now()->subDays(7)->startOfDay(),
             '30days' => now()->subDays(30)->startOfDay(),
             'all' => Registration::min('created_at') ? Carbon::parse(Registration::min('created_at'))->startOfDay() : now()->subMonth()->startOfDay(),
@@ -50,19 +50,19 @@ class RegistrationTimelineByGender extends ChartWidget
             DB::raw('DATE(created_at) as date'),
             DB::raw('COUNT(*) as count')
         )
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereNotNull('gender');
-        
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('gender');
+
         // Apply track filter if not 'all'
         if ($trackFilter && $trackFilter !== 'all') {
             $query->where('track_id', $trackFilter);
         }
-        
+
         $registrationData = $query
-        ->groupBy('gender', 'date')
-        ->orderBy('date')
-        ->get()
-        ->groupBy('gender');
+            ->groupBy('gender', 'date')
+            ->orderBy('date')
+            ->get()
+            ->groupBy('gender');
 
         // Prepare datasets for each gender
         $datasets = [];
@@ -79,23 +79,23 @@ class RegistrationTimelineByGender extends ChartWidget
 
         foreach ($genderConfig as $genderKey => $config) {
             $genderData = $registrationData->get($genderKey, collect());
-            
+
             // Fill data array with daily counts
             $dataPoints = [];
             $current = $startDate->copy();
             $cumulativeCount = 0;
-            
+
             while ($current <= $endDate) {
                 $dateString = $current->format('Y-m-d');
                 $dayData = $genderData->firstWhere('date', $dateString);
                 $dayCount = $dayData ? $dayData->count : 0;
-                
+
                 $cumulativeCount += $dayCount;
                 $dataPoints[] = $cumulativeCount;
-                
+
                 $current->addDay();
             }
-            
+
             $datasets[] = [
                 'label' => $config['label'],
                 'data' => $dataPoints,
@@ -120,7 +120,7 @@ class RegistrationTimelineByGender extends ChartWidget
     {
         return 'line';
     }
-    
+
     protected function getFilters(): ?array
     {
         return [
@@ -129,22 +129,22 @@ class RegistrationTimelineByGender extends ChartWidget
             'all' => 'All time',
         ];
     }
-    
+
     public function getTrackFilters(): array
     {
         $filters = ['all' => 'All Tracks'];
-        
+
         $settings = app(EventSettings::class);
-        
+
         if (isset($settings->tracks) && is_array($settings->tracks)) {
             foreach ($settings->tracks as $track) {
                 $filters[(string)$track['id']] = $track['name'];
             }
         }
-        
+
         return $filters;
     }
-    
+
     protected function getHeaderActions(): array
     {
         return [
@@ -165,12 +165,12 @@ class RegistrationTimelineByGender extends ChartWidget
                 }),
         ];
     }
-    
+
     protected function resetFilter(): void
     {
         // This will trigger a re-render of the chart
     }
-    
+
     protected function getOptions(): array
     {
         return [

@@ -13,9 +13,9 @@ class DailyRegistrations extends ChartWidget
 
     protected int | string | array $columnSpan = 1;
 
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 4;
 
-    public ?string $filter = '30days';
+    public ?string $filter = '7days';
 
     protected function getData(): array
     {
@@ -28,7 +28,7 @@ class DailyRegistrations extends ChartWidget
             '14days' => now()->subDays(14)->startOfDay(),
             '30days' => now()->subDays(30)->startOfDay(),
             'all' => Registration::min('created_at') ? Carbon::parse(Registration::min('created_at'))->startOfDay() : now()->subMonth()->startOfDay(),
-            default => now()->subDays(30)->startOfDay(),
+            default => now()->subDays(7)->startOfDay(),
         };
 
         // Generate date labels

@@ -8,6 +8,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TeamStats extends StatsOverviewWidget
 {
+    protected static ?int $sort = 3;
     protected function getStats(): array
     {
         $stats = Team::getStats();

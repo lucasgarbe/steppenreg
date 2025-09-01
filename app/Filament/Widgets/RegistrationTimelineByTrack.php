@@ -11,20 +11,20 @@ use Illuminate\Support\Facades\DB;
 class RegistrationTimelineByTrack extends ChartWidget
 {
     protected ?string $heading = 'Registration Timeline By Track';
-    
+
     protected int | string | array $columnSpan = 1;
-    
-    protected static ?int $sort = 2;
-    
+
+    protected static ?int $sort = 4;
+
     public ?string $filter = '7days';
 
     protected function getData(): array
     {
         $filter = $this->filter;
-        
+
         // Get date range based on filter
         $endDate = now()->endOfDay();
-        $startDate = match($filter) {
+        $startDate = match ($filter) {
             '7days' => now()->subDays(7)->startOfDay(),
             '30days' => now()->subDays(30)->startOfDay(),
             'all' => Registration::min('created_at') ? Carbon::parse(Registration::min('created_at'))->startOfDay() : now()->subMonth()->startOfDay(),
@@ -49,12 +49,12 @@ class RegistrationTimelineByTrack extends ChartWidget
             DB::raw('DATE(created_at) as date'),
             DB::raw('COUNT(*) as count')
         )
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->whereNotNull('track_id')
-        ->groupBy('track_id', 'date')
-        ->orderBy('date')
-        ->get()
-        ->groupBy('track_id');
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('track_id')
+            ->groupBy('track_id', 'date')
+            ->orderBy('date')
+            ->get()
+            ->groupBy('track_id');
 
         // Prepare datasets for each track
         $datasets = [];
@@ -71,23 +71,23 @@ class RegistrationTimelineByTrack extends ChartWidget
             $trackId = $track['id'];
             $trackName = $track['name'];
             $trackData = $registrationData->get($trackId, collect());
-            
+
             // Fill data array with daily counts
             $dataPoints = [];
             $current = $startDate->copy();
             $cumulativeCount = 0;
-            
+
             while ($current <= $endDate) {
                 $dateString = $current->format('Y-m-d');
                 $dayData = $trackData->firstWhere('date', $dateString);
                 $dayCount = $dayData ? $dayData->count : 0;
-                
+
                 $cumulativeCount += $dayCount;
                 $dataPoints[] = $cumulativeCount;
-                
+
                 $current->addDay();
             }
-            
+
             $datasets[] = [
                 'label' => $trackName,
                 'data' => $dataPoints,
@@ -112,7 +112,7 @@ class RegistrationTimelineByTrack extends ChartWidget
     {
         return 'line';
     }
-    
+
     protected function getFilters(): ?array
     {
         return [
@@ -121,7 +121,7 @@ class RegistrationTimelineByTrack extends ChartWidget
             'all' => 'All time',
         ];
     }
-    
+
     protected function getOptions(): array
     {
         return [
