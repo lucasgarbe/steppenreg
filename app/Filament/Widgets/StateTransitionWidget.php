@@ -8,6 +8,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class StateTransitionWidget extends StatsOverviewWidget
 {
+    protected static ?int $sort = 1;
     protected function getStats(): array
     {
         $eventSettings = app(EventSettings::class);
@@ -16,13 +17,13 @@ class StateTransitionWidget extends StatsOverviewWidget
         // Current State
         $currentState = $eventSettings->application_state;
         $stateLabel = $eventSettings->getApplicationStateLabel();
-        
+
         $stats[] = Stat::make('Current State', $stateLabel)
             ->description('Application state right now')
             ->descriptionIcon('heroicon-m-information-circle')
             ->color(match ($currentState) {
                 'open_flinta', 'open_everyone' => 'success',
-                'closed_waitlist' => 'warning', 
+                'closed_waitlist' => 'warning',
                 'live_event' => 'info',
                 'closed' => 'danger',
                 default => 'gray'

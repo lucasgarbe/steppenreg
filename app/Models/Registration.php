@@ -314,6 +314,8 @@ class Registration extends Model
             'finished' => static::finished()->count(),
             'withdrawn' => static::withdrawn()->count(),
             'waitlist_registered' => static::waitlistRegistered()->count(),
+            'gender_flinta' => static::where('gender', 'flinta')->count(),
+            'gender_all_gender' => static::where('gender', 'all_gender')->count(),
         ];
     }
 

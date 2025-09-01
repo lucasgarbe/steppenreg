@@ -53,22 +53,11 @@ class RegistrationsTable
                     ->sortable()
                     ->badge()
                     ->color(fn(?int $state): string => match (true) {
-                        $state === 0 => 'gray',      // First-time participants
-                        $state === 1 => 'success',   // Second-time participants  
-                        $state >= 2 => 'warning',    // Veteran participants (3+ times)
+                        $state === 0 => 'success',
+                        $state === 1 => 'gray',
+                        $state === 2 => 'warning',
+                        $state >= 3 => 'danger',
                         default => 'gray'
-                    })
-                    ->formatStateUsing(fn(?int $state): string => match (true) {
-                        $state === 0 => 'First Time',
-                        $state === 1 => '2nd Time', 
-                        $state >= 2 => ($state + 1) . 'x Veteran',
-                        default => 'Unknown'
-                    })
-                    ->tooltip(fn(?int $state): string => match (true) {
-                        $state === 0 => 'This is their first time participating',
-                        $state === 1 => 'This is their second time participating',
-                        $state >= 2 => 'This person has participated ' . ($state + 1) . ' times total',
-                        default => 'Participation history unknown'
                     })
                     ->toggleable(isToggledHiddenByDefault: false),
 
@@ -118,7 +107,7 @@ class RegistrationsTable
                         'not_drawn' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(function($record): string {
+                    ->formatStateUsing(function ($record): string {
                         if ($record?->is_withdrawn) {
                             return __('admin.registrations.draw_status.withdrawn');
                         }
@@ -145,7 +134,7 @@ class RegistrationsTable
                 TextColumn::make('status')
                     ->label(__('admin.registrations.columns.status'))
                     ->badge()
-                    ->formatStateUsing(function($record): string {
+                    ->formatStateUsing(function ($record): string {
                         return match ($record?->status) {
                             'Finished' => __('admin.registrations.status.finished'),
                             'Starting' => __('admin.registrations.status.starting'),
@@ -186,7 +175,7 @@ class RegistrationsTable
                     ->visible(fn($record) => $record?->is_withdrawn)
                     ->icon(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ? 'heroicon-s-exclamation-triangle' : null)
                     ->iconColor('orange')
-                    ->tooltip(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ? 
+                    ->tooltip(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ?
                         'Full reason: ' . $record->withdrawalRequest->withdrawal_reason : null),
 
                 TextColumn::make('created_at')
@@ -257,7 +246,7 @@ class RegistrationsTable
                         if (!isset($data['experience_type']) || !$data['experience_type']) {
                             return $query;
                         }
-                        
+
                         return match ($data['experience_type']) {
                             'first_time' => $query->where('participation_count', 0),
                             'returning' => $query->where('participation_count', 1),
@@ -297,9 +286,9 @@ class RegistrationsTable
                         if (!isset($data['status']) || !$data['status']) {
                             return $query;
                         }
-                        
+
                         $status = $data['status'];
-                        
+
                         return match ($status) {
                             'Finished' => $query->whereNotNull('finish_time'),
                             'Starting' => $query->where('starting', true)->whereNull('finish_time'),
@@ -316,7 +305,7 @@ class RegistrationsTable
             ->recordActions([
                 ActionGroup::make([
                     EditAction::make(),
-                    
+
                     Action::make('promote_from_waitlist')
                         ->label(__('admin.registrations.actions.promote_from_waitlist'))
                         ->icon('heroicon-o-arrow-up')
@@ -332,27 +321,27 @@ class RegistrationsTable
                                     'draw_status' => 'drawn',
                                     'promoted_from_waitlist_at' => now()
                                 ]);
-                                
+
                                 // Generate withdraw token using new relationship
                                 $record->generateWithdrawToken();
                             });
-                            
+
                             $record->refresh(); // Get the updated starting number
-                            
-                            $message = $record->starting_number ? 
+
+                            $message = $record->starting_number ?
                                 __('admin.registrations.notifications.promoted_with_starting_number', [
                                     'name' => $record->name,
                                     'number' => $record->formatted_starting_number
                                 ]) :
                                 __('admin.registrations.notifications.promoted_from_waitlist', ['name' => $record->name]);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title(__('admin.registrations.notifications.promotion_completed'))
                                 ->body($message)
                                 ->success()
                                 ->send();
                         }),
-                    
+
                     Action::make('add_to_waitlist')
                         ->label(__('admin.registrations.actions.add_to_waitlist'))
                         ->icon('heroicon-o-clock')
@@ -366,7 +355,7 @@ class RegistrationsTable
                             if ($record->joinWaitlist()) {
                                 // Generate waitlist token using new relationship
                                 $record->generateWaitlistToken();
-                                
+
                                 \Filament\Notifications\Notification::make()
                                     ->title(__('admin.registrations.notifications.added_to_waitlist'))
                                     ->body(__('admin.registrations.notifications.added_to_waitlist_body', ['name' => $record->name]))
@@ -374,7 +363,7 @@ class RegistrationsTable
                                     ->send();
                             }
                         }),
-                    
+
                     Action::make('manual_withdraw')
                         ->label(__('admin.registrations.actions.manual_withdraw'))
                         ->icon('heroicon-o-x-circle')
@@ -398,7 +387,7 @@ class RegistrationsTable
                                     ->active()
                                     ->orderedByRegistration()
                                     ->first();
-                                    
+
                                 if ($nextWaitlisted) {
                                     $nextRegistration = $nextWaitlisted->registration;
                                     $nextRegistration->update([
@@ -406,10 +395,10 @@ class RegistrationsTable
                                         'drawn_at' => now(),
                                         'promoted_from_waitlist_at' => now()
                                     ]);
-                                    
+
                                     // Generate withdraw token for the newly promoted
                                     $nextRegistration->generateWithdrawToken();
-                                    
+
                                     \Filament\Notifications\Notification::make()
                                         ->title(__('admin.registrations.notifications.withdrawal_completed'))
                                         ->body(__('admin.registrations.notifications.withdrew_and_promoted', [
@@ -427,7 +416,7 @@ class RegistrationsTable
                                 }
                             }
                         }),
-                    
+
                     Action::make('send_withdrawal_link')
                         ->label(__('admin.registrations.actions.send_withdrawal_link'))
                         ->icon('heroicon-o-envelope')
@@ -436,17 +425,17 @@ class RegistrationsTable
                         ->action(function ($record) {
                             // Generate token using new relationship
                             $record->generateWithdrawToken();
-                            
+
                             // Send notification email
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title(__('admin.registrations.notifications.withdrawal_link_sent'))
                                 ->body(__('admin.registrations.notifications.withdrawal_link_sent_body', ['email' => $record->email]))
                                 ->success()
                                 ->send();
                         }),
-                    
+
                     Action::make('send_draw_results')
                         ->label(__('admin.registrations.actions.send_draw_results'))
                         ->icon('heroicon-o-envelope')
@@ -460,10 +449,10 @@ class RegistrationsTable
                             if ($record->draw_status === 'waitlist' || $record->can_join_waitlist) {
                                 $record->generateWaitlistToken();
                             }
-                            
+
                             // Send draw notification email
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title(__('admin.registrations.notifications.draw_results_sent'))
                                 ->body(__('admin.registrations.notifications.draw_results_sent_body', ['email' => $record->email]))
@@ -474,7 +463,7 @@ class RegistrationsTable
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                     BulkAction::make('mark_as_paid')
+                    BulkAction::make('mark_as_paid')
                         ->label(__('admin.registrations.actions.mark_as_paid'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -524,10 +513,10 @@ class RegistrationsTable
                         ->action(function (Collection $records) {
                             $service = app(\App\Services\StartingNumberService::class);
                             $results = $service->bulkAssignNumbers($records->pluck('id')->toArray());
-                            
+
                             $assigned = count($results['assigned'] ?? []);
                             $failed = count($results['failed'] ?? []);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title("Starting numbers assigned")
                                 ->body("Assigned: {$assigned}, Failed: {$failed}")
@@ -549,7 +538,7 @@ class RegistrationsTable
                                     $generated++;
                                 }
                             }
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title("Waitlist tokens generated")
                                 ->body("Generated {$generated} waitlist links for eligible registrations")
@@ -571,7 +560,7 @@ class RegistrationsTable
                                     $generated++;
                                 }
                             }
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title("Withdrawal tokens generated")
                                 ->body("Generated {$generated} withdrawal links for drawn registrations")
@@ -597,12 +586,12 @@ class RegistrationsTable
                                     if ($record->draw_status === 'waitlist' || $record->can_join_waitlist) {
                                         $record->generateWaitlistToken();
                                     }
-                                    
+
                                     \App\Jobs\Mail\SendDrawNotification::dispatch($record);
                                     $sent++;
                                 }
                             }
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title("Draw notification emails queued")
                                 ->body("Sent {$sent} draw result emails to queue for processing")
