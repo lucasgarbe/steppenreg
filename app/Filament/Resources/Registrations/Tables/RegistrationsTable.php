@@ -413,6 +413,48 @@ class RegistrationsTable
                             }
                         }),
 
+                    Action::make('mark_as_drawn')
+                        ->label(__('admin.registrations.actions.mark_as_drawn'))
+                        ->icon('heroicon-o-star')
+                        ->color('success')
+                        ->visible(fn($record) => $record?->draw_status !== 'drawn' && !$record?->is_withdrawn)
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.mark_as_drawn'))
+                        ->modalDescription(fn($record) => "Mark {$record->name} as drawn?")
+                        ->action(function ($record) {
+                            $record->update([
+                                'draw_status' => 'drawn',
+                                'drawn_at' => now()
+                            ]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Draw status updated')
+                                ->body("{$record->name} marked as drawn")
+                                ->success()
+                                ->send();
+                        }),
+
+                    Action::make('mark_as_not_drawn')
+                        ->label(__('admin.registrations.actions.mark_as_not_drawn'))
+                        ->icon('heroicon-o-x-circle')
+                        ->color('gray')
+                        ->visible(fn($record) => $record?->draw_status !== 'not_drawn' && !$record?->is_withdrawn)
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.mark_as_not_drawn'))
+                        ->modalDescription(fn($record) => "Mark {$record->name} as not drawn?")
+                        ->action(function ($record) {
+                            $record->update([
+                                'draw_status' => 'not_drawn',
+                                'drawn_at' => null
+                            ]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Draw status updated')
+                                ->body("{$record->name} marked as not drawn")
+                                ->success()
+                                ->send();
+                        }),
+
                     Action::make('send_withdrawal_link')
                         ->label(__('admin.registrations.actions.send_withdrawal_link'))
                         ->icon('heroicon-o-envelope')
@@ -471,6 +513,69 @@ class RegistrationsTable
                                 ->body(__('admin.registrations.notifications.draw_results_sent_body', ['email' => $record->email]))
                                 ->success()
                                 ->send();
+                        }),
+
+                    Action::make('mark_as_paid')
+                        ->label(__('admin.registrations.actions.mark_as_paid'))
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn($record) => !$record?->payed)
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.mark_as_paid'))
+                        ->modalDescription(fn($record) => "Mark {$record->name} as paid?")
+                        ->action(function ($record) {
+                            $record->update(['payed' => true]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Payment status updated')
+                                ->body("{$record->name} marked as paid")
+                                ->success()
+                                ->send();
+                        }),
+
+                    Action::make('mark_as_starting')
+                        ->label(__('admin.registrations.actions.mark_as_starting'))
+                        ->icon('heroicon-o-play-circle')
+                        ->color('info')
+                        ->visible(fn($record) => !$record?->starting && $record?->payed)
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.mark_as_starting'))
+                        ->modalDescription(fn($record) => "Mark {$record->name} as starting?")
+                        ->action(function ($record) {
+                            $record->update(['starting' => true]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Starting status updated')
+                                ->body("{$record->name} marked as starting")
+                                ->success()
+                                ->send();
+                        }),
+
+                    Action::make('assign_starting_number')
+                        ->label('Assign Starting Number')
+                        ->icon('heroicon-o-hashtag')
+                        ->color('warning')
+                        ->visible(fn($record) => $record?->draw_status === 'drawn' && !$record?->starting_number)
+                        ->requiresConfirmation()
+                        ->modalHeading('Assign Starting Number')
+                        ->modalDescription(fn($record) => "Assign starting number to {$record->name}?")
+                        ->action(function ($record) {
+                            $service = app(\App\Services\StartingNumberService::class);
+                            $number = $service->assignNumber($record);
+                            
+                            if ($number) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Starting number assigned')
+                                    ->body("Assigned starting number {$record->formatted_starting_number} to {$record->name}")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Assignment failed')
+                                    ->body("Could not assign starting number to {$record->name}")
+                                    ->warning()
+                                    ->send();
+                            }
                         }),
                 ])
             ])
