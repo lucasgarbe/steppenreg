@@ -432,6 +432,23 @@ class RegistrationsTable
                                 ->send();
                         }),
 
+                    Action::make('send_registration_confirmation')
+                        ->label('Send Registration Confirmation')
+                        ->icon('heroicon-o-envelope')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Send Registration Confirmation')
+                        ->modalDescription(fn($record) => "Send registration confirmation email to {$record->name} ({$record->email})?")
+                        ->action(function ($record) {
+                            \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Registration confirmation sent')
+                                ->body("Confirmation email queued for {$record->email}")
+                                ->success()
+                                ->send();
+                        }),
+
                     Action::make('send_draw_results')
                         ->label(__('admin.registrations.actions.send_draw_results'))
                         ->icon('heroicon-o-envelope')
@@ -564,6 +581,28 @@ class RegistrationsTable
                                 ->send();
                         })
                         ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('send_registration_confirmations')
+                        ->label('Send Registration Confirmations')
+                        ->icon('heroicon-o-envelope')
+                        ->color('info')
+                        ->action(function (Collection $records) {
+                            $sent = 0;
+                            foreach ($records as $record) {
+                                \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
+                                $sent++;
+                            }
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Registration confirmations queued')
+                                ->body("Sent {$sent} registration confirmation emails to queue for processing")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Send Registration Confirmations')
+                        ->modalDescription('This will send registration confirmation emails to all selected participants.')
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('send_draw_notifications')
