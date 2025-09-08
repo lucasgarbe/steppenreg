@@ -41,6 +41,73 @@ class TeamsTable
                     ->label('Max Members')
                     ->sortable(),
 
+                TextColumn::make('gender_ratio')
+                    ->label('FLINTA*/All Gender')
+                    ->getStateUsing(function ($record) {
+                        $registrations = $record->registrations;
+                        if ($registrations->isEmpty()) {
+                            return '—';
+                        }
+                        
+                        $flintaCount = $registrations->where('gender', 'flinta')->count();
+                        $allGenderCount = $registrations->where('gender', 'all_gender')->count();
+                        $total = $registrations->count();
+                        
+                        // Show as "F/A" format (e.g., "2/3" means 2 FLINTA*, 3 All Gender)
+                        return "{$flintaCount}/{$allGenderCount}";
+                    })
+                    ->badge()
+                    ->color(function ($state) {
+                        if ($state === '—') {
+                            return 'gray';
+                        }
+                        
+                        [$flinta, $allGender] = explode('/', $state);
+                        $flintaCount = (int)$flinta;
+                        $allGenderCount = (int)$allGender;
+                        $total = $flintaCount + $allGenderCount;
+                        
+                        if ($total === 0) {
+                            return 'gray';
+                        }
+                        
+                        $flintaPercentage = ($flintaCount / $total) * 100;
+                        
+                        // Color based on FLINTA* percentage
+                        return match (true) {
+                            $flintaPercentage >= 50 => 'purple',
+                            $flintaPercentage >= 30 => 'info',
+                            $flintaPercentage > 0 => 'warning',
+                            default => 'gray'
+                        };
+                    })
+                    ->tooltip(function ($record) {
+                        $registrations = $record->registrations;
+                        if ($registrations->isEmpty()) {
+                            return null;
+                        }
+                        
+                        $flintaCount = $registrations->where('gender', 'flinta')->count();
+                        $allGenderCount = $registrations->where('gender', 'all_gender')->count();
+                        $total = $registrations->count();
+                        
+                        if ($total === 0) {
+                            return null;
+                        }
+                        
+                        $flintaPercentage = round(($flintaCount / $total) * 100, 1);
+                        $allGenderPercentage = round(($allGenderCount / $total) * 100, 1);
+                        
+                        return "FLINTA*: {$flintaCount} ({$flintaPercentage}%)\nAll Gender: {$allGenderCount} ({$allGenderPercentage}%)";
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->withCount([
+                            'registrations as flinta_count' => function ($query) {
+                                $query->where('gender', 'flinta');
+                            }
+                        ])->orderBy('flinta_count', $direction);
+                    }),
+
                 TextColumn::make('created_at')
                     ->label('Created At')
                     ->dateTime()
