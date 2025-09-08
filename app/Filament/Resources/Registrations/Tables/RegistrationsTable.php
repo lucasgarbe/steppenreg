@@ -68,7 +68,16 @@ class RegistrationsTable
                 TextColumn::make('age')
                     ->label(__('admin.registrations.columns.age'))
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->numeric()
+                    ->badge()
+                    ->color(fn(?int $state): string => match (true) {
+                        $state < 18 => 'danger',
+                        $state >= 18 && $state <= 25 => 'warning',
+                        $state >= 26 && $state <= 50 => 'success',
+                        $state > 50 => 'primary',
+                        default => 'gray'
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('gender_label')
                     ->label(__('admin.registrations.columns.gender'))
@@ -263,6 +272,55 @@ class RegistrationsTable
                     ->label('Waitlist Only')
                     ->query(fn(Builder $query): Builder => $query->where('draw_status', 'waitlist')),
 
+                Filter::make('gender')
+                    ->label('Gender')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('gender')
+                            ->label('Select Gender')
+                            ->options([
+                                'flinta' => 'FLINTA*',
+                                'all_gender' => 'All Gender',
+                            ])
+                            ->placeholder('All genders')
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['gender'] ?? false,
+                            fn (Builder $query, $gender) => $query->where('gender', $gender)
+                        );
+                    }),
+
+                Filter::make('age_group')
+                    ->label('Age Group')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('age_group')
+                            ->label('Select Age Group')
+                            ->options([
+                                'under_18' => 'Under 18',
+                                '18_25' => '18-25',
+                                '26_35' => '26-35',
+                                '36_50' => '36-50',
+                                '51_65' => '51-65',
+                                'over_65' => 'Over 65',
+                            ])
+                            ->placeholder('All ages')
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!isset($data['age_group']) || !$data['age_group']) {
+                            return $query;
+                        }
+
+                        return match ($data['age_group']) {
+                            'under_18' => $query->where('age', '<', 18),
+                            '18_25' => $query->whereBetween('age', [18, 25]),
+                            '26_35' => $query->whereBetween('age', [26, 35]),
+                            '36_50' => $query->whereBetween('age', [36, 50]),
+                            '51_65' => $query->whereBetween('age', [51, 65]),
+                            'over_65' => $query->where('age', '>', 65),
+                            default => $query,
+                        };
+                    }),
+
                 Filter::make('status')
                     ->label('Status')
                     ->form([
@@ -351,6 +409,9 @@ class RegistrationsTable
                             if ($record->joinWaitlist()) {
                                 // Generate waitlist token using new relationship
                                 $record->generateWaitlistToken();
+                                
+                                // Send waitlist confirmation email
+                                \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($record);
 
                                 \Filament\Notifications\Notification::make()
                                     ->title(__('admin.registrations.notifications.added_to_waitlist'))
@@ -378,6 +439,9 @@ class RegistrationsTable
                             // Use the Registration model's withdraw method with custom reason
                             $reason = !empty($data['withdrawal_reason']) ? $data['withdrawal_reason'] : 'admin_manual';
                             if ($record->withdraw($reason)) {
+                                // Send withdrawal confirmation email
+                                \App\Jobs\Mail\SendWithdrawalConfirmation::dispatch($record);
+                                
                                 // Try to promote next waitlist registration using the new method
                                 $nextWaitlisted = \App\Models\WaitlistEntry::forTrack($record->track_id)
                                     ->active()
@@ -426,7 +490,7 @@ class RegistrationsTable
                                 'draw_status' => 'drawn',
                                 'drawn_at' => now()
                             ]);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Draw status updated')
                                 ->body("{$record->name} marked as drawn")
@@ -447,7 +511,7 @@ class RegistrationsTable
                                 'draw_status' => 'not_drawn',
                                 'drawn_at' => null
                             ]);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Draw status updated')
                                 ->body("{$record->name} marked as not drawn")
@@ -483,7 +547,7 @@ class RegistrationsTable
                         ->modalDescription(fn($record) => "Send registration confirmation email to {$record->name} ({$record->email})?")
                         ->action(function ($record) {
                             \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Registration confirmation sent')
                                 ->body("Confirmation email queued for {$record->email}")
@@ -525,7 +589,7 @@ class RegistrationsTable
                         ->modalDescription(fn($record) => "Mark {$record->name} as paid?")
                         ->action(function ($record) {
                             $record->update(['payed' => true]);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Payment status updated')
                                 ->body("{$record->name} marked as paid")
@@ -543,7 +607,7 @@ class RegistrationsTable
                         ->modalDescription(fn($record) => "Mark {$record->name} as starting?")
                         ->action(function ($record) {
                             $record->update(['starting' => true]);
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Starting status updated')
                                 ->body("{$record->name} marked as starting")
@@ -562,7 +626,7 @@ class RegistrationsTable
                         ->action(function ($record) {
                             $service = app(\App\Services\StartingNumberService::class);
                             $number = $service->assignNumber($record);
-                            
+
                             if ($number) {
                                 \Filament\Notifications\Notification::make()
                                     ->title('Starting number assigned')
@@ -698,7 +762,7 @@ class RegistrationsTable
                                 \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
                                 $sent++;
                             }
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Registration confirmations queued')
                                 ->body("Sent {$sent} registration confirmation emails to queue for processing")

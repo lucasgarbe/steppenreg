@@ -27,6 +27,8 @@ class MailTemplateForm
                                 'draw_success' => 'Draw Success',
                                 'draw_waitlist' => 'Draw Waitlist',
                                 'draw_rejection' => 'Draw Rejection',
+                                'waitlist_registration_success' => 'Waitlist Registration Confirmation',
+                                'withdrawal_confirmation' => 'Withdrawal Confirmation',
                             ])
                             ->required()
                             ->unique(ignoreRecord: true),
