@@ -29,6 +29,12 @@ class MailVariableResolver
             'withdraw_url' => $registration->getWithdrawUrl(),
             // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
+            // Waitlist specific
+            'waitlist_position' => $registration->getWaitlistPosition() ?? 'N/A',
+            'waitlist_date' => $registration->waitlistEntry?->registered_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
+            // Withdrawal specific
+            'withdrawal_date' => $registration->withdrawalRequest?->withdrawn_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
+            'withdrawal_reason' => $registration->withdrawalRequest?->withdrawal_reason ?? '',
         ];
     }
 
@@ -51,6 +57,12 @@ class MailVariableResolver
             'withdraw_url' => 'https://example.com/withdraw/sample-token',
             // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
+            // Waitlist specific
+            'waitlist_position' => '5',
+            'waitlist_date' => Carbon::now()->format('d.m.Y H:i'),
+            // Withdrawal specific
+            'withdrawal_date' => Carbon::now()->format('d.m.Y H:i'),
+            'withdrawal_reason' => 'Unable to attend due to injury',
         ];
     }
 

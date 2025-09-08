@@ -38,6 +38,20 @@ class MailTemplateSeeder extends Seeder
                 'body' => $this->getDrawRejectionBody(),
                 'is_active' => true,
             ],
+            [
+                'key' => 'waitlist_registration_success',
+                'name' => 'Waitlist Registration Confirmation',
+                'subject' => 'You\'re on the {{event_name}} waitlist!',
+                'body' => $this->getWaitlistRegistrationSuccessBody(),
+                'is_active' => true,
+            ],
+            [
+                'key' => 'withdrawal_confirmation',
+                'name' => 'Withdrawal Confirmation',
+                'subject' => 'Your withdrawal from {{event_name}} is confirmed',
+                'body' => $this->getWithdrawalConfirmationBody(),
+                'is_active' => true,
+            ],
         ];
 
         foreach ($templates as $template) {
@@ -193,6 +207,88 @@ class MailTemplateSeeder extends Seeder
             </ul>
             
             <p>Thank you for your understanding, and we hope to see you at a future {{event_name}} event!</p>
+            
+            <p>Best regards,<br>
+            The {{event_name}} Team</p>
+        </div>';
+    }
+
+    private function getWaitlistRegistrationSuccessBody(): string
+    {
+        return '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #d97706;">You\'ve successfully joined the waitlist!</h2>
+            
+            <p>Dear {{name}},</p>
+            
+            <p>Great news! You have successfully joined the waitlist for <strong>{{event_name}}</strong>.</p>
+            
+            <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d97706;">
+                <h3 style="margin-top: 0; color: #92400e;">Your Waitlist Status:</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Track:</strong> {{track_name}} ({{track_distance}})</li>
+                    <li><strong>Status:</strong> On Waitlist</li>
+                    <li><strong>Position:</strong> #{{waitlist_position}}</li>
+                    {{#team_name}}<li><strong>Team:</strong> {{team_name}}</li>{{/team_name}}
+                    <li><strong>Joined Waitlist:</strong> {{waitlist_date}}</li>
+                </ul>
+            </div>
+            
+            <p><strong>What happens next?</strong></p>
+            <ul>
+                <li>You\'re now officially on the waitlist</li>
+                <li>If a spot becomes available, we\'ll notify you immediately</li>
+                <li>Keep training and stay prepared!</li>
+                <li>Your position may improve as others withdraw</li>
+                <li>No further action is needed from you</li>
+            </ul>
+            
+            <div style="background-color: #e0e7ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Tip:</strong> Stay ready! Spots can open up at any time, even close to the event date. Keep your training on track and your calendar clear.</p>
+            </div>
+            
+            <p>We\'ll keep you updated on any changes to your status. Thank you for your patience!</p>
+            
+            <p>Best regards,<br>
+            The {{event_name}} Team</p>
+        </div>';
+    }
+
+    private function getWithdrawalConfirmationBody(): string
+    {
+        return '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #374151;">Withdrawal Confirmed</h2>
+            
+            <p>Dear {{name}},</p>
+            
+            <p>We\'ve received and processed your withdrawal from <strong>{{event_name}}</strong>.</p>
+            
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #374151;">Withdrawal Details:</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Track:</strong> {{track_name}} ({{track_distance}})</li>
+                    <li><strong>Previous Status:</strong> Confirmed Participant</li>
+                    <li><strong>Current Status:</strong> Withdrawn</li>
+                    {{#team_name}}<li><strong>Team:</strong> {{team_name}}</li>{{/team_name}}
+                    <li><strong>Withdrawal Date:</strong> {{withdrawal_date}}</li>
+                    {{#withdrawal_reason}}<li><strong>Reason:</strong> {{withdrawal_reason}}</li>{{/withdrawal_reason}}
+                </ul>
+            </div>
+            
+            <p>We\'re sorry you won\'t be able to join us this time, but we understand that circumstances change.</p>
+            
+            <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                <p><strong>Your spot has been offered to someone on the waitlist</strong></p>
+                <p>Thanks to your timely withdrawal, another participant will have the chance to experience {{event_name}}!</p>
+            </div>
+            
+            <p><strong>Looking forward:</strong></p>
+            <ul>
+                <li>You\'re welcome to register for future events</li>
+                <li>Follow us for updates about next year\'s {{event_name}}</li>
+                <li>We hope to see you at a future event!</li>
+            </ul>
+            
+            <p>Thank you for letting us know about your change in plans. We wish you all the best!</p>
             
             <p>Best regards,<br>
             The {{event_name}} Team</p>

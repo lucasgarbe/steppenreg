@@ -48,6 +48,9 @@ class WaitlistController extends Controller
         if ($registration->joinWaitlist()) {
             $position = $registration->getWaitlistPosition();
             
+            // Send waitlist confirmation email
+            \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($registration);
+            
             return view('public.waitlist.success', compact('registration', 'position'));
         }
 
@@ -93,6 +96,9 @@ class WaitlistController extends Controller
 
         // Process withdrawal using the new method
         if ($withdrawalRequest->processWithdrawal($request->reason)) {
+            // Send withdrawal confirmation email
+            \App\Jobs\Mail\SendWithdrawalConfirmation::dispatch($registration);
+            
             // Try to promote next person on waitlist
             $this->promoteNextWaitlistParticipant($registration->track_id);
             
