@@ -26,7 +26,7 @@ return [
             'name' => 'Name',
             'email' => 'E-Mail',
             'age' => 'Alter',
-            'gender' => 'Geschlecht',
+            'gender' => 'Gender',
             'track' => 'Strecke',
             'team' => 'Team',
             'draw_status' => 'Auslosungsstatus',
@@ -147,7 +147,7 @@ return [
         'registration_stats' => 'Anmeldungsstatistiken',
         'team_stats' => 'Team-Statistiken',
         'daily_registrations' => 'Tägliche Anmeldungen',
-        'registration_timeline_by_gender' => 'Anmeldungsverlauf nach Geschlecht',
+        'registration_timeline_by_gender' => 'Anmeldungsverlauf nach Gender',
         'registration_timeline_by_track' => 'Anmeldungsverlauf nach Strecke',
 
         'stats' => [
@@ -167,7 +167,7 @@ return [
         'name' => 'Name',
         'email' => 'E-Mail-Adresse',
         'age' => 'Alter',
-        'gender' => 'Geschlecht',
+        'gender' => 'Gender',
         'track' => 'Strecke',
         'team' => 'Team',
         'notes' => 'Notizen',
@@ -189,4 +189,3 @@ return [
         ],
     ],
 ];
-

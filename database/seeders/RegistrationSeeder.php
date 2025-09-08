@@ -17,7 +17,7 @@ class RegistrationSeeder extends Seeder
         Registration::truncate();
 
         // Create various types of registrations
-        Registration::factory(20)->create();
+        Registration::factory(50)->create();
         Registration::factory(5)->payed()->create();
         Registration::factory(8)->starting()->create();
         Registration::factory(3)->finished()->create();
