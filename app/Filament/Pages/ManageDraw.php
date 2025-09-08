@@ -34,7 +34,10 @@ class ManageDraw extends Page implements HasSchemas
 
     protected static ?string $title = 'Auslosung';
 
+    protected string $view = 'filament.pages.manage-draw';
+
     public ?array $data = [];
+    public ?array $emailData = [];
 
     public function form(Schema $schema): Schema
     {
@@ -74,6 +77,46 @@ class ManageDraw extends Page implements HasSchemas
                     ->columns(2),
             ])
             ->statePath('data');
+    }
+
+    public function emailForm(Schema $schema): Schema
+    {
+        return $schema
+            ->schema([
+                Section::make('Email Notification Configuration')
+                    ->description('Send draw result notifications to participants')
+                    ->icon('heroicon-o-envelope')
+                    ->schema([
+                        Select::make('email_track_id')
+                            ->label('Track Selection')
+                            ->options(function () {
+                                $tracks = app(EventSettings::class)->tracks ?? [];
+                                $options = [
+                                    'all' => 'All Tracks'
+                                ];
+
+                                foreach ($tracks as $track) {
+                                    $label = $track['name'];
+                                    if (isset($track['distance'])) {
+                                        $label .= ' (' . $track['distance'] . ' km)';
+                                    }
+                                    $options[$track['id']] = $label;
+                                }
+
+                                return $options;
+                            })
+                            ->required()
+                            ->default('all')
+                            ->helperText('Select which track participants to send emails to'),
+                    ]),
+            ])
+            ->statePath('emailData');
+    }
+
+    public function mount(): void
+    {
+        $this->form->fill();
+        $this->emailForm->fill();
     }
 
     public function submitDraw()
@@ -268,12 +311,32 @@ class ManageDraw extends Page implements HasSchemas
         Log::info('Draw completed', ['units_drawn' => $unitsDrawn, 'participants_drawn' => $participantsDrawn]);
     }
 
-    public function sendAllDrawNotifications()
+    public function submitSendEmails()
     {
-        // Get all registrations with draw results
-        $drawn = Registration::where('draw_status', 'drawn')->get();
-        $waitlist = Registration::where('draw_status', 'waitlist')->get();
-        $rejected = Registration::where('draw_status', 'not_drawn')->get();
+        $state = $this->emailForm->getState();
+        Log::info('submitSendEmails', $state);
+
+        $trackId = $state['email_track_id'] ?? 'all';
+        $this->sendAllDrawNotifications($trackId);
+    }
+
+    public function sendAllDrawNotifications($trackId = 'all')
+    {
+        // Build queries based on track selection
+        $drawnQuery = Registration::where('draw_status', 'drawn');
+        $waitlistQuery = Registration::where('draw_status', 'waitlist');
+        $rejectedQuery = Registration::where('draw_status', 'not_drawn');
+
+        if ($trackId !== 'all') {
+            $drawnQuery->where('track_id', $trackId);
+            $waitlistQuery->where('track_id', $trackId);
+            $rejectedQuery->where('track_id', $trackId);
+        }
+
+        // Get registrations
+        $drawn = $drawnQuery->get();
+        $waitlist = $waitlistQuery->get();
+        $rejected = $rejectedQuery->get();
 
         $sent = 0;
 
@@ -301,13 +364,24 @@ class ManageDraw extends Page implements HasSchemas
             $sent++;
         }
 
+        // Get track info for notification
+        $trackInfo = '';
+        if ($trackId !== 'all') {
+            $tracks = app(EventSettings::class)->tracks ?? [];
+            $track = collect($tracks)->firstWhere('id', $trackId);
+            $trackInfo = $track ? " for {$track['name']}" : " for Track {$trackId}";
+        } else {
+            $trackInfo = " for all tracks";
+        }
+
         Notification::make()
-            ->title("All draw notifications queued!")
+            ->title("Draw notifications queued{$trackInfo}!")
             ->body("Sent {$sent} emails to queue: {$drawn->count()} drawn, {$waitlist->count()} waitlist, {$rejected->count()} rejected")
             ->success()
             ->send();
 
-        Log::info('All draw notifications sent', [
+        Log::info('Draw notifications sent', [
+            'track' => $trackId,
             'drawn' => $drawn->count(),
             'waitlist' => $waitlist->count(),
             'rejected' => $rejected->count(),
