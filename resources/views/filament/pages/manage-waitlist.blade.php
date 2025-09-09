@@ -2,7 +2,7 @@
     <div class="space-y-6">
         
         <!-- Waitlist Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             @php
                 $stats = $this->getWaitlistStats();
             @endphp
@@ -101,6 +101,71 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-300" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                    Total Withdrawals
+                                </dt>
+                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                    {{ $stats['total_withdrawals'] }}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Track-specific Statistics -->
+        <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Track Statistics</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach($stats['track_stats'] as $trackStat)
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ $trackStat['track_name'] }}
+                                    </h4>
+                                    <dl class="mt-2 space-y-1">
+                                        <div class="flex items-center text-sm">
+                                            <dt class="text-gray-500 dark:text-gray-400">Waitlist:</dt>
+                                            <dd class="ml-2 font-medium text-gray-900 dark:text-white">
+                                                {{ $trackStat['waitlist_count'] }} entries ({{ $trackStat['waitlist_participants'] }} participants)
+                                            </dd>
+                                        </div>
+                                        <div class="flex items-center text-sm">
+                                            <dt class="text-gray-500 dark:text-gray-400">Withdrawals:</dt>
+                                            <dd class="ml-2 font-medium text-red-600 dark:text-red-400">
+                                                {{ $trackStat['withdrawal_count'] }} participants
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                                @if($trackStat['withdrawal_count'] > 0)
+                                    <div class="flex-shrink-0">
+                                        <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                                            <span class="text-xs font-bold text-red-600 dark:text-red-300">{{ $trackStat['withdrawal_count'] }}</span>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
 
