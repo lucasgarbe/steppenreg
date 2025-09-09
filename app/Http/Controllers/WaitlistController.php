@@ -46,14 +46,13 @@ class WaitlistController extends Controller
 
         // Join waitlist using the Registration model method
         if ($registration->joinWaitlist()) {
-            // Send waitlist confirmation email to team captain or individual
-            $emailRecipient = $registration->team_id ?
-                $registration->team->registrations()->where('draw_status', 'waitlist')->first() :
-                $registration;
-
-            if ($emailRecipient) {
-                \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($emailRecipient);
-            }
+            // Refresh the registration to get updated status
+            $registration->refresh();
+            
+            // For teams, the current registration is the team captain who initiated the join
+            // For individuals, it's just the individual registration
+            // Always send email to the registration that initiated the waitlist join
+            \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($registration);
 
             return view('public.waitlist.success', compact('registration'));
         }
@@ -103,9 +102,6 @@ class WaitlistController extends Controller
             // Send withdrawal confirmation email
             \App\Jobs\Mail\SendWithdrawalConfirmation::dispatch($registration);
 
-            // Try to promote next person on waitlist
-            $this->promoteNextWaitlistParticipant($registration->track_id);
-
             // Redirect to success page with success message
             return redirect()->route('withdraw.success')
                 ->with('success', __('public.withdrawal.success.message'))
@@ -147,47 +143,6 @@ class WaitlistController extends Controller
         ));
     }
 
-    private function promoteNextWaitlistParticipant(int $trackId): ?Registration
-    {
-        // Get all waitlist entries for this track (pool-based, no ordering)
-        $waitlistEntries = WaitlistEntry::forTrack($trackId)
-            ->active()
-            ->get();
-
-        if ($waitlistEntries->isEmpty()) {
-            return null;
-        }
-
-        // Randomly select one entry from the pool
-        $selectedEntry = $waitlistEntries->random();
-
-        if ($selectedEntry->isTeamEntry()) {
-            // Promote entire team
-            $teamMembers = $selectedEntry->getTeamMembers();
-            foreach ($teamMembers as $member) {
-                $member->update([
-                    'draw_status' => 'drawn',
-                    'drawn_at' => now(),
-                ]);
-            }
-
-            // Delete the team captain's waitlist entry
-            $selectedEntry->delete();
-
-            return $selectedEntry->registration;
-        } else {
-            // Promote individual
-            $selectedEntry->registration->update([
-                'draw_status' => 'drawn',
-                'drawn_at' => now(),
-            ]);
-
-            // Delete waitlist entry
-            $selectedEntry->delete();
-
-            return $selectedEntry->registration;
-        }
-    }
 
     private function recalculateWaitlistPositions(int $trackId): void
     {

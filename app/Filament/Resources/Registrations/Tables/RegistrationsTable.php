@@ -407,17 +407,14 @@ class RegistrationsTable
                         ->action(function ($record) {
                             // Use the Registration model's joinWaitlist method
                             if ($record->joinWaitlist()) {
+                                // Refresh to get updated status
+                                $record->refresh();
+                                
                                 // Generate waitlist token using new relationship
                                 $record->generateWaitlistToken();
                                 
-                                // Send waitlist confirmation email to team captain or individual
-                                $emailRecipient = $record->team_id ? 
-                                    $record->team->registrations()->where('draw_status', 'waitlist')->first() : 
-                                    $record;
-                                    
-                                if ($emailRecipient) {
-                                    \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($emailRecipient);
-                                }
+                                // Send waitlist confirmation email to the registration that initiated the action
+                                \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($record);
 
                                 $message = $record->team_id ? 
                                     "Team '{$record->team->name}' added to waitlist" : 
