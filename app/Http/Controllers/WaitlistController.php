@@ -16,7 +16,7 @@ class WaitlistController extends Controller
     {
         $waitlistEntry = WaitlistEntry::findByToken($token);
         $registration = $waitlistEntry?->registration;
-        
+
         if (!$registration || !$waitlistEntry) {
             return $this->invalidTokenResponse('Waitlist link not found or expired.');
         }
@@ -26,7 +26,7 @@ class WaitlistController extends Controller
         }
 
         $eventSettings = app(EventSettings::class);
-        
+
         return view('public.waitlist.join', compact('registration', 'token', 'eventSettings'));
     }
 
@@ -34,7 +34,7 @@ class WaitlistController extends Controller
     {
         $waitlistEntry = WaitlistEntry::findByToken($token);
         $registration = $waitlistEntry?->registration;
-        
+
         if (!$registration || !$waitlistEntry) {
             return redirect()->route('registration.create')
                 ->withErrors(['token' => 'Waitlist link not found or expired.']);
@@ -47,14 +47,14 @@ class WaitlistController extends Controller
         // Join waitlist using the Registration model method
         if ($registration->joinWaitlist()) {
             // Send waitlist confirmation email to team captain or individual
-            $emailRecipient = $registration->team_id ? 
-                $registration->team->registrations()->where('draw_status', 'waitlist')->first() : 
+            $emailRecipient = $registration->team_id ?
+                $registration->team->registrations()->where('draw_status', 'waitlist')->first() :
                 $registration;
-                
+
             if ($emailRecipient) {
                 \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($emailRecipient);
             }
-            
+
             return view('public.waitlist.success', compact('registration'));
         }
 
@@ -65,7 +65,7 @@ class WaitlistController extends Controller
     {
         $withdrawalRequest = WithdrawalRequest::findByToken($token);
         $registration = $withdrawalRequest?->registration;
-        
+
         if (!$registration || !$withdrawalRequest) {
             return $this->invalidTokenResponse('Withdrawal link not found or expired.');
         }
@@ -75,7 +75,7 @@ class WaitlistController extends Controller
         }
 
         $eventSettings = app(EventSettings::class);
-        
+
         return view('public.withdraw.form', compact('registration', 'token', 'eventSettings'));
     }
 
@@ -83,7 +83,7 @@ class WaitlistController extends Controller
     {
         $withdrawalRequest = WithdrawalRequest::findByToken($token);
         $registration = $withdrawalRequest?->registration;
-        
+
         if (!$registration || !$withdrawalRequest) {
             return redirect()->route('registration.create')
                 ->withErrors(['token' => 'Withdrawal link not found or expired.']);
@@ -93,23 +93,41 @@ class WaitlistController extends Controller
             return $this->alreadyProcessedResponse($registration, 'withdraw');
         }
 
+        // Validate the simplified withdrawal form (no confirmation checkbox)
         $request->validate([
             'reason' => 'nullable|string|max:2000',
-            'confirm' => 'required|accepted',
         ]);
 
         // Process withdrawal using the new method
         if ($withdrawalRequest->processWithdrawal($request->reason)) {
             // Send withdrawal confirmation email
             \App\Jobs\Mail\SendWithdrawalConfirmation::dispatch($registration);
-            
+
             // Try to promote next person on waitlist
             $this->promoteNextWaitlistParticipant($registration->track_id);
-            
-            return view('public.withdraw.success', compact('registration'));
+
+            // Redirect to success page with success message
+            return redirect()->route('withdraw.success')
+                ->with('success', __('public.withdrawal.success.message'))
+                ->with('registration_name', $registration->name);
         }
 
         return back()->withErrors(['general' => 'Failed to process withdrawal. Please try again.']);
+    }
+
+    public function withdrawSuccess(): View
+    {
+        // Check if user was redirected from a successful withdrawal
+        if (!session()->has('success')) {
+            return redirect()->route('registration.create');
+        }
+
+        $eventSettings = app(EventSettings::class);
+
+        return view('public.withdraw.success', [
+            'eventSettings' => $eventSettings,
+            'registration_name' => session('registration_name')
+        ]);
     }
 
     private function invalidTokenResponse(string $message): RedirectResponse
@@ -121,10 +139,10 @@ class WaitlistController extends Controller
     private function alreadyProcessedResponse(Registration $registration, string $action): View
     {
         $eventSettings = app(EventSettings::class);
-        
+
         return view('public.waitlist.already-processed', compact(
-            'registration', 
-            'action', 
+            'registration',
+            'action',
             'eventSettings'
         ));
     }
@@ -142,7 +160,7 @@ class WaitlistController extends Controller
 
         // Randomly select one entry from the pool
         $selectedEntry = $waitlistEntries->random();
-        
+
         if ($selectedEntry->isTeamEntry()) {
             // Promote entire team
             $teamMembers = $selectedEntry->getTeamMembers();
@@ -150,25 +168,23 @@ class WaitlistController extends Controller
                 $member->update([
                     'draw_status' => 'drawn',
                     'drawn_at' => now(),
-                    'promoted_from_waitlist_at' => now(),
                 ]);
             }
-            
+
             // Delete the team captain's waitlist entry
             $selectedEntry->delete();
-            
+
             return $selectedEntry->registration;
         } else {
             // Promote individual
             $selectedEntry->registration->update([
                 'draw_status' => 'drawn',
                 'drawn_at' => now(),
-                'promoted_from_waitlist_at' => now(),
             ]);
-            
+
             // Delete waitlist entry
             $selectedEntry->delete();
-            
+
             return $selectedEntry->registration;
         }
     }
@@ -190,13 +206,13 @@ class WaitlistController extends Controller
             $withdrawalRequest = WithdrawalRequest::findByToken($token);
             $registration = $withdrawalRequest?->registration;
         }
-        
+
         if (!$registration) {
             return $this->invalidTokenResponse('Link not found or expired.');
         }
 
         $eventSettings = app(EventSettings::class);
-        
+
         return view('public.waitlist.status', compact('registration', 'eventSettings'));
     }
 }
