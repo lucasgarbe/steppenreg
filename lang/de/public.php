@@ -113,19 +113,19 @@ return [
 
     // Withdrawal
     'withdrawal' => [
-        'title' => 'Vom Event zurückziehen',
-        'subtitle' => 'Ziehe deine Anmeldung für das Event zurück',
+        'title' => 'Deinen Platz weitergeben',
+        'subtitle' => 'Gebe deinen Platz frei, damit eine andere Person teilnehmen kann',
         'confirmation_required' => 'Bestätigung erforderlich',
         'warning' => 'Warnung: Diese Aktion kann nicht rückgängig gemacht werden.',
-        'participant_info' => '*in: :name',
+        'participant_info' => 'Teilnehmer*in: :name',
         'track_info' => 'Strecke: :track',
         'starting_number_info' => 'Startnummer: :number',
-        'withdraw_button' => 'Anmeldung zurückziehen',
-        'withdrawing' => 'Wird zurückgezogen...',
+        'withdraw_button' => 'Platz weitergeben',
+        'withdrawing' => 'Wird verarbeitet...',
         'cancel_button' => 'Abbrechen',
 
         'reasons' => [
-            'title' => 'Grund für den Rückzug (optional)',
+            'title' => 'Grund für die Abgabe deines Platzes (optional)',
             'injury' => 'Verletzung',
             'illness' => 'Krankheit',
             'personal' => 'Persönliche Gründe',
@@ -134,21 +134,21 @@ return [
         ],
 
         'success' => [
-            'title' => 'Rückzug erfolgreich',
-            'message' => 'Du hast dich erfolgreich vom Event zurückgezogen.',
+            'title' => 'Dein Platz wurde erfolgreich abgegeben',
+            'message' => 'Du hast deinen Platz erfolgreich weitergegeben.',
             'next_participant_info' => 'Dein Platz wird an eine neue Person verlost',
             'refund_info' => 'Informationen zur Rückerstattung erhältst du per E-Mail.',
         ],
 
         'already_processed' => [
             'title' => 'Bereits verarbeitet',
-            'message' => 'Dieser Rückzugs-Link wurde bereits verwendet oder ist abgelaufen.',
+            'message' => 'Dieser Link wurde bereits verwendet oder ist abgelaufen.',
             'contact_info' => 'Falls du Fragen hast, kontaktiere uns bitte.',
         ],
 
         'invalid_token' => [
             'title' => 'Ungültiger Link',
-            'message' => 'Dieser Rückzugs-Link ist ungültig oder abgelaufen.',
+            'message' => 'Dieser Link ist ungültig oder abgelaufen.',
             'contact_info' => 'Falls du Hilfe benötigst, kontaktiere uns bitte.',
         ],
     ],
