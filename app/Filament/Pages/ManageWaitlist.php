@@ -323,6 +323,9 @@ class ManageWaitlist extends Page implements HasTable
 
                 // Generate withdraw token
                 $member->generateWithdrawToken();
+                
+                // Send draw success email for each team member
+                \App\Jobs\Mail\SendDrawNotification::dispatch($member);
             }
 
             $participantCount = $teamMembers->count();
@@ -350,6 +353,9 @@ class ManageWaitlist extends Page implements HasTable
 
             // Generate withdraw token
             $entry->registration->generateWithdrawToken();
+            
+            // Send draw success email for individual
+            \App\Jobs\Mail\SendDrawNotification::dispatch($entry->registration);
 
             if ($sendNotification) {
                 Notification::make()
