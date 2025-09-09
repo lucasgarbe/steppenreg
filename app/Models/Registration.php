@@ -322,10 +322,21 @@ class Registration extends Model
     // Token Management Methods - Updated to use new relationships
     public function generateWaitlistToken(): string
     {
+        // If this registration is part of a team, only the team captain gets a token
+        if ($this->team_id) {
+            $teamCaptain = $this->team->registrations()->where('draw_status', 'not_drawn')->first();
+            
+            if ($teamCaptain && $teamCaptain->id !== $this->id) {
+                // This is not the team captain, return the captain's token
+                return $teamCaptain->generateWaitlistToken();
+            }
+        }
+
         if (!$this->waitlistEntry) {
             $this->waitlistEntry()->create([
                 'registered_at' => now(),
                 'original_draw_status' => $this->draw_status,
+                'is_team_captain' => $this->team_id !== null,
             ]);
             $this->load('waitlistEntry'); // Refresh the relationship
         }
@@ -345,6 +356,14 @@ class Registration extends Model
 
     public function getWaitlistUrl(): string
     {
+        // For team members, get the team captain's waitlist URL
+        if ($this->team_id) {
+            $teamCaptain = $this->team->registrations()->where('draw_status', 'not_drawn')->first();
+            if ($teamCaptain && $teamCaptain->id !== $this->id) {
+                return $teamCaptain->getWaitlistUrl();
+            }
+        }
+
         if (!$this->waitlistEntry) {
             $this->generateWaitlistToken();
         }
@@ -381,23 +400,56 @@ class Registration extends Model
             return false;
         }
 
+        // Handle team waitlist join
+        if ($this->team_id) {
+            return $this->joinTeamWaitlist();
+        }
+
+        // Individual waitlist join
+        return $this->joinIndividualWaitlist();
+    }
+
+    private function joinTeamWaitlist(): bool
+    {
+        $teamMembers = $this->team->registrations()->where('draw_status', 'not_drawn')->get();
+        
+        if ($teamMembers->isEmpty()) {
+            return false;
+        }
+
+        // Use the first team member as captain
+        $teamCaptain = $teamMembers->first();
+        
+        // Create waitlist entry for team captain only
+        if (!$teamCaptain->waitlistEntry) {
+            $teamCaptain->waitlistEntry()->create([
+                'registered_at' => now(),
+                'original_draw_status' => $teamCaptain->draw_status,
+                'is_team_captain' => true,
+            ]);
+        }
+
+        // Update all team members to waitlist status
+        foreach ($teamMembers as $member) {
+            $member->update(['draw_status' => 'waitlist']);
+        }
+
+        return true;
+    }
+
+    private function joinIndividualWaitlist(): bool
+    {
         // Create waitlist entry (token will be auto-generated)
         if (!$this->waitlistEntry) {
             $this->waitlistEntry()->create([
                 'registered_at' => now(),
                 'original_draw_status' => $this->draw_status,
+                'is_team_captain' => false,
             ]);
             $this->load('waitlistEntry'); // Refresh the relationship
         }
 
-        $this->update([
-            'draw_status' => 'waitlist',
-        ]);
-
-        // Calculate position
-        if ($this->waitlistEntry) {
-            $this->waitlistEntry->calculatePosition();
-        }
+        $this->update(['draw_status' => 'waitlist']);
 
         return true;
     }
@@ -419,6 +471,12 @@ class Registration extends Model
 
     public function getWaitlistPosition(): ?int
     {
-        return $this->waitlistEntry?->calculatePosition();
+        // Position is no longer relevant in pool-based system
+        return null;
+    }
+
+    public function isTeamCaptain(): bool
+    {
+        return $this->waitlistEntry?->is_team_captain ?? false;
     }
 }

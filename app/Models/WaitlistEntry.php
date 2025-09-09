@@ -15,14 +15,14 @@ class WaitlistEntry extends Model
         'token',
         'token_expires_at',
         'registered_at',
-        'position',
         'original_draw_status',
+        'is_team_captain',
     ];
 
     protected $casts = [
         'token_expires_at' => 'datetime',
         'registered_at' => 'datetime',
-        'position' => 'integer',
+        'is_team_captain' => 'boolean',
     ];
 
     protected static function boot()
@@ -65,6 +65,16 @@ class WaitlistEntry extends Model
         return $query->orderBy('registered_at');
     }
 
+    public function scopeTeamCaptains($query)
+    {
+        return $query->where('is_team_captain', true);
+    }
+
+    public function scopeIndividuals($query)
+    {
+        return $query->where('is_team_captain', false)->orWhereNull('is_team_captain');
+    }
+
     // Token Management
     public static function findByToken(string $token): ?self
     {
@@ -94,21 +104,19 @@ class WaitlistEntry extends Model
         return $this->token_expires_at && $this->token_expires_at->isPast();
     }
 
-    // Position Management  
-    public function calculatePosition(): int
+    // Team Management
+    public function getTeamMembers()
     {
-        if (!$this->registration?->track_id) {
-            return 0;
+        if (!$this->registration->team_id) {
+            return collect([$this->registration]);
         }
 
-        $position = static::forTrack($this->registration->track_id)
-            ->active()
-            ->where('registered_at', '<', $this->registered_at)
-            ->count() + 1;
+        return $this->registration->team->registrations;
+    }
 
-        $this->update(['position' => $position]);
-
-        return $position;
+    public function isTeamEntry(): bool
+    {
+        return $this->registration?->team_id !== null;
     }
 
     public function getWaitlistUrl(): string

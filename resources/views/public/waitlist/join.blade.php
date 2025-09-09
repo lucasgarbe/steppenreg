@@ -3,59 +3,47 @@
 @section('title', __('public.waitlist.join_title') . ' - ' . $eventSettings->event_name)
 
 @section('content')
-    <x-public.page-header 
-        :title="__('public.waitlist.join_title')" 
+    <x-public.page-header
+        :title="__('public.waitlist.join_title')"
         :subtitle="__('public.waitlist.join_subtitle')"
         :icon="'<svg class=\'h-8 w-8 text-yellow-600\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z\'></path></svg>'"
         icon-background="bg-yellow-100"
     />
 
     <!-- Registration Info -->
-    <x-public.card :title="__('admin.registrations.columns.name')" class="mb-8">
+    <x-public.card title="Info" class="mb-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-                <span class="font-medium text-gray-600">{{ __('messages.name') }}:</span>
-                <span class="text-gray-900">{{ $registration->name }}</span>
+                <p class="font-medium text-gray-600">{{ __('messages.name') }}:</p>
+                <p class="text-gray-900">{{ $registration->name }}</p>
             </div>
             <div>
-                <span class="font-medium text-gray-600">{{ __('messages.email') }}:</span>
-                <span class="text-gray-900">{{ $registration->email }}</span>
+                <p class="font-medium text-gray-600">{{ __('messages.email') }}:</p>
+                <p class="text-gray-900">{{ $registration->email }}</p>
             </div>
             <div>
-                <span class="font-medium text-gray-600">{{ __('messages.track') }}:</span>
-                <span class="text-gray-900">
+                <p class="font-medium text-gray-600">{{ __('messages.track') }}:</spap>
+                <p class="text-gray-900">
                     {{ $registration->track_name }}
                     @if($registration->track && isset($registration->track['distance']))
                         ({{ $registration->track['distance'] }} km)
                     @endif
-                </span>
+                </p>
             </div>
             @if($registration->team)
                 <div>
-                    <span class="font-medium text-gray-600">{{ __('messages.team') }}:</span>
-                    <span class="text-gray-900">{{ $registration->team->name }}</span>
+                    <p class="font-medium text-gray-600">{{ __('messages.team') }}:</p>
+                    <p class="text-gray-900">{{ $registration->team->name }}</p>
                 </div>
             @endif
         </div>
     </x-public.card>
 
-    <!-- Waitlist Information -->
-    <x-public.alert type="info" class="mb-8">
-        <h3 class="text-sm font-medium mb-2">How the waitlist works:</h3>
-        <ul class="text-sm space-y-1">
-            <li>• You'll be added to the waitlist in chronological order</li>
-            <li>• If someone withdraws, the next person on the waitlist gets their spot</li>
-            <li>• You'll be notified immediately via email if a spot becomes available</li>
-            <li>• Your waitlist position will be confirmed via email</li>
-        </ul>
-    </x-public.alert>
-
     <!-- Join Waitlist Form -->
     <div class="text-center">
         <x-public.form action="{{ route('waitlist.store', $token) }}" method="POST">
-            <x-public.button 
-                type="submit" 
-                variant="warning"
+            <x-public.button
+                type="submit"
                 size="lg"
                 id="join-waitlist-btn"
             >

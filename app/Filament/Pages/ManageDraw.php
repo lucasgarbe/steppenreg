@@ -355,13 +355,29 @@ class ManageDraw extends Page implements HasSchemas
             $sent++;
         }
 
-        // Send to rejected participants (generate waitlist tokens first)
+        // Send to rejected participants (generate waitlist tokens for individuals or team captains only)
+        $processedTeams = [];
         foreach ($rejected as $registration) {
-            if (!$registration->waitlist_token) {
+            // For team members, only send to team captain
+            if ($registration->team_id) {
+                if (in_array($registration->team_id, $processedTeams)) {
+                    continue; // Skip other team members
+                }
+                $processedTeams[] = $registration->team_id;
+                
+                // Find team captain (first member in not_drawn status)
+                $teamCaptain = $registration->team->registrations()->where('draw_status', 'not_drawn')->first();
+                if ($teamCaptain) {
+                    $teamCaptain->generateWaitlistToken();
+                    \App\Jobs\Mail\SendDrawNotification::dispatch($teamCaptain);
+                    $sent++;
+                }
+            } else {
+                // Individual registration
                 $registration->generateWaitlistToken();
+                \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
+                $sent++;
             }
-            \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
-            $sent++;
         }
 
         // Get track info for notification

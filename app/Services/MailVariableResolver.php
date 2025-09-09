@@ -30,8 +30,10 @@ class MailVariableResolver
             // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
             // Waitlist specific
-            'waitlist_position' => $registration->getWaitlistPosition() ?? 'N/A',
+            'waitlist_position' => 'Pool-based (no positions)',
             'waitlist_date' => $registration->waitlistEntry?->registered_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
+            'is_team_waitlist' => $registration->team_id ? 'Yes' : 'No',
+            'team_members_list' => $this->getTeamMembersList($registration),
             // Withdrawal specific
             'withdrawal_date' => $registration->withdrawalRequest?->withdrawn_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
             'withdrawal_reason' => $registration->withdrawalRequest?->withdrawal_reason ?? '',
@@ -58,8 +60,10 @@ class MailVariableResolver
             // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
             // Waitlist specific
-            'waitlist_position' => '5',
+            'waitlist_position' => 'Pool-based (no positions)',
             'waitlist_date' => Carbon::now()->format('d.m.Y H:i'),
+            'is_team_waitlist' => 'Yes',
+            'team_members_list' => 'John Doe, Jane Smith, Bob Johnson',
             // Withdrawal specific
             'withdrawal_date' => Carbon::now()->format('d.m.Y H:i'),
             'withdrawal_reason' => 'Unable to attend due to injury',
@@ -131,6 +135,16 @@ class MailVariableResolver
             $count >= 2 => 'Veteran (' . ($count + 1) . 'x participant)',
             default => 'Unknown'
         };
+    }
+
+    private function getTeamMembersList(Registration $registration): string
+    {
+        if (!$registration->team_id) {
+            return '';
+        }
+
+        $teamMembers = $registration->team->registrations;
+        return $teamMembers->pluck('name')->join(', ');
     }
 }
 
