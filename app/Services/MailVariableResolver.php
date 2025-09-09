@@ -25,8 +25,8 @@ class MailVariableResolver
             'team_name' => $registration->team?->name ?? '',
             'participation_count' => $registration->participation_count ?? 0,
             'participation_experience' => $this->getParticipationExperience($registration->participation_count ?? 0),
-            'waitlist_url' => $registration->getWaitlistUrl(),
-            'withdraw_url' => $registration->getWithdrawUrl(),
+            'waitlist_url' => $this->getWaitlistUrlSafe($registration),
+            'withdraw_url' => $this->getWithdrawUrlSafe($registration),
             // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
             // Waitlist specific
@@ -145,6 +145,24 @@ class MailVariableResolver
 
         $teamMembers = $registration->team->registrations;
         return $teamMembers->pluck('name')->join(', ');
+    }
+
+    private function getWaitlistUrlSafe(Registration $registration): string
+    {
+        // Only generate waitlist URL for not_drawn or waitlist status
+        if (in_array($registration->draw_status, ['not_drawn', 'waitlist'])) {
+            return $registration->getWaitlistUrl();
+        }
+        return '';
+    }
+
+    private function getWithdrawUrlSafe(Registration $registration): string
+    {
+        // Only generate withdraw URL for drawn status
+        if ($registration->draw_status === 'drawn' && !$registration->is_withdrawn) {
+            return $registration->getWithdrawUrl();
+        }
+        return '';
     }
 }
 
