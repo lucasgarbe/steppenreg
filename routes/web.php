@@ -21,6 +21,7 @@ Route::post('/waitlist/join/{token}', [WaitlistController::class, 'joinWaitlist'
 // Withdrawal Routes
 Route::get('/withdraw/{token}', [WaitlistController::class, 'showWithdrawForm'])->name('withdraw.show');
 Route::post('/withdraw/{token}', [WaitlistController::class, 'withdraw'])->name('withdraw.store');
+Route::get('/withdraw-success', [WaitlistController::class, 'withdrawSuccess'])->name('withdraw.success');
 
 // Status Check Route
 Route::get('/status/{token}', [WaitlistController::class, 'status'])->name('waitlist.status');
