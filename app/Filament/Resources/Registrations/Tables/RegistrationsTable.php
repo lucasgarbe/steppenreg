@@ -410,12 +410,22 @@ class RegistrationsTable
                                 // Generate waitlist token using new relationship
                                 $record->generateWaitlistToken();
                                 
-                                // Send waitlist confirmation email
-                                \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($record);
+                                // Send waitlist confirmation email to team captain or individual
+                                $emailRecipient = $record->team_id ? 
+                                    $record->team->registrations()->where('draw_status', 'waitlist')->first() : 
+                                    $record;
+                                    
+                                if ($emailRecipient) {
+                                    \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($emailRecipient);
+                                }
+
+                                $message = $record->team_id ? 
+                                    "Team '{$record->team->name}' added to waitlist" : 
+                                    "'{$record->name}' added to waitlist";
 
                                 \Filament\Notifications\Notification::make()
-                                    ->title(__('admin.registrations.notifications.added_to_waitlist'))
-                                    ->body(__('admin.registrations.notifications.added_to_waitlist_body', ['name' => $record->name]))
+                                    ->title('Added to Waitlist')
+                                    ->body($message)
                                     ->success()
                                     ->send();
                             }

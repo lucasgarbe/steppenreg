@@ -14,23 +14,21 @@
             {{ __('public.waitlist.success.message') }}
         </p>
 
-        <!-- Information -->
-        <x-public.card type="success" :title="__('public.registration.success.what_next')" class="mb-6">
-            <ul class="text-sm text-left space-y-1">
-                <li>• {{ __('public.waitlist.success.position_info') }}</li>
-                <li>• {{ __('public.waitlist.success.notification_info') }}</li>
-                <li>• Keep training and stay prepared!</li>
-                <li>• No further action needed from you</li>
-            </ul>
+        <!-- Contact Information -->
+        <x-public.card type="info" class="mb-6">
+            <div class="text-center">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">{{__('public.event_closed.help')}}</h2>
+                <p class="text-sm text-gray-600">
+                    {{ __('public.event_closed.contact') }}
+                    <a href="#" id="contact-email" class="text-blue-600 hover:text-blue-800 underline" data-email="{{ base64_encode('contact@example.org') }}">
+                        Loading...
+                    </a>
+                </p>
+            </div>
         </x-public.card>
 
-        <!-- Action Button -->
-        <x-public.button
-            type="button"
-            variant="secondary"
-            onclick="window.location.href='/'"
-        >
+        <a href="https://your-event.org/event" class="inline-flex items-center justify-center font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 bg-white hover:bg-gray-50 text-gray-900 border-gray-300 focus:ring-blue-500 px-4 py-2 text-sm">
             {{ __('public.registration.success.back_to_home') }}
-        </x-public.button>
+        </a>
     </div>
 @endsection

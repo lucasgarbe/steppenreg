@@ -216,34 +216,45 @@ class MailTemplateSeeder extends Seeder
     private function getWaitlistRegistrationSuccessBody(): string
     {
         return '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #d97706;">You\'ve successfully joined the waitlist!</h2>
+            <h2 style="color: #d97706;">{{#team_name}}Your team has{{/team_name}}{{^team_name}}You\'ve{{/team_name}} successfully joined the waitlist!</h2>
             
             <p>Dear {{name}},</p>
             
-            <p>Great news! You have successfully joined the waitlist for <strong>{{event_name}}</strong>.</p>
+            <p>Great news! {{#team_name}}Your team <strong>{{team_name}}</strong> has{{/team_name}}{{^team_name}}You have{{/team_name}} successfully joined the waitlist for <strong>{{event_name}}</strong>.</p>
             
             <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d97706;">
-                <h3 style="margin-top: 0; color: #92400e;">Your Waitlist Status:</h3>
+                <h3 style="margin-top: 0; color: #92400e;">Waitlist Status:</h3>
                 <ul style="list-style: none; padding: 0;">
                     <li><strong>Track:</strong> {{track_name}} ({{track_distance}})</li>
-                    <li><strong>Status:</strong> On Waitlist</li>
-                    <li><strong>Position:</strong> #{{waitlist_position}}</li>
-                    {{#team_name}}<li><strong>Team:</strong> {{team_name}}</li>{{/team_name}}
+                    <li><strong>Status:</strong> On Waitlist Pool</li>
+                    <li><strong>System:</strong> {{waitlist_position}}</li>
+                    {{#team_name}}
+                    <li><strong>Team:</strong> {{team_name}}</li>
+                    <li><strong>Team Members:</strong> {{team_members_list}}</li>
+                    {{/team_name}}
                     <li><strong>Joined Waitlist:</strong> {{waitlist_date}}</li>
                 </ul>
             </div>
             
-            <p><strong>What happens next?</strong></p>
+            <p><strong>How the waitlist works:</strong></p>
             <ul>
-                <li>You\'re now officially on the waitlist</li>
-                <li>If a spot becomes available, we\'ll notify you immediately</li>
+                {{#team_name}}
+                <li>Your entire team is now in the waitlist pool</li>
+                <li>Teams are kept together - if selected, all members are promoted</li>
+                <li>Selection is done randomly from the pool (no positions)</li>
+                {{/team_name}}
+                {{^team_name}}
+                <li>You\'re now in the waitlist pool</li>
+                <li>Selection is done randomly from the pool (no positions)</li>
+                <li>All waitlist entries have equal chance of selection</li>
+                {{/team_name}}
+                <li>If a spot becomes available, you\'ll be notified immediately</li>
                 <li>Keep training and stay prepared!</li>
-                <li>Your position may improve as others withdraw</li>
                 <li>No further action is needed from you</li>
             </ul>
             
             <div style="background-color: #e0e7ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>Tip:</strong> Stay ready! Spots can open up at any time, even close to the event date. Keep your training on track and your calendar clear.</p>
+                <p><strong>Fair Selection:</strong> Our waitlist uses a pool system where {{#team_name}}teams{{/team_name}}{{^team_name}}participants{{/team_name}} are selected randomly rather than by registration order. This ensures everyone has an equal opportunity!</p>
             </div>
             
             <p>We\'ll keep you updated on any changes to your status. Thank you for your patience!</p>
