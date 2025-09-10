@@ -432,53 +432,23 @@ class RegistrationsTable
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->visible(fn($record) => $record?->draw_status === 'drawn' && !$record?->is_withdrawn)
-                        ->form([
-                            \Filament\Forms\Components\Textarea::make('withdrawal_reason')
-                                ->label('Withdrawal Reason')
-                                ->placeholder('Optional: Enter the reason for withdrawal...')
-                                ->rows(3)
-                                ->maxLength(2000)
-                        ])
+                        ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.manual_withdraw'))
                         ->modalDescription(fn($record) => __('admin.registrations.confirmations.manual_withdraw', ['name' => $record->name]))
-                        ->action(function ($record, array $data) {
-                            // Use the Registration model's withdraw method with custom reason
-                            $reason = !empty($data['withdrawal_reason']) ? $data['withdrawal_reason'] : 'admin_manual';
-                            if ($record->withdraw($reason)) {
-                                // Send withdrawal confirmation email
-                                \App\Jobs\Mail\SendWithdrawalConfirmation::dispatch($record);
-
-                                // Try to promote next waitlist registration using the new method
-                                $nextWaitlisted = \App\Models\WaitlistEntry::forTrack($record->track_id)
-                                    ->active()
-                                    ->orderedByRegistration()
-                                    ->first();
-
-                                if ($nextWaitlisted) {
-                                    $nextRegistration = $nextWaitlisted->registration;
-                                    $nextRegistration->update([
-                                        'draw_status' => 'drawn',
-                                        'drawn_at' => now(),
-                                    ]);
-
-                                    // Generate withdraw token for the newly promoted
-                                    $nextRegistration->generateWithdrawToken();
-
-                                    \Filament\Notifications\Notification::make()
-                                        ->title(__('admin.registrations.notifications.withdrawal_completed'))
-                                        ->body(__('admin.registrations.notifications.withdrew_and_promoted', [
-                                            'withdrawn' => $record->name,
-                                            'promoted' => $nextRegistration->name
-                                        ]))
-                                        ->success()
-                                        ->send();
-                                } else {
-                                    \Filament\Notifications\Notification::make()
-                                        ->title(__('admin.registrations.notifications.withdrawal_completed'))
-                                        ->body(__('admin.registrations.notifications.withdrew_no_promotion', ['name' => $record->name]))
-                                        ->success()
-                                        ->send();
-                                }
+                        ->action(function ($record) {
+                            // Use the Registration model's withdraw method with admin reason
+                            if ($record->withdraw('admin_manual')) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title(__('admin.registrations.notifications.withdrawal_completed'))
+                                    ->body("Successfully withdrew {$record->name}")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Withdrawal Failed')
+                                    ->body("Could not withdraw {$record->name}")
+                                    ->danger()
+                                    ->send();
                             }
                         }),
 
