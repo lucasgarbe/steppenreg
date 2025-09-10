@@ -43,7 +43,6 @@ class Registration extends Model
         'starting_number',
         'finish_time',
         'notes',
-        'promoted_from_waitlist_at',
     ];
 
     protected $casts = [
@@ -52,7 +51,6 @@ class Registration extends Model
         'starting' => 'boolean',
         'drawn_at' => 'datetime',
         'finish_time' => 'datetime:H:i',
-        'promoted_from_waitlist_at' => 'datetime',
     ];
 
     // New Relationships
@@ -325,7 +323,7 @@ class Registration extends Model
         // If this registration is part of a team, only the team captain gets a token
         if ($this->team_id) {
             $teamCaptain = $this->team->registrations()->where('draw_status', 'not_drawn')->first();
-            
+
             if ($teamCaptain && $teamCaptain->id !== $this->id) {
                 // This is not the team captain, return the captain's token
                 return $teamCaptain->generateWaitlistToken();
@@ -412,14 +410,14 @@ class Registration extends Model
     private function joinTeamWaitlist(): bool
     {
         $teamMembers = $this->team->registrations()->where('draw_status', 'not_drawn')->get();
-        
+
         if ($teamMembers->isEmpty()) {
             return false;
         }
 
         // Use the first team member as captain
         $teamCaptain = $teamMembers->first();
-        
+
         // Create waitlist entry for team captain only
         if (!$teamCaptain->waitlistEntry) {
             $teamCaptain->waitlistEntry()->create([
