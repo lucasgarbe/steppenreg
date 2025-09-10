@@ -286,7 +286,7 @@ class RegistrationsTable
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['gender'] ?? false,
-                            fn (Builder $query, $gender) => $query->where('gender', $gender)
+                            fn(Builder $query, $gender) => $query->where('gender', $gender)
                         );
                     }),
 
@@ -373,7 +373,6 @@ class RegistrationsTable
                                 // First update the status - the observer will handle starting number assignment
                                 $record->update([
                                     'draw_status' => 'drawn',
-                                    'promoted_from_waitlist_at' => now()
                                 ]);
 
                                 // Generate withdraw token using new relationship
@@ -409,15 +408,15 @@ class RegistrationsTable
                             if ($record->joinWaitlist()) {
                                 // Refresh to get updated status
                                 $record->refresh();
-                                
+
                                 // Generate waitlist token using new relationship
                                 $record->generateWaitlistToken();
-                                
+
                                 // Send waitlist confirmation email to the registration that initiated the action
                                 \App\Jobs\Mail\SendWaitlistConfirmation::dispatch($record);
 
-                                $message = $record->team_id ? 
-                                    "Team '{$record->team->name}' added to waitlist" : 
+                                $message = $record->team_id ?
+                                    "Team '{$record->team->name}' added to waitlist" :
                                     "'{$record->name}' added to waitlist";
 
                                 \Filament\Notifications\Notification::make()
@@ -448,7 +447,7 @@ class RegistrationsTable
                             if ($record->withdraw($reason)) {
                                 // Send withdrawal confirmation email
                                 \App\Jobs\Mail\SendWithdrawalConfirmation::dispatch($record);
-                                
+
                                 // Try to promote next waitlist registration using the new method
                                 $nextWaitlisted = \App\Models\WaitlistEntry::forTrack($record->track_id)
                                     ->active()
@@ -460,7 +459,6 @@ class RegistrationsTable
                                     $nextRegistration->update([
                                         'draw_status' => 'drawn',
                                         'drawn_at' => now(),
-                                        'promoted_from_waitlist_at' => now()
                                     ]);
 
                                     // Generate withdraw token for the newly promoted
