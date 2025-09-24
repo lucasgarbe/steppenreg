@@ -323,9 +323,9 @@ class ManageWaitlist extends Page implements HasTable
 
                 // Generate withdraw token
                 $member->generateWithdrawToken();
-                
-                // Send draw success email for each team member
-                \App\Jobs\Mail\SendDrawNotification::dispatch($member);
+
+                // Send waitlist promotion email for each team member
+                \App\Jobs\Mail\SendWaitlistPromotionNotification::dispatch($member);
             }
 
             $participantCount = $teamMembers->count();
@@ -353,9 +353,9 @@ class ManageWaitlist extends Page implements HasTable
 
             // Generate withdraw token
             $entry->registration->generateWithdrawToken();
-            
-            // Send draw success email for individual
-            \App\Jobs\Mail\SendDrawNotification::dispatch($entry->registration);
+
+            // Send waitlist promotion email for individual
+            \App\Jobs\Mail\SendWaitlistPromotionNotification::dispatch($entry->registration);
 
             if ($sendNotification) {
                 Notification::make()
@@ -609,22 +609,22 @@ class ManageWaitlist extends Page implements HasTable
 
         // Get withdrawal stats per track
         $withdrawalStats = $this->getWithdrawalStats();
-        
+
         // Get waitlist stats per track
         $trackStats = [];
         $tracks = app(\App\Settings\EventSettings::class)->tracks ?? [];
-        
+
         foreach ($tracks as $track) {
             $trackWaitlistEntries = $waitlistEntries->filter(function ($entry) use ($track) {
                 return $entry->registration->track_id == $track['id'];
             });
-            
+
             $trackParticipants = 0;
             foreach ($trackWaitlistEntries as $entry) {
                 $trackParticipants += $entry->isTeamEntry() ?
                     $entry->getTeamMembers()->count() : 1;
             }
-            
+
             $trackStats[] = [
                 'track_id' => $track['id'],
                 'track_name' => $track['name'] . (isset($track['distance']) ? ' (' . $track['distance'] . ' km)' : ''),
@@ -643,36 +643,36 @@ class ManageWaitlist extends Page implements HasTable
             'track_stats' => $trackStats,
         ];
     }
-    
+
     public function getWithdrawalStats(): array
     {
         // Get registrations that have been withdrawn
         $withdrawnRegistrations = Registration::whereHas('withdrawalRequest', function ($query) {
             $query->where('is_withdrawn', true);
         })->get();
-        
+
         $perTrack = [];
         $processedTeams = [];
         $totalWithdrawn = 0;
-        
+
         foreach ($withdrawnRegistrations as $registration) {
             // Initialize track counter if needed
             if (!isset($perTrack[$registration->track_id])) {
                 $perTrack[$registration->track_id] = 0;
             }
-            
+
             // Handle team registrations
             if ($registration->team_id) {
                 if (!in_array($registration->team_id, $processedTeams)) {
                     $processedTeams[] = $registration->team_id;
-                    
+
                     // Count all team members that have been withdrawn
                     $teamWithdrawnCount = Registration::where('team_id', $registration->team_id)
                         ->whereHas('withdrawalRequest', function ($query) {
                             $query->where('is_withdrawn', true);
                         })
                         ->count();
-                    
+
                     $perTrack[$registration->track_id] += $teamWithdrawnCount;
                     $totalWithdrawn += $teamWithdrawnCount;
                 }
@@ -682,7 +682,7 @@ class ManageWaitlist extends Page implements HasTable
                 $totalWithdrawn++;
             }
         }
-        
+
         return [
             'total' => $totalWithdrawn,
             'per_track' => $perTrack,
