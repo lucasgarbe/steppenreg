@@ -5,6 +5,7 @@ namespace App\Jobs\Mail;
 use App\Mail\FlexibleMail;
 use App\Models\MailLog;
 use App\Models\Registration;
+use App\Services\MailVariableResolver;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -26,16 +27,25 @@ class SendFlexibleMail implements ShouldQueue
         // Using default queue for simplicity
     }
 
-    public function handle(): void
+    public function handle(MailVariableResolver $variableResolver): void
     {
-        // Log the email
+        // Resolve template variables for this registration
+        $variables = $variableResolver->resolve($this->registration);
+        
+        // Process subject and message with variables
+        $processedSubject = $this->processVariables($this->subject, $variables);
+        $processedMessage = $this->processVariables($this->message, $variables);
+
+        // Log the email with both original and processed content
         $mailLog = MailLog::logEmail(
             templateKey: 'custom_email',
             recipientEmail: $this->registration->email,
             registrationId: $this->registration->id,
             variables: [
-                'subject' => $this->subject,
-                'message' => $this->message,
+                'original_subject' => $this->subject,
+                'original_message' => $this->message,
+                'processed_subject' => $processedSubject,
+                'processed_message' => $processedMessage,
                 'name' => $this->registration->name,
                 'email' => $this->registration->email,
             ]
@@ -44,8 +54,8 @@ class SendFlexibleMail implements ShouldQueue
         try {
             Mail::to($this->registration->email)
                 ->send(new FlexibleMail(
-                    $this->subject,
-                    $this->message,
+                    $processedSubject,
+                    $processedMessage,
                     $this->registration
                 ));
             
@@ -54,6 +64,16 @@ class SendFlexibleMail implements ShouldQueue
             $mailLog->markAsFailed($e->getMessage());
             throw $e; // Re-throw to trigger job retry
         }
+    }
+
+    private function processVariables(string $content, array $variables): string
+    {
+        foreach ($variables as $key => $value) {
+            $placeholder = '{{' . $key . '}}';
+            $content = str_replace($placeholder, $value, $content);
+        }
+        
+        return $content;
     }
 
     public function failed(\Throwable $exception): void

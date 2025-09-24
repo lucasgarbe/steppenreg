@@ -816,6 +816,22 @@ class RegistrationsTable
                                     'undo',
                                     'redo',
                                 ])
+                                ->columnSpan('full')
+                                ->helperText('You can use template variables like {{name}}, {{email}}, {{track_name}} to personalize emails for each recipient.'),
+                            \Filament\Forms\Components\Placeholder::make('variables_help')
+                                ->label('Available Template Variables')
+                                ->content(function () {
+                                    $variables = \App\Models\MailTemplate::getAvailableVariables();
+                                    $help = "Use these variables in your subject and message to personalize emails:\n\n";
+                                    
+                                    foreach ($variables as $key => $description) {
+                                        $help .= "• **{{" . $key . "}}** - " . $description . "\n";
+                                    }
+                                    
+                                    $help .= "\nExample: \"Dear {{name}}, you are registered for {{track_name}}!\"";
+                                    
+                                    return $help;
+                                })
                                 ->columnSpan('full'),
                         ])
                         ->action(function (Collection $records, array $data) {
