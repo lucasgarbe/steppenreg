@@ -782,6 +782,68 @@ class RegistrationsTable
                         ->modalDescription('This will send draw result emails to all selected participants. Make sure tokens are generated first!')
                         ->deselectRecordsAfterCompletion(),
 
+                    BulkAction::make('send_custom_email')
+                        ->label('Send Custom Email')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('info')
+                        ->fillForm(fn(Collection $records) => [
+                            'to' => $records->map(fn($record) => $record->email)->implode(', '),
+                        ])
+                        ->form([
+                            \Filament\Forms\Components\TextInput::make('to')
+                                ->readOnly(),
+                            \Filament\Forms\Components\TextInput::make('subject')
+                                ->label('Email Subject')
+                                ->required()
+                                ->maxLength(255)
+                                ->placeholder('Enter email subject'),
+                            \Filament\Forms\Components\RichEditor::make('message')
+                                ->label('Email Message')
+                                ->required()
+                                ->placeholder('Enter your message here...')
+                                ->toolbarButtons([
+                                    'bold',
+                                    'italic',
+                                    'underline',
+                                    'strike',
+                                    'link',
+                                    'orderedList',
+                                    'bulletList',
+                                    'h2',
+                                    'h3',
+                                    'blockquote',
+                                    'codeBlock',
+                                    'undo',
+                                    'redo',
+                                ])
+                                ->columnSpan('full'),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            $sent = 0;
+                            foreach ($records as $record) {
+                                \App\Jobs\Mail\SendFlexibleMail::dispatch(
+                                    $record,
+                                    $data['subject'],
+                                    $data['message']
+                                );
+                                $sent++;
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Custom emails queued')
+                                ->body("Sent {$sent} custom emails to queue for processing")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Send Custom Email')
+                        ->modalDescription(function (Collection $records) {
+                            $count = $records->count();
+                            return "This will send a custom email to {$count} selected participant(s).";
+                        })
+                        ->modalWidth('xl')
+                        ->deselectRecordsAfterCompletion(),
+
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
