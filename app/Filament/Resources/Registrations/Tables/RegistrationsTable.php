@@ -12,6 +12,8 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -215,25 +217,45 @@ class RegistrationsTable
                         return $query->when($data['track_id'], fn($query, $trackId) => $query->where('track_id', $trackId));
                     }),
 
-                Filter::make('payed')
-                    ->label('Paid Only')
-                    ->query(fn(Builder $query): Builder => $query->where('payed', true)),
+                TernaryFilter::make('payed')
+                    ->label('Payment Status')
+                    ->placeholder('All')
+                    ->trueLabel('Paid')
+                    ->falseLabel('Unpaid')
+                    ->nullable(),
 
-                Filter::make('starting')
-                    ->label('Starting Only')
-                    ->query(fn(Builder $query): Builder => $query->where('starting', true)),
+                TernaryFilter::make('starting')
+                    ->label('Starting Status')
+                    ->placeholder('All')
+                    ->trueLabel('Starting')
+                    ->falseLabel('Not Starting')
+                    ->nullable(),
 
-                Filter::make('finished')
-                    ->label('Finished Only')
-                    ->query(fn(Builder $query): Builder => $query->whereNotNull('finish_time')),
+                TernaryFilter::make('finish_time')
+                    ->label('Completion Status')
+                    ->placeholder('All')
+                    ->trueLabel('Finished')
+                    ->falseLabel('Not Finished')
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereNotNull('finish_time'),
+                        false: fn(Builder $query) => $query->whereNull('finish_time'),
+                        blank: fn(Builder $query) => $query,
+                    )
+                    ->nullable(),
 
-                Filter::make('team_members')
-                    ->label('Team Members Only')
-                    ->query(fn(Builder $query): Builder => $query->whereNotNull('team_id')),
-
-                Filter::make('individuals')
-                    ->label('Individual Registrations')
-                    ->query(fn(Builder $query): Builder => $query->whereNull('team_id')),
+                SelectFilter::make('registration_type')
+                    ->label('Registration Type')
+                    ->options([
+                        'team' => 'Teams',
+                        'individual' => 'Individuals',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'team' => $query->whereNotNull('team_id'),
+                            'individual' => $query->whereNull('team_id'),
+                            default => $query,
+                        };
+                    }),
 
                 Filter::make('participation_experience')
                     ->label('Participation Experience')
@@ -260,17 +282,14 @@ class RegistrationsTable
                         };
                     }),
 
-                Filter::make('drawn')
-                    ->label('Drawn Only')
-                    ->query(fn(Builder $query): Builder => $query->where('draw_status', 'drawn')),
-
-                Filter::make('not_drawn')
-                    ->label('Not Drawn Only')
-                    ->query(fn(Builder $query): Builder => $query->where('draw_status', 'not_drawn')),
-
-                Filter::make('waitlist')
-                    ->label('Waitlist Only')
-                    ->query(fn(Builder $query): Builder => $query->where('draw_status', 'waitlist')),
+                SelectFilter::make('draw_status')
+                    ->label('Draw Status')
+                    ->options([
+                        'drawn' => 'Drawn',
+                        'not_drawn' => 'Not Drawn',
+                        'waitlist' => 'Waitlist',
+                    ])
+                    ->placeholder('All statuses'),
 
                 Filter::make('gender')
                     ->label('Gender')
@@ -823,13 +842,13 @@ class RegistrationsTable
                                 ->content(function () {
                                     $variables = \App\Models\MailTemplate::getAvailableVariables();
                                     $help = "Use these variables in your subject and message to personalize emails:\n\n";
-                                    
+
                                     foreach ($variables as $key => $description) {
                                         $help .= "• **{{" . $key . "}}** - " . $description . "\n";
                                     }
-                                    
+
                                     $help .= "\nExample: \"Dear {{name}}, you are registered for {{track_name}}!\"";
-                                    
+
                                     return $help;
                                 })
                                 ->columnSpan('full'),
