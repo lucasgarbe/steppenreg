@@ -884,6 +884,7 @@ class RegistrationsTable
                     RestoreBulkAction::make(),
                 ]),
             ])
+            ->paginated([10, 25, 50, 100, 'all'])
             ->defaultSort('created_at', 'desc');
     }
 }
