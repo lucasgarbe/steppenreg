@@ -11,7 +11,13 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\QueryBuilder;
+use Filament\Tables\Filters\QueryBuilder\Constraints\BooleanConstraint;
+use Filament\Tables\Filters\QueryBuilder\Constraints\NumberConstraint;
+use Filament\Tables\Filters\QueryBuilder\Constraints\SelectConstraint;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -133,6 +139,11 @@ class RegistrationsTable
                     })
                     ->sortable(),
 
+                ToggleColumn::make('payed')
+                    ->label(__('Bezahlt'))
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('finish_time')
                     ->label(__('admin.registrations.columns.finish_time'))
                     ->time('H:i')
@@ -143,6 +154,7 @@ class RegistrationsTable
                 TextColumn::make('status')
                     ->label(__('admin.registrations.columns.status'))
                     ->badge()
+                    ->toggleable(isToggledHiddenByDefault: false)
                     ->formatStateUsing(function ($record): string {
                         return match ($record?->status) {
                             'Finished' => __('admin.registrations.status.finished'),
@@ -217,38 +229,58 @@ class RegistrationsTable
                         return $query->when($data['track_id'], fn($query, $trackId) => $query->where('track_id', $trackId));
                     }),
 
-                TernaryFilter::make('payed')
+                SelectFilter::make('payed')
                     ->label('Payment Status')
+                    ->options([
+                        'paid' => 'Paid',
+                        'unpaid' => 'Unpaid',
+                    ])
                     ->placeholder('All')
-                    ->trueLabel('Paid')
-                    ->falseLabel('Unpaid')
-                    ->nullable(),
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'paid' => $query->whereRaw('payed = true'),
+                            'unpaid' => $query->whereRaw('payed = false'),
+                            default => $query,
+                        };
+                    }),
 
-                TernaryFilter::make('starting')
+                SelectFilter::make('starting')
                     ->label('Starting Status')
+                    ->options([
+                        'starting' => 'Starting',
+                        'not_starting' => 'Not Starting',
+                    ])
                     ->placeholder('All')
-                    ->trueLabel('Starting')
-                    ->falseLabel('Not Starting')
-                    ->nullable(),
-
-                TernaryFilter::make('finish_time')
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'starting' => $query->whereRaw('starting = true'),
+                            'not_starting' => $query->whereRaw('starting = false'),
+                            default => $query,
+                        };
+                    }),
+                /**/
+                SelectFilter::make('finish_time')
                     ->label('Completion Status')
+                    ->options([
+                        'finished' => 'Finished',
+                        'not_finished' => 'Not Finished',
+                    ])
                     ->placeholder('All')
-                    ->trueLabel('Finished')
-                    ->falseLabel('Not Finished')
-                    ->queries(
-                        true: fn(Builder $query) => $query->whereNotNull('finish_time'),
-                        false: fn(Builder $query) => $query->whereNull('finish_time'),
-                        blank: fn(Builder $query) => $query,
-                    )
-                    ->nullable(),
-
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'finished' => $query->whereNotNull('finish_time'),
+                            'not_finished' => $query->whereNull('finish_time'),
+                            default => $query,
+                        };
+                    }),
+                /**/
                 SelectFilter::make('registration_type')
                     ->label('Registration Type')
                     ->options([
                         'team' => 'Teams',
                         'individual' => 'Individuals',
                     ])
+                    ->placeholder('All')
                     ->query(function (Builder $query, array $data): Builder {
                         return match ($data['value'] ?? null) {
                             'team' => $query->whereNotNull('team_id'),
@@ -256,7 +288,7 @@ class RegistrationsTable
                             default => $query,
                         };
                     }),
-
+                /**/
                 Filter::make('participation_experience')
                     ->label('Participation Experience')
                     ->form([
@@ -281,7 +313,7 @@ class RegistrationsTable
                             default => $query,
                         };
                     }),
-
+                /**/
                 SelectFilter::make('draw_status')
                     ->label('Draw Status')
                     ->options([
@@ -290,7 +322,7 @@ class RegistrationsTable
                         'waitlist' => 'Waitlist',
                     ])
                     ->placeholder('All statuses'),
-
+                /**/
                 Filter::make('gender')
                     ->label('Gender')
                     ->form([
@@ -308,7 +340,7 @@ class RegistrationsTable
                             fn(Builder $query, $gender) => $query->where('gender', $gender)
                         );
                     }),
-
+                /**/
                 Filter::make('age_group')
                     ->label('Age Group')
                     ->form([
@@ -339,42 +371,9 @@ class RegistrationsTable
                             default => $query,
                         };
                     }),
-
-                Filter::make('status')
-                    ->label('Status')
-                    ->form([
-                        \Filament\Forms\Components\Select::make('status')
-                            ->label('Select Status')
-                            ->options([
-                                'Registered' => 'Registered',
-                                'Waitlist' => 'Waitlist',
-                                'Drawn' => 'Drawn',
-                                'Paid' => 'Paid',
-                                'Starting' => 'Starting',
-                                'Finished' => 'Finished',
-                            ])
-                            ->placeholder('All statuses')
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (!isset($data['status']) || !$data['status']) {
-                            return $query;
-                        }
-
-                        $status = $data['status'];
-
-                        return match ($status) {
-                            'Finished' => $query->whereNotNull('finish_time'),
-                            'Starting' => $query->where('starting', true)->whereNull('finish_time'),
-                            'Paid' => $query->where('payed', true)->where('starting', false)->whereNull('finish_time'),
-                            'Drawn' => $query->where('draw_status', 'drawn')->where('payed', false)->where('starting', false)->whereNull('finish_time'),
-                            'Waitlist' => $query->where('draw_status', 'waitlist')->where('payed', false)->where('starting', false)->whereNull('finish_time'),
-                            'Registered' => $query->where('draw_status', 'not_drawn')->where('payed', false)->where('starting', false)->whereNull('finish_time'),
-                            default => $query,
-                        };
-                    }),
-
                 TrashedFilter::make(),
             ])
+            ->filtersFormColumns(2)
             ->recordActions([
                 ActionGroup::make([
                     EditAction::make(),
