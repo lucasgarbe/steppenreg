@@ -11,6 +11,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
@@ -68,7 +69,7 @@ class RegistrationsTable
                     })
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                TextColumn::make('email')
+                TextInputColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
                     ->searchable()
                     ->sortable(),
@@ -144,9 +145,9 @@ class RegistrationsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('finish_time')
+                TextInputColumn::make('finish_time')
                     ->label(__('admin.registrations.columns.finish_time'))
-                    ->time('H:i')
+                    ->type('time')
                     ->placeholder(__('admin.form.placeholders.not_finished'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -375,6 +376,18 @@ class RegistrationsTable
             ])
             ->filtersFormColumns(2)
             ->recordActions([
+                Action::make('arrived')
+                    ->label('Angekommen')
+                    ->color('success')
+                    ->button()
+                    ->action(fn($record) => $record->update(['finish_time' => now()])),
+
+                Action::make('DNF')
+                    ->label('DNF')
+                    ->color('danger')
+                    ->button()
+                    ->action(fn($record) => $record->update(['finish_time' => '00:00'])),
+
                 ActionGroup::make([
                     EditAction::make(),
 
