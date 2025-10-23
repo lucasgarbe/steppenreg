@@ -146,7 +146,7 @@ class RegistrationsTable
 
                 TextColumn::make('finish_time')
                     ->label(__('admin.registrations.columns.finish_time'))
-                    ->type('time')
+                    ->time('H:i')
                     ->placeholder(__('admin.form.placeholders.not_finished'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
