@@ -11,7 +11,6 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
@@ -69,7 +68,7 @@ class RegistrationsTable
                     })
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                TextInputColumn::make('email')
+                TextColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
                     ->searchable()
                     ->sortable(),
@@ -145,7 +144,7 @@ class RegistrationsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextInputColumn::make('finish_time')
+                TexttColumn::make('finish_time')
                     ->label(__('admin.registrations.columns.finish_time'))
                     ->type('time')
                     ->placeholder(__('admin.form.placeholders.not_finished'))
