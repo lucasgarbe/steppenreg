@@ -27,9 +27,16 @@ class TeamsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('track_id')
-                    ->label('Track ID')
+                TextColumn::make('event.name')
+                    ->label('Event')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('track.name')
+                    ->label('Track')
                     ->placeholder('No track')
+                    ->searchable()
                     ->sortable(),
 
                 TextColumn::make('registrations_count')

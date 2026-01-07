@@ -13,33 +13,70 @@ class PublicRegistrationController extends Controller
     public function create()
     {
         $eventSettings = app(EventSettings::class);
+        
+        // Get the active event
+        $event = \App\Models\Event::where('status', 'active')->first();
+        
+        if (!$event) {
+            return view('public.registration.closed', [
+                'eventSettings' => $eventSettings,
+                'state' => 'closed',
+                'message' => 'No active event at this time.',
+            ]);
+        }
+        
         $tracks = $eventSettings->tracks ?? [];
 
-        // Check application state and determine access
+        // Check if event registration is open
+        if (!$event->canRegister()) {
+            return view('public.registration.closed', [
+                'eventSettings' => $eventSettings,
+                'event' => $event,
+                'state' => 'closed',
+            ]);
+        }
+        
+        // Get available gender categories
+        $availableGenders = collect($event->getGenderCategories())
+            ->filter(fn($cat, $gender) => $event->isGenderCategoryOpen($gender))
+            ->toArray();
+        
+        if (empty($availableGenders)) {
+            $nextOpening = $event->getNextGenderCategoryOpening();
+            return view('public.registration.not-yet-open', [
+                'eventSettings' => $eventSettings,
+                'event' => $event,
+                'nextOpening' => $nextOpening,
+            ]);
+        }
+        
+        // Check legacy application state for backwards compatibility
         $applicationState = $eventSettings->application_state;
         $isFlintaOnly = $eventSettings->isOpenForFlintaOnly();
         $isLiveEvent = $eventSettings->isLiveEvent();
 
         // Handle different states
         if ($applicationState === 'closed' || $applicationState === 'closed_waitlist') {
-            // Registration is closed (waitlist is managed via email links, not public form)
             return view('public.registration.closed', [
                 'eventSettings' => $eventSettings,
+                'event' => $event,
                 'state' => $applicationState
             ]);
         }
 
         if ($isLiveEvent) {
-            // Live event - show special message
             return view('public.registration.live-event', [
-                'eventSettings' => $eventSettings
+                'eventSettings' => $eventSettings,
+                'event' => $event,
             ]);
         }
 
-        // Registration is open (either FLINTA* only or everyone)
+        // Registration is open
         return view('public.registration.create', compact(
             'tracks',
             'eventSettings',
+            'event',
+            'availableGenders',
             'applicationState',
             'isFlintaOnly'
         ));
@@ -48,8 +85,16 @@ class PublicRegistrationController extends Controller
     public function store(Request $request)
     {
         $eventSettings = app(EventSettings::class);
+        
+        // Get the active event
+        $event = \App\Models\Event::where('status', 'active')->first();
+        
+        if (!$event || !$event->canRegister()) {
+            return redirect()->route('registration.create')
+                ->withErrors(['general' => 'Registration is currently closed.']);
+        }
 
-        // Check if registration is allowed
+        // Check if registration is allowed (legacy)
         if (
             $eventSettings->application_state === 'closed' ||
             $eventSettings->application_state === 'closed_waitlist' ||
@@ -64,14 +109,23 @@ class PublicRegistrationController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'age' => 'required|integer|min:1|max:120',
-            'gender' => 'required|string|in:flinta,all_gender',
+            'gender' => [
+                'required',
+                'string',
+                'in:flinta,all_gender',
+                function ($attribute, $value, $fail) use ($event) {
+                    if (!$event->isGenderCategoryOpen($value)) {
+                        $fail('Registration for this gender category is not yet open.');
+                    }
+                },
+            ],
             'track_id' => 'required|integer',
             'participation_count' => 'required|integer|min:1|max:20',
             'team_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ];
 
-        // If only FLINTA* registration is open, restrict gender selection
+        // If only FLINTA* registration is open (legacy check), restrict gender selection
         if ($eventSettings->isOpenForFlintaOnly()) {
             $rules['gender'] = 'required|string|in:flinta';
         }
@@ -125,6 +179,7 @@ class PublicRegistrationController extends Controller
 
         // Create registration
         Registration::create([
+            'event_id' => $event->id,
             'name' => $request->name,
             'email' => $request->email,
             'age' => $request->age,

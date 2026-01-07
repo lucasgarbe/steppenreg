@@ -101,11 +101,34 @@
                     >
                         <option value="">{{ __('public.registration.fields.gender_placeholder') }}</option>
                         @foreach(\App\Models\Registration::getGenderOptions() as $value => $label)
-                            <option value="{{ $value }}" {{ old('gender') == $value ? 'selected' : '' }}>
+                            @php
+                                $isOpen = isset($availableGenders[$value]);
+                                $openingDate = !$isOpen && isset($event) ? $event->getGenderCategoryOpeningDate($value) : null;
+                            @endphp
+                            <option 
+                                value="{{ $value }}" 
+                                {{ old('gender') == $value ? 'selected' : '' }}
+                                {{ !$isOpen ? 'disabled' : '' }}
+                            >
                                 {{ $label }}
+                                @if(!$isOpen && $openingDate)
+                                    - Opens {{ $openingDate->format('M j, g:i A') }}
+                                @elseif(!$isOpen)
+                                    - Not available
+                                @endif
                             </option>
                         @endforeach
                     </select>
+                    @if(isset($event))
+                        <p class="mt-1 text-xs text-gray-500">
+                            @php
+                                $nextOpening = $event->getNextGenderCategoryOpening();
+                            @endphp
+                            @if($nextOpening)
+                                Next category opens: <strong>{{ $nextOpening['label'] }}</strong> on {{ $nextOpening['datetime']->format('F j, Y g:i A') }} ({{ $nextOpening['datetime']->diffForHumans() }})
+                            @endif
+                        </p>
+                    @endif
                     @error('gender')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

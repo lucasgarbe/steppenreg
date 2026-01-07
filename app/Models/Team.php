@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -13,6 +13,7 @@ class Team extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'event_id',
         'name',
         'max_members',
         'track_id',
@@ -26,6 +27,16 @@ class Team extends Model
     protected $attributes = [
         'max_members' => 5,
     ];
+
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
+    }
+
+    public function track(): BelongsTo
+    {
+        return $this->belongsTo(Track::class);
+    }
 
     public function registrations(): HasMany
     {
@@ -62,20 +73,9 @@ class Team extends Model
         return $query->where('track_id', $trackId)->orWhereNull('track_id');
     }
 
-    public function getTrackAttribute(): ?array
-    {
-        if (!$this->track_id) {
-            return null;
-        }
-        
-        $tracks = app(EventSettings::class)->tracks ?? [];
-        
-        return collect($tracks)->firstWhere('id', $this->track_id);
-    }
-
     public function getTrackNameAttribute(): ?string
     {
-        return $this->track['name'] ?? null;
+        return $this->track?->name;
     }
 
     public function canAcceptRegistration($registration): bool

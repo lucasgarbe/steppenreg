@@ -29,6 +29,7 @@ class Registration extends Model
     }
 
     protected $fillable = [
+        'event_id',
         'name',
         'email',
         'track_id',
@@ -53,7 +54,22 @@ class Registration extends Model
         'finish_time' => 'datetime:H:i',
     ];
 
-    // New Relationships
+    // Relationships
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
+    }
+
+    public function track(): BelongsTo
+    {
+        return $this->belongsTo(Track::class);
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
     public function waitlistEntry(): HasOne
     {
         return $this->hasOne(WaitlistEntry::class);
@@ -62,12 +78,6 @@ class Registration extends Model
     public function withdrawalRequest(): HasOne
     {
         return $this->hasOne(WithdrawalRequest::class);
-    }
-
-    // Existing Relationships
-    public function team(): BelongsTo
-    {
-        return $this->belongsTo(Team::class);
     }
 
     // Scopes
@@ -192,21 +202,19 @@ class Registration extends Model
         return $this->draw_status === 'drawn' && !$this->is_withdrawn;
     }
 
-    // Track and Gender Accessors (unchanged)
-    public function getTrackAttribute(): ?array
+    public function canRegisterForGender(): bool
     {
-        if (!$this->track_id) {
-            return null;
+        if (!$this->event || !$this->gender) {
+            return false;
         }
-
-        $tracks = app(EventSettings::class)->tracks ?? [];
-
-        return collect($tracks)->firstWhere('id', $this->track_id);
+        
+        return $this->event->isGenderCategoryOpen($this->gender);
     }
 
+    // Gender Accessor
     public function getTrackNameAttribute(): ?string
     {
-        return $this->track['name'] ?? null;
+        return $this->track?->name;
     }
 
     public function getGenderLabelAttribute(): ?string

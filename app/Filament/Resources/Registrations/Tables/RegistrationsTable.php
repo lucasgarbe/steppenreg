@@ -55,6 +55,12 @@ class RegistrationsTable
                     ->iconColor('primary')
                     ->tooltip(fn($record) => $record?->notes ? __('admin.registrations.tooltips.has_notes') : null),
 
+                TextColumn::make('event.name')
+                    ->label('Event')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('participation_count')
                     ->label(__('admin.registrations.columns.participation_count'))
                     ->sortable()
@@ -99,12 +105,11 @@ class RegistrationsTable
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('track_name')
+                TextColumn::make('track.name')
                     ->label(__('admin.registrations.columns.track'))
                     ->placeholder(__('admin.form.placeholders.no_track_selected'))
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->whereNotNull('track_id')->orderBy('track_id', $direction);
-                    })
+                    ->searchable()
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('team.name')
