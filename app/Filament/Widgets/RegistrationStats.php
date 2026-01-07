@@ -27,7 +27,7 @@ class RegistrationStats extends StatsOverviewWidget
         array_push(
             $statCards,
             Stat::make('FLINTA* Registrations', $stats['gender_flinta'])
-                ->description(number_format($stats['gender_flinta'] / $stats['total'] * 100, 2, ',', '') . '%')
+                ->description($stats['total'] > 0 ? number_format($stats['gender_flinta'] / $stats['total'] * 100, 2, ',', '') . '%' : 'N/A')
                 ->descriptionIcon('heroicon-m-percent-badge')
                 ->color('primary')
         );
@@ -35,7 +35,7 @@ class RegistrationStats extends StatsOverviewWidget
         array_push(
             $statCards,
             Stat::make('All Gender Registrations', $stats['gender_all_gender'])
-                ->description(number_format($stats['gender_all_gender'] / $stats['total'] * 100, 2, ',', '') . '%')
+                ->description($stats['total'] > 0 ? number_format($stats['gender_all_gender'] / $stats['total'] * 100, 2, ',', '') . '%' : 'N/A')
                 ->descriptionIcon('heroicon-m-percent-badge')
                 ->color('primary')
         );
