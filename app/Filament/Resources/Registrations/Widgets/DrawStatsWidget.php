@@ -13,7 +13,6 @@ class DrawStatsWidget extends StatsOverviewWidget
     {
         $totalRegistrations = Registration::count();
         $totalDrawn = Registration::drawn()->count();
-        $totalWaitlist = Registration::onWaitlist()->count();
         $totalNotDrawn = Registration::notDrawn()->count();
 
         return [
@@ -25,9 +24,6 @@ class DrawStatsWidget extends StatsOverviewWidget
 
             Stat::make('Not Drawn', $totalNotDrawn)
                 ->color('gray'),
-
-            Stat::make('Waitlist', $totalWaitlist)
-                ->color('warning'),
         ];
     }
 }

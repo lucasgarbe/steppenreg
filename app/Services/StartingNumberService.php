@@ -16,18 +16,6 @@ class StartingNumberService
         }
 
         $ranges = $this->getTrackRanges($registration->track_id);
-        
-        if ($this->wasPromotedFromWaitlist($registration)) {
-            // Try normal waitlist range first
-            $number = $this->findNextAvailableInRange($ranges['waitlist'], $registration->track_id);
-            
-            // If waitlist full, use overflow range
-            if (!$number && isset($ranges['waitlist_overflow'])) {
-                $number = $this->findNextAvailableInRange($ranges['waitlist_overflow'], $registration->track_id);
-            }
-            
-            return $number;
-        }
 
         return $this->findNextAvailableInRange($ranges['main'], $registration->track_id);
     }
@@ -123,24 +111,7 @@ class StartingNumberService
         return null; // Range is full
     }
 
-    private function wasPromotedFromWaitlist(Registration $registration): bool
-    {
-        // For initial implementation, we'll consider registrations as main draw by default
-        // In a real system, you might track this with additional fields like 'was_waitlisted' or audit logs
-        // For now, simple logic: if there are already main draw numbers assigned, assume this is waitlist
-        
-        $mainRange = $this->getBaseRanges($registration->track_id)['main'];
-        $mainDrawCount = Registration::withTrashed()->where('track_id', $registration->track_id)
-            ->where('draw_status', 'drawn')
-            ->whereNotNull('starting_number')
-            ->whereBetween('starting_number', [$mainRange['start'], $mainRange['end']])
-            ->count();
-            
-        $trackMaxParticipants = $this->getTrackConfig($registration->track_id)['max_participants'];
-        
-        // If we have less than 80% of main draw filled, treat as main draw
-        return $mainDrawCount >= ($trackMaxParticipants * 0.8);
-    }
+
 
     private function getWaitlistOverflowCount(int $trackId): int
     {

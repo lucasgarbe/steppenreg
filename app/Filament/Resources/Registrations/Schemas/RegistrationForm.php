@@ -145,7 +145,6 @@ class RegistrationForm
                             ->options([
                                 'not_drawn' => 'Not Drawn',
                                 'drawn' => 'Drawn',
-                                'waitlist' => 'Waitlist',
                             ])
                             ->default('not_drawn')
                             ->required()
