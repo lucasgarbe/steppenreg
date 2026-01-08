@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendDrawNotification implements ShouldQueue
 {
@@ -24,18 +25,16 @@ class SendDrawNotification implements ShouldQueue
 
     public function handle(MailTemplateService $mailService): void
     {
-        $templateKey = match ($this->registration->draw_status) {
-            'drawn' => 'draw_success',
-            'waitlist' => 'draw_waitlist',
-            default => 'draw_rejection',
-        };
+        $templateKey = $this->registration->draw_status === 'drawn'
+            ? 'draw_success'
+            : 'draw_rejection';
 
         $mailService->sendEmail($templateKey, $this->registration);
     }
 
     public function failed(\Throwable $exception): void
     {
-        \Log::error('Draw notification email failed', [
+        Log::error('Draw notification email failed', [
             'registration_id' => $this->registration->id,
             'email' => $this->registration->email,
             'draw_status' => $this->registration->draw_status,

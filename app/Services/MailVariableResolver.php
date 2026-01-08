@@ -25,18 +25,8 @@ class MailVariableResolver
             'team_name' => $registration->team?->name ?? '',
             'participation_count' => $registration->participation_count ?? 0,
             'participation_experience' => $this->getParticipationExperience($registration->participation_count ?? 0),
-            'waitlist_url' => $this->getWaitlistUrlSafe($registration),
-            'withdraw_url' => $this->getWithdrawUrlSafe($registration),
-            // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
-            // Waitlist specific
-            'waitlist_position' => 'Pool-based (no positions)',
-            'waitlist_date' => $registration->waitlistEntry?->registered_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
-            'is_team_waitlist' => $registration->team_id ? 'Yes' : 'No',
             'team_members_list' => $this->getTeamMembersList($registration),
-            // Withdrawal specific
-            'withdrawal_date' => $registration->withdrawalRequest?->withdrawn_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
-            'withdrawal_reason' => $registration->withdrawalRequest?->withdrawal_reason ?? '',
         ];
     }
 
@@ -55,18 +45,8 @@ class MailVariableResolver
             'team_name' => 'Sample Team',
             'participation_count' => 2,
             'participation_experience' => 'Veteran (3rd time)',
-            'waitlist_url' => 'https://example.com/waitlist/join/sample-token',
-            'withdraw_url' => 'https://example.com/withdraw/sample-token',
-            // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
-            // Waitlist specific
-            'waitlist_position' => 'Pool-based (no positions)',
-            'waitlist_date' => Carbon::now()->format('d.m.Y H:i'),
-            'is_team_waitlist' => 'Yes',
             'team_members_list' => 'John Doe, Jane Smith, Bob Johnson',
-            // Withdrawal specific
-            'withdrawal_date' => Carbon::now()->format('d.m.Y H:i'),
-            'withdrawal_reason' => 'Unable to attend due to injury',
         ];
     }
 
@@ -92,7 +72,6 @@ class MailVariableResolver
     {
         return match ($status) {
             'drawn' => 'Drawn - Confirmed to participate',
-            'waitlist' => 'On waitlist',
             'not_drawn' => 'Not drawn',
             default => 'Not drawn yet',
         };
@@ -145,24 +124,6 @@ class MailVariableResolver
 
         $teamMembers = $registration->team->registrations;
         return $teamMembers->pluck('name')->join(', ');
-    }
-
-    private function getWaitlistUrlSafe(Registration $registration): string
-    {
-        // Only generate waitlist URL for not_drawn or waitlist status
-        if (in_array($registration->draw_status, ['not_drawn', 'waitlist'])) {
-            return $registration->getWaitlistUrl();
-        }
-        return '';
-    }
-
-    private function getWithdrawUrlSafe(Registration $registration): string
-    {
-        // Only generate withdraw URL for drawn status
-        if ($registration->draw_status === 'drawn' && !$registration->is_withdrawn) {
-            return $registration->getWithdrawUrl();
-        }
-        return '';
     }
 }
 

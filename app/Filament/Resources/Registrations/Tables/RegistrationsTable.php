@@ -185,18 +185,6 @@ class RegistrationsTable
                     ->icon(fn($record) => $record?->notes ? 'heroicon-s-document-text' : null)
                     ->color(fn($record) => $record?->notes ? 'primary' : null),
 
-                TextColumn::make('withdrawalRequest.withdrawal_reason')
-                    ->label('Withdrawal Reason')
-                    ->wrap()
-                    ->limit(60)
-                    ->placeholder('No withdrawal reason')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->visible(fn($record) => $record?->is_withdrawn)
-                    ->icon(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ? 'heroicon-s-exclamation-triangle' : null)
-                    ->iconColor('orange')
-                    ->tooltip(fn($record) => $record?->withdrawalRequest?->withdrawal_reason ?
-                        'Full reason: ' . $record->withdrawalRequest->withdrawal_reason : null),
-
                 TextColumn::make('created_at')
                     ->label(__('admin.registrations.columns.created_at'))
                     ->dateTime()
