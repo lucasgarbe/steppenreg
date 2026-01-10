@@ -185,9 +185,9 @@
                 </div>
 
                 <!-- Participation Count -->
-                <fieldset aria-label="{{ __('public.registration.fields.participation_count') }}">
+                <fieldset aria-label="{{ __('public.registration.fields.participation_count', ['event' => $eventSettings->event_name]) }}">
                     <div class="text-sm font-medium text-gray-900 mb-1">
-                        {{ __('public.registration.fields.participation_count') }}
+                        {{ __('public.registration.fields.participation_count', ['event' => $eventSettings->event_name]) }}
                     </div>
                     <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label aria-label="{{ __('public.registration.fields.participation_count_options.first_time') }}" class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-spw-yellow has-checked:bg-spw-yellow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-spw-yellow cursor-pointer hover:bg-yellow-50">

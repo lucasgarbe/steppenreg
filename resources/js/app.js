@@ -11,8 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update link text to show decoded email
         emailLink.textContent = decodedEmail;
 
+        // Get translated email subject from data attribute
+        const emailSubject = emailLink.getAttribute('data-email-subject');
+        
         // Create proper mailto link with subject
-        const subject = encodeURIComponent('Question about {{ $eventSettings->event_name }}');
+        const subject = encodeURIComponent(emailSubject);
         emailLink.href = `mailto:${decodedEmail}?subject=${subject}`;
     }
 });
