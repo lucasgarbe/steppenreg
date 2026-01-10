@@ -4,6 +4,8 @@ namespace App\Domain\Draw\Models;
 
 use App\Models\Registration;
 use App\Models\User;
+use App\Settings\EventSettings;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +27,7 @@ class Draw extends Model
     protected $casts = [
         'executed_at' => 'datetime',
         'config' => 'array',
+        'track_id' => 'integer',
     ];
 
     public function executedBy(): BelongsTo
@@ -54,5 +57,28 @@ class Draw extends Model
         }
         
         return round(($this->total_drawn / $this->total_registrations) * 100, 2);
+    }
+
+    protected function track(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->track_id) {
+                    return null;
+                }
+                
+                $eventSettings = app(EventSettings::class);
+                $tracks = $eventSettings->tracks ?? [];
+                
+                return collect($tracks)->firstWhere('id', $this->track_id);
+            }
+        );
+    }
+
+    public function getTrackNameAttribute(): ?string
+    {
+        $track = $this->track;
+        
+        return $track['name'] ?? null;
     }
 }

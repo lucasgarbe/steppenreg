@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('draws', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('track_id')->constrained()->onDelete('cascade');
+            $table->integer('track_id');
             $table->foreignId('executed_by_user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('executed_at');
             $table->integer('total_registrations')->default(0);
@@ -25,6 +25,7 @@ return new class extends Migration
             $table->timestamps();
             
             $table->unique('track_id');
+            $table->index('track_id');
         });
     }
 
