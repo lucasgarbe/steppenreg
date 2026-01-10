@@ -9,7 +9,6 @@ use App\Domain\Draw\Exceptions\DrawAlreadyExecutedException;
 use App\Domain\Draw\Exceptions\InsufficientRegistrationsException;
 use App\Domain\Draw\Models\Draw;
 use App\Models\Registration;
-use App\Models\Track;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -24,8 +23,6 @@ class DrawService
         ?int $executedByUserId = null,
         array $config = []
     ): Draw {
-        $track = Track::findOrFail($trackId);
-
         // Check if draw already executed for this track
         if (Draw::where('track_id', $trackId)->exists()) {
             throw new DrawAlreadyExecutedException(
@@ -46,7 +43,7 @@ class DrawService
         }
 
         return DB::transaction(function () use (
-            $track,
+            $trackId,
             $registrations,
             $availableSpots,
             $executedByUserId,
@@ -58,7 +55,7 @@ class DrawService
 
             // Create draw record
             $draw = Draw::create([
-                'track_id' => $track->id,
+                'track_id' => $trackId,
                 'executed_by_user_id' => $executedByUserId,
                 'executed_at' => now(),
                 'total_registrations' => $registrations->count(),
@@ -91,7 +88,7 @@ class DrawService
             // Dispatch draw executed event
             event(new DrawExecuted($draw));
 
-            return $draw->load(['registrations', 'track']);
+            return $draw->load('registrations');
         });
     }
 
