@@ -43,6 +43,15 @@ class EventSettings extends Settings
 
     public ?string $manual_override_state = null;
 
+    // Theme Colors for Public Pages
+    public string $theme_primary_color = '#F9C458';
+
+    public string $theme_background_color = '#fffdf8c2';
+
+    public string $theme_text_color = '#1a1a1a';
+
+    public string $theme_accent_color = '#7a58fc';
+
     public static function group(): string
     {
         return 'event';

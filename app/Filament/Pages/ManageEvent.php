@@ -10,6 +10,7 @@ use App\Filament\Widgets\StateTransitionWidget;
 use App\Filament\Widgets\TeamStats;
 use App\Settings\EventSettings;
 use BackedEnum;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -141,6 +142,33 @@ class ManageEvent extends SettingsPage
                     ])
                     ->columns(2)
                     ->collapsible(),
+
+                Section::make('Theme Colors')
+                    ->description('Customize the colors used on public-facing pages and forms')
+                    ->schema([
+                        ColorPicker::make('theme_primary_color')
+                            ->label('Primary Color')
+                            ->helperText('Used for buttons, form focus states, and active elements')
+                            ->default('#F9C458'),
+
+                        ColorPicker::make('theme_background_color')
+                            ->label('Background Color')
+                            ->helperText('Page background color')
+                            ->default('#fffdf8c2'),
+
+                        ColorPicker::make('theme_text_color')
+                            ->label('Text & Border Color')
+                            ->helperText('Primary text color and container borders')
+                            ->default('#1a1a1a'),
+
+                        ColorPicker::make('theme_accent_color')
+                            ->label('Secondary Accent Color')
+                            ->helperText('Secondary accent for additional highlights')
+                            ->default('#7a58fc'),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
                 Section::make('Tracks')
                     ->schema([
                         Repeater::make('tracks')
