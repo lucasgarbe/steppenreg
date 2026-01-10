@@ -2,13 +2,13 @@
 
 namespace App\Filament\Pages;
 
-use App\Settings\EventSettings;
 use App\Filament\Widgets\DailyRegistrations;
+use App\Filament\Widgets\RegistrationStats;
 use App\Filament\Widgets\RegistrationTimelineByGender;
 use App\Filament\Widgets\RegistrationTimelineByTrack;
-use App\Filament\Widgets\RegistrationStats;
 use App\Filament\Widgets\StateTransitionWidget;
 use App\Filament\Widgets\TeamStats;
+use App\Settings\EventSettings;
 use BackedEnum;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
@@ -16,8 +16,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
 class ManageEvent extends SettingsPage
@@ -36,14 +36,11 @@ class ManageEvent extends SettingsPage
                     ->schema([
                         TextInput::make('event_name')
                             ->required(),
-                        Toggle::make('site_active')
-                            ->required(),
                         Select::make('application_state')
                             ->label('Current Application State')
                             ->options(EventSettings::getApplicationStates())
                             ->required()
                             ->helperText('Current state - may be overridden by automatic transitions')
-                            ->native(false),
                     ])
                     ->columns(2),
 
@@ -141,7 +138,7 @@ class ManageEvent extends SettingsPage
                     ]),
             ]);
     }
-    
+
     public function getWidgets(): array
     {
         return [
@@ -153,8 +150,8 @@ class ManageEvent extends SettingsPage
             RegistrationTimelineByGender::class,
         ];
     }
-    
-    public function getColumns(): int | string | array
+
+    public function getColumns(): int|string|array
     {
         return 3;
     }
