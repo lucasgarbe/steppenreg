@@ -20,7 +20,7 @@
             <ul class="text-sm space-y-1 list-disc text-left">
                 <li>{{ __('public.registration.success.wait_for_draw') }}</li>
                 <li>{{ __('public.registration.success.mail') }}
-                    <a href="#" id="contact-email" class="text-blue-600 hover:text-blue-800 underline" data-email="{{ base64_encode(app(\App\Settings\EventSettings::class)->contact_email) }}">
+                    <a href="#" id="contact-email" class="text-blue-600 hover:text-blue-800 underline" data-email="{{ base64_encode(app(\App\Settings\EventSettings::class)->contact_email) }}" data-event-name="{{ app(\App\Settings\EventSettings::class)->event_name }}" data-email-subject="{{ __('public.event_closed.email_subject', ['event' => app(\App\Settings\EventSettings::class)->event_name]) }}">
                         Loading...
                     </a>
                 </li>

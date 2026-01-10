@@ -29,7 +29,7 @@
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">{{ __('public.event_closed.help') }}</h2>
                 <p class="text-sm text-gray-600">
                     {{ __('public.event_closed.contact') }}
-                    <a href="#" id="contact-email" class="text-blue-600 hover:text-blue-800 underline" data-email="{{ base64_encode(app(\App\Settings\EventSettings::class)->contact_email) }}">
+                    <a href="#" id="contact-email" class="text-blue-600 hover:text-blue-800 underline" data-email="{{ base64_encode(app(\App\Settings\EventSettings::class)->contact_email) }}" data-event-name="{{ $eventSettings->event_name }}" data-email-subject="{{ __('public.event_closed.email_subject', ['event' => $eventSettings->event_name]) }}">
                         Loading...
                     </a>
                 </p>
