@@ -152,39 +152,6 @@ class Registration extends Model
         };
     }
 
-    // Starting Number Accessors
-    public function getFormattedStartingNumberAttribute(): ?string
-    {
-        return $this->starting_number ? sprintf('%03d', $this->starting_number) : null;
-    }
-
-    public function getStartingNumberTypeAttribute(): ?string
-    {
-        if (!$this->starting_number || !$this->track_id) {
-            return null;
-        }
-
-        $ranges = app(\App\Services\StartingNumberService::class)->getTrackRanges($this->track_id);
-
-        if ($this->starting_number >= $ranges['main']['start'] && $this->starting_number <= $ranges['main']['end']) {
-            return 'main';
-        }
-
-        return 'unknown';
-    }
-
-    public function getStartingNumberLabelAttribute(): ?string
-    {
-        if (!$this->starting_number) {
-            return null;
-        }
-
-        return match ($this->starting_number_type) {
-            'main' => $this->formatted_starting_number,
-            default => $this->formatted_starting_number
-        };
-    }
-
     public static function getGenderOptions(): array
     {
         return [
