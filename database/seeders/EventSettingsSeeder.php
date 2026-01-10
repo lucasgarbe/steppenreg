@@ -17,6 +17,13 @@ class EventSettingsSeeder extends Seeder
         // Set event configuration
         $settings->event_name = 'Steppenreg';
 
+        // Organization/Club information
+        $settings->organization_name = 'Your Organization e.V.';
+        $settings->organization_website = 'https://your-event.org';
+        $settings->contact_email = 'contact@example.org';
+        $settings->organization_logo_path = 'your-logo.png';
+        $settings->event_website_url = 'https://your-event.org/event';
+
         // Set default application state - start with closed
         if (! isset($settings->application_state) || empty($settings->application_state)) {
             $settings->application_state = 'closed';

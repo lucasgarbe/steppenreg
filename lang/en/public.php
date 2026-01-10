@@ -18,8 +18,8 @@ return [
             'email_placeholder' => 'your@email.com',
             'age' => 'Age',
             'age_placeholder' => 'Your age in years',
-            'participation_count' => 'Did you ride BAB in the past?',
-            'participation_count_placeholder' => 'Did you ride BAB in the past?',
+            'participation_count' => 'Have you participated in :event before?',
+            'participation_count_placeholder' => 'Have you participated in :event before?',
             'participation_count_help' => 'Just out of curiosity. How many times have you participated in this event before?',
             'participation_count_options' => [
                 'first_time' => 'Not yet',

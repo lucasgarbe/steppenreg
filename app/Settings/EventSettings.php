@@ -9,6 +9,16 @@ class EventSettings extends Settings
 {
     public string $event_name;
 
+    public string $organization_name = 'Your Organization';
+
+    public string $organization_website = 'https://example.com';
+
+    public string $contact_email = 'contact@example.com';
+
+    public string $organization_logo_path = 'logo.png';
+
+    public string $event_website_url = 'https://example.com/event';
+
     public string $application_state = 'closed';
 
     public array $tracks;

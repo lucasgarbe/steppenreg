@@ -10,8 +10,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('your-logo.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('your-logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset(app(\App\Settings\EventSettings::class)->organization_logo_path) }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset(app(\App\Settings\EventSettings::class)->organization_logo_path) }}">
 
     <!-- Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'])
