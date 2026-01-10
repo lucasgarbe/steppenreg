@@ -16,6 +16,9 @@
     <!-- Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'])
 
+    <!-- Dynamic Theme Colors -->
+    <x-dynamic-theme-colors />
+
     <!-- Additional head content -->
     @stack('head')
 </head>
