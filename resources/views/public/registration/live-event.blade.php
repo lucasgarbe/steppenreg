@@ -6,8 +6,8 @@
     <title>Live Event - {{ $eventSettings->event_name }}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('steppenwolf-logo_small-transparent-black.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('steppenwolf-logo_small-transparent-black.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset($eventSettings->organization_logo_path) }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset($eventSettings->organization_logo_path) }}">
     
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/css/filament/admin/theme.css'])
 </head>

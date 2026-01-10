@@ -33,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->favicon(asset('steppenwolf-logo_small-transparent-black.png'))
+            ->favicon(fn() => asset(app(\App\Settings\EventSettings::class)->organization_logo_path))
             ->maxContentWidth(Width::Full)
             ->topNavigation()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

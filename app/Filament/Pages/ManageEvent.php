@@ -44,6 +44,39 @@ class ManageEvent extends SettingsPage
                     ])
                     ->columns(2),
 
+                Section::make('Organization / Club Information')
+                    ->description('Configure your organization\'s branding and contact information')
+                    ->schema([
+                        TextInput::make('organization_name')
+                            ->label('Organization Name')
+                            ->required()
+                            ->helperText('Full name of your club or organization (e.g., "RSV Steppenwolf 2023 e.V.")'),
+
+                        TextInput::make('organization_website')
+                            ->label('Organization Website')
+                            ->url()
+                            ->required()
+                            ->helperText('Your club\'s main website URL'),
+
+                        TextInput::make('contact_email')
+                            ->label('Contact Email')
+                            ->email()
+                            ->required()
+                            ->helperText('Support email for participants to reach out'),
+
+                        TextInput::make('organization_logo_path')
+                            ->label('Logo Filename')
+                            ->required()
+                            ->helperText('Filename of your logo in the public directory (e.g., "logo.png")'),
+
+                        TextInput::make('event_website_url')
+                            ->label('Event Website URL')
+                            ->url()
+                            ->helperText('Specific page about this event (optional)'),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
                 Section::make('Automatic State Management')
                     ->schema([
                         Toggle::make('automatic_state_transitions')

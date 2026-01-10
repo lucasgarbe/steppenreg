@@ -17,6 +17,13 @@ class EventSettingsSeeder extends Seeder
         // Set event configuration
         $settings->event_name = 'Steppenreg';
 
+        // Organization/Club information
+        $settings->organization_name = 'RSV Steppenwolf 2023 e.V.';
+        $settings->organization_website = 'https://steppenwolf-berlin.de';
+        $settings->contact_email = 'bab@steppenwolf-berlin.de';
+        $settings->organization_logo_path = 'steppenwolf-logo_small-transparent-black.png';
+        $settings->event_website_url = 'https://steppenwolf-berlin.de/bab';
+
         // Set default application state - start with closed
         if (! isset($settings->application_state) || empty($settings->application_state)) {
             $settings->application_state = 'closed';
