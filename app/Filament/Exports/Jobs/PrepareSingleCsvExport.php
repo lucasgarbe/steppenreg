@@ -16,7 +16,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
 use League\Csv\Bom;
 use League\Csv\Writer;
-use SplTempFileObject;
 use Throwable;
 
 class PrepareSingleCsvExport implements ShouldQueue
