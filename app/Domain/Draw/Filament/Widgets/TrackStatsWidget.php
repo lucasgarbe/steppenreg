@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Registrations\Widgets;
+namespace App\Domain\Draw\Filament\Widgets;
 
 use App\Models\Registration;
 use App\Models\Team;
