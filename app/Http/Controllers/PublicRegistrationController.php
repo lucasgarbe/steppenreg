@@ -66,7 +66,6 @@ class PublicRegistrationController extends Controller
             'age' => 'required|integer|min:1|max:120',
             'gender' => 'required|string|in:flinta,all_gender',
             'track_id' => 'required|integer',
-            'participation_count' => 'required|integer|min:1|max:20',
             'team_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ];
@@ -186,7 +185,6 @@ class PublicRegistrationController extends Controller
             'age' => $validated['age'],
             'gender' => $validated['gender'],
             'track_id' => $validated['track_id'],
-            'participation_count' => $validated['participation_count'],
             'team_id' => $teamId,
             'notes' => $validated['notes'] ?? null,
             'custom_answers' => $validated['custom_answers'] ?? null,

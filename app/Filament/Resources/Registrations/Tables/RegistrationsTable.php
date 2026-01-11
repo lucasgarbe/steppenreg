@@ -55,19 +55,6 @@ class RegistrationsTable
                     ->iconColor('primary')
                     ->tooltip(fn ($record) => $record?->notes ? __('admin.registrations.tooltips.has_notes') : null),
 
-                TextColumn::make('participation_count')
-                    ->label(__('admin.registrations.columns.participation_count'))
-                    ->sortable()
-                    ->badge()
-                    ->color(fn (?int $state): string => match (true) {
-                        $state === 0 => 'success',
-                        $state === 1 => 'gray',
-                        $state === 2 => 'warning',
-                        $state >= 3 => 'danger',
-                        default => 'gray'
-                    })
-                    ->toggleable(isToggledHiddenByDefault: false),
-
                 TextColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
                     ->searchable()
@@ -264,31 +251,6 @@ class RegistrationsTable
                         return match ($data['value'] ?? null) {
                             'team' => $query->whereNotNull('team_id'),
                             'individual' => $query->whereNull('team_id'),
-                            default => $query,
-                        };
-                    }),
-                /**/
-                Filter::make('participation_experience')
-                    ->label('Participation Experience')
-                    ->form([
-                        \Filament\Forms\Components\Select::make('experience_type')
-                            ->label('Select Experience Level')
-                            ->options([
-                                'first_time' => 'First-time Participants',
-                                'returning' => 'Returning Participants (2nd time)',
-                                'veterans' => 'Veterans (3+ times)',
-                            ])
-                            ->placeholder('All participants'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (! isset($data['experience_type']) || ! $data['experience_type']) {
-                            return $query;
-                        }
-
-                        return match ($data['experience_type']) {
-                            'first_time' => $query->where('participation_count', 0),
-                            'returning' => $query->where('participation_count', 1),
-                            'veterans' => $query->where('participation_count', '>=', 2),
                             default => $query,
                         };
                     }),

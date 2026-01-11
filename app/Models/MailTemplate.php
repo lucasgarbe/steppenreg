@@ -60,8 +60,6 @@ class MailTemplate extends Model
             'draw_status' => 'Draw status',
             'team_name' => 'Team name (if applicable)',
             'track_distance' => 'Track distance',
-            'participation_count' => 'Number of previous participations (0 for first-time)',
-            'participation_experience' => 'Participation experience level (First-time/Returning/Veteran)',
             'waitlist_url' => 'Waitlist registration URL',
             'withdraw_url' => 'Withdrawal URL',
             'contact_email_link' => 'Contact email link (clickable)',
