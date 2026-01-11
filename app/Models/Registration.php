@@ -34,7 +34,6 @@ class Registration extends Model
         'track_id',
         'team_id',
         'draw_id',
-        'participation_count',
         'age',
         'gender',
         'payed',
@@ -48,7 +47,6 @@ class Registration extends Model
     ];
 
     protected $casts = [
-        'participation_count' => 'integer',
         'payed' => 'boolean',
         'starting' => 'boolean',
         'drawn_at' => 'datetime',

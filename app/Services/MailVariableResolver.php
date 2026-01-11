@@ -23,8 +23,6 @@ class MailVariableResolver
             'registration_date' => $registration->created_at->format('d.m.Y'),
             'draw_status' => $this->formatDrawStatus($registration->draw_status),
             'team_name' => $registration->team?->name ?? '',
-            'participation_count' => $registration->participation_count ?? 0,
-            'participation_experience' => $this->getParticipationExperience($registration->participation_count ?? 0),
             'contact_email_link' => $this->getContactEmailLink(),
             'team_members_list' => $this->getTeamMembersList($registration),
             'theme_primary_color' => $eventSettings->theme_primary_color ?? '#F9C458',
@@ -55,8 +53,6 @@ class MailVariableResolver
             'registration_date' => Carbon::now()->format('d.m.Y'),
             'draw_status' => 'Not drawn yet',
             'team_name' => 'Sample Team',
-            'participation_count' => 2,
-            'participation_experience' => 'Veteran (3rd time)',
             'contact_email_link' => $this->getContactEmailLink(),
             'team_members_list' => 'John Doe, Jane Smith, Bob Johnson',
             'theme_primary_color' => $eventSettings->theme_primary_color ?? '#F9C458',
@@ -136,16 +132,6 @@ class MailVariableResolver
         $contactEmail = config('mail.from.address', 'contact@'.$this->getEmailDomain());
 
         return '<a href="mailto:'.$contactEmail.'">E-Mail</a>';
-    }
-
-    private function getParticipationExperience(int $count): string
-    {
-        return match (true) {
-            $count === 0 => 'First-time participant',
-            $count === 1 => 'Returning participant (2nd time)',
-            $count >= 2 => 'Veteran ('.($count + 1).'x participant)',
-            default => 'Unknown'
-        };
     }
 
     private function getTeamMembersList(Registration $registration): string
