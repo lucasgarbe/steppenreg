@@ -175,46 +175,56 @@ class RegistrationForm
 
                         foreach ($customQuestions as $question) {
                             $key = $question['key'];
-                            $label = $question['translations']['en']['label'] ?? $key;
+                            $currentLocale = app()->getLocale();
+                            $fullLabel = $question['translations'][$currentLocale]['label']
+                                ?? $question['translations']['en']['label']
+                                ?? $key;
 
                             $field = match ($question['type']) {
                                 'text', 'email' => Forms\Components\TextInput::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->required($question['required'] ?? false),
 
                                 'textarea' => Forms\Components\Textarea::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->rows(3)
                                     ->required($question['required'] ?? false),
 
                                 'number' => Forms\Components\TextInput::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->numeric()
                                     ->required($question['required'] ?? false),
 
                                 'select' => Forms\Components\Select::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->options(collect($question['options'] ?? [])
                                         ->pluck('label_en', 'value')
                                         ->toArray())
                                     ->required($question['required'] ?? false),
 
                                 'radio' => Forms\Components\Radio::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->options(collect($question['options'] ?? [])
                                         ->pluck('label_en', 'value')
                                         ->toArray())
                                     ->required($question['required'] ?? false),
 
                                 'checkbox' => Forms\Components\CheckboxList::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->options(collect($question['options'] ?? [])
                                         ->pluck('label_en', 'value')
                                         ->toArray())
                                     ->required($question['required'] ?? false),
 
                                 'date' => Forms\Components\DatePicker::make("custom_answers.{$key}")
-                                    ->label($label)
+                                    ->label($key)
+                                    ->helperText($fullLabel)
                                     ->required($question['required'] ?? false),
 
                                 default => null
