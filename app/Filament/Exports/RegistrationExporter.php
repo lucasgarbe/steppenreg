@@ -40,11 +40,11 @@ class RegistrationExporter extends Exporter
 
             ExportColumn::make('age')
                 ->label('Age')
-                ->formatStateUsing(fn (?int $state): string => $state ? (string) $state : '---'),
+                ->formatStateUsing(fn(?int $state): string => $state ? (string) $state : '---'),
 
             ExportColumn::make('gender')
                 ->label('Gender')
-                ->formatStateUsing(fn (?string $state): string => match ($state) {
+                ->formatStateUsing(fn(?string $state): string => match ($state) {
                     'flinta' => 'FLINTA*',
                     'all_gender' => 'All Gender',
                     default => '---',
@@ -52,53 +52,52 @@ class RegistrationExporter extends Exporter
 
             ExportColumn::make('track_name')
                 ->label('Track')
-                ->state(fn (Registration $record): string => $record->track_name ?? 'No Track'),
+                ->state(fn(Registration $record): string => $record->track_name ?? 'No Track'),
 
             ExportColumn::make('team.name')
                 ->label('Team')
-                ->formatStateUsing(fn (?string $state): string => $state ?? 'Individual'),
+                ->formatStateUsing(fn(?string $state): string => $state ?? 'Individual'),
 
             ExportColumn::make('draw_status')
                 ->label('Draw Status')
-                ->formatStateUsing(fn (?string $state): string => match ($state) {
+                ->formatStateUsing(fn(?string $state): string => match ($state) {
                     'drawn' => 'Drawn',
                     'not_drawn' => 'Not Drawn',
-                    'waitlist' => 'Waitlist',
                     default => '---',
                 }),
 
             ExportColumn::make('drawn_at')
                 ->label('Drawn At')
-                ->formatStateUsing(fn ($state): string => $state ? $state->format('Y-m-d H:i:s') : '---'),
+                ->formatStateUsing(fn($state): string => $state ? $state->format('Y-m-d H:i:s') : '---'),
 
             ExportColumn::make('payed')
                 ->label('Paid')
-                ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No'),
+                ->formatStateUsing(fn(bool $state): string => $state ? 'Yes' : 'No'),
 
             ExportColumn::make('starting')
                 ->label('Starting')
-                ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No'),
+                ->formatStateUsing(fn(bool $state): string => $state ? 'Yes' : 'No'),
 
             ExportColumn::make('finish_time')
                 ->label('Finish Time')
-                ->formatStateUsing(fn ($state): string => $state ? $state->format('H:i') : '---'),
+                ->formatStateUsing(fn($state): string => $state ? $state->format('H:i') : '---'),
 
             ExportColumn::make('notes')
                 ->label('Notes')
-                ->formatStateUsing(fn (?string $state): string => $state ?? '---'),
+                ->formatStateUsing(fn(?string $state): string => $state ?? '---'),
 
             ExportColumn::make('created_at')
                 ->label('Registration Date')
-                ->formatStateUsing(fn ($state): string => $state->format('Y-m-d H:i:s')),
+                ->formatStateUsing(fn($state): string => $state->format('Y-m-d H:i:s')),
         ];
     }
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your registration export has completed and '.number_format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
+        $body = 'Your registration export has completed and ' . number_format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
+            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
         }
 
         return $body;
