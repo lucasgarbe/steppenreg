@@ -9,6 +9,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 class StateTransitionWidget extends StatsOverviewWidget
 {
     protected static ?int $sort = 1;
+
     protected function getStats(): array
     {
         $eventSettings = app(EventSettings::class);
@@ -51,13 +52,13 @@ class StateTransitionWidget extends StatsOverviewWidget
 
         // Next Transition
         $nextTransition = $eventSettings->getNextStateTransition();
-        if ($nextTransition && $eventSettings->automatic_state_transitions && !$eventSettings->manual_override_active) {
+        if ($nextTransition && $eventSettings->automatic_state_transitions && ! $eventSettings->manual_override_active) {
             $timeUntil = $nextTransition['datetime']->diffForHumans();
             $stats[] = Stat::make('Next Transition', $nextTransition['label'])
                 ->description($timeUntil)
                 ->descriptionIcon('heroicon-m-arrow-right')
                 ->color('info');
-        } else if ($eventSettings->automatic_state_transitions) {
+        } elseif ($eventSettings->automatic_state_transitions) {
             $stats[] = Stat::make('Next Transition', 'None Scheduled')
                 ->description('No upcoming transitions')
                 ->descriptionIcon('heroicon-m-check')

@@ -14,7 +14,7 @@ class MailVariableResolver
 
         $trackInfo = $this->getTrackInfo($registration->track_id, $eventSettings);
 
-        return [
+        $variables = [
             'name' => $registration->name,
             'email' => $registration->email,
             'track_name' => $trackInfo['name'] ?? 'Unknown Track',
@@ -23,28 +23,28 @@ class MailVariableResolver
             'registration_date' => $registration->created_at->format('d.m.Y'),
             'draw_status' => $this->formatDrawStatus($registration->draw_status),
             'team_name' => $registration->team?->name ?? '',
-            'participation_count' => $registration->participation_count ?? 0,
-            'participation_experience' => $this->getParticipationExperience($registration->participation_count ?? 0),
-            'waitlist_url' => $this->getWaitlistUrlSafe($registration),
-            'withdraw_url' => $this->getWithdrawUrlSafe($registration),
-            // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
-            // Waitlist specific
-            'waitlist_position' => 'Pool-based (no positions)',
-            'waitlist_date' => $registration->waitlistEntry?->registered_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
-            'is_team_waitlist' => $registration->team_id ? 'Yes' : 'No',
             'team_members_list' => $this->getTeamMembersList($registration),
-            // Withdrawal specific
-            'withdrawal_date' => $registration->withdrawalRequest?->withdrawn_at?->format('d.m.Y H:i') ?? Carbon::now()->format('d.m.Y H:i'),
-            'withdrawal_reason' => $registration->withdrawalRequest?->withdrawal_reason ?? '',
+            'theme_primary_color' => $eventSettings->theme_primary_color ?? '#F9C458',
+            'theme_background_color' => $eventSettings->theme_background_color ?? '#fffdf8c2',
+            'theme_text_color' => $eventSettings->theme_text_color ?? '#1a1a1a',
+            'theme_accent_color' => $eventSettings->theme_accent_color ?? '#7a58fc',
         ];
+
+        // Add custom answer variables
+        foreach ($registration->custom_answers ?? [] as $key => $value) {
+            $formattedValue = is_array($value) ? implode(', ', $value) : (string) $value;
+            $variables["custom.{$key}"] = $formattedValue;
+        }
+
+        return $variables;
     }
 
     public function getSampleVariables(): array
     {
         $eventSettings = app(EventSettings::class);
 
-        return [
+        $sampleVars = [
             'name' => 'John Doe',
             'email' => 'john.doe@example.com',
             'track_name' => 'Example Track',
@@ -53,26 +53,34 @@ class MailVariableResolver
             'registration_date' => Carbon::now()->format('d.m.Y'),
             'draw_status' => 'Not drawn yet',
             'team_name' => 'Sample Team',
-            'participation_count' => 2,
-            'participation_experience' => 'Veteran (3rd time)',
-            'waitlist_url' => 'https://example.com/waitlist/join/sample-token',
-            'withdraw_url' => 'https://example.com/withdraw/sample-token',
-            // Email link using mail config
             'contact_email_link' => $this->getContactEmailLink(),
-            // Waitlist specific
-            'waitlist_position' => 'Pool-based (no positions)',
-            'waitlist_date' => Carbon::now()->format('d.m.Y H:i'),
-            'is_team_waitlist' => 'Yes',
             'team_members_list' => 'John Doe, Jane Smith, Bob Johnson',
-            // Withdrawal specific
-            'withdrawal_date' => Carbon::now()->format('d.m.Y H:i'),
-            'withdrawal_reason' => 'Unable to attend due to injury',
+            'theme_primary_color' => $eventSettings->theme_primary_color ?? '#F9C458',
+            'theme_background_color' => $eventSettings->theme_background_color ?? '#fffdf8c2',
+            'theme_text_color' => $eventSettings->theme_text_color ?? '#1a1a1a',
+            'theme_accent_color' => $eventSettings->theme_accent_color ?? '#7a58fc',
         ];
+
+        // Add sample custom variables
+        $customQuestions = $eventSettings->custom_questions ?? [];
+        foreach ($customQuestions as $question) {
+            $sampleValue = match ($question['type']) {
+                'email' => 'sample@example.com',
+                'number' => '42',
+                'date' => Carbon::now()->format('d.m.Y'),
+                'checkbox' => 'Option 1, Option 2',
+                'select', 'radio' => $question['options'][0]['label_en'] ?? 'Sample Option',
+                default => 'Sample answer for '.($question['translations']['en']['label'] ?? $question['key'])
+            };
+            $sampleVars["custom.{$question['key']}"] = $sampleValue;
+        }
+
+        return $sampleVars;
     }
 
     private function getTrackInfo(int $trackId, EventSettings $settings): array
     {
-        if (!isset($settings->tracks) || !is_array($settings->tracks)) {
+        if (! isset($settings->tracks) || ! is_array($settings->tracks)) {
             return [];
         }
 
@@ -80,7 +88,7 @@ class MailVariableResolver
             if ($track['id'] == $trackId) {
                 return [
                     'name' => $track['name'],
-                    'distance' => isset($track['distance']) ? $track['distance'] . ' km' : '',
+                    'distance' => isset($track['distance']) ? $track['distance'].' km' : '',
                 ];
             }
         }
@@ -92,7 +100,6 @@ class MailVariableResolver
     {
         return match ($status) {
             'drawn' => 'Drawn - Confirmed to participate',
-            'waitlist' => 'On waitlist',
             'not_drawn' => 'Not drawn',
             default => 'Not drawn yet',
         };
@@ -122,47 +129,19 @@ class MailVariableResolver
     private function getContactEmailLink(): string
     {
         // Use mail config or fallback
-        $contactEmail = config('mail.from.address', 'contact@' . $this->getEmailDomain());
+        $contactEmail = config('mail.from.address', 'contact@'.$this->getEmailDomain());
 
-        return '<a href="mailto:' . $contactEmail . '">E-Mail</a>';
-    }
-
-    private function getParticipationExperience(int $count): string
-    {
-        return match (true) {
-            $count === 0 => 'First-time participant',
-            $count === 1 => 'Returning participant (2nd time)',
-            $count >= 2 => 'Veteran (' . ($count + 1) . 'x participant)',
-            default => 'Unknown'
-        };
+        return '<a href="mailto:'.$contactEmail.'">E-Mail</a>';
     }
 
     private function getTeamMembersList(Registration $registration): string
     {
-        if (!$registration->team_id) {
+        if (! $registration->team_id) {
             return '';
         }
 
         $teamMembers = $registration->team->registrations;
+
         return $teamMembers->pluck('name')->join(', ');
     }
-
-    private function getWaitlistUrlSafe(Registration $registration): string
-    {
-        // Only generate waitlist URL for not_drawn or waitlist status
-        if (in_array($registration->draw_status, ['not_drawn', 'waitlist'])) {
-            return $registration->getWaitlistUrl();
-        }
-        return '';
-    }
-
-    private function getWithdrawUrlSafe(Registration $registration): string
-    {
-        // Only generate withdraw URL for drawn status
-        if ($registration->draw_status === 'drawn' && !$registration->is_withdrawn) {
-            return $registration->getWithdrawUrl();
-        }
-        return '';
-    }
 }
-

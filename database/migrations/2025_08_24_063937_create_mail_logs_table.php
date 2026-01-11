@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('error_message')->nullable();
             $table->json('template_variables')->nullable();
             $table->timestamps();
-            
+
             $table->index(['status', 'created_at']);
             $table->index(['template_key', 'created_at']);
         });

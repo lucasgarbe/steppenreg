@@ -34,7 +34,6 @@ return [
             'status' => 'Status',
             'notes' => 'Notizen',
             'created_at' => 'Angemeldet am',
-            'participation_count' => 'Fährt zu x Mal mit',
         ],
 
         // Actions

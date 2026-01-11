@@ -9,24 +9,50 @@ class EventSettings extends Settings
 {
     public string $event_name;
 
-    public bool $site_active;
+    public string $organization_name = 'Your Organization';
+
+    public string $organization_website = 'https://example.com';
+
+    public string $contact_email = 'contact@example.com';
+
+    public string $organization_logo_path = 'logo.png';
+
+    public string $event_website_url = 'https://example.com/event';
 
     public string $application_state = 'closed';
 
     public array $tracks;
 
+    public array $custom_questions = [];
+
     // DateTime-based automatic state management
     public mixed $flinta_registration_opens_at = null;
-    public mixed $everyone_registration_opens_at = null;  
+
+    public mixed $everyone_registration_opens_at = null;
+
     public mixed $registration_closes_at = null;
+
     public mixed $waitlist_only_starts_at = null;
+
     public mixed $event_starts_at = null;
+
     public mixed $event_ends_at = null;
 
     // Control flags for automatic transitions
     public bool $automatic_state_transitions = false;
+
     public bool $manual_override_active = false;
+
     public ?string $manual_override_state = null;
+
+    // Theme Colors for Public Pages
+    public string $theme_primary_color = '#F9C458';
+
+    public string $theme_background_color = '#fffdf8c2';
+
+    public string $theme_text_color = '#1a1a1a';
+
+    public string $theme_accent_color = '#7a58fc';
 
     public static function group(): string
     {
@@ -72,57 +98,57 @@ class EventSettings extends Settings
     /**
      * Calculate what the application state should be based on current datetime
      */
-    public function calculateAutomaticState(): string 
+    public function calculateAutomaticState(): string
     {
         $now = now();
-        
+
         // If manual override is active, use that
         if ($this->manual_override_active && $this->manual_override_state) {
             return $this->manual_override_state;
         }
-        
+
         // If automatic transitions are disabled, keep current state
-        if (!$this->automatic_state_transitions) {
+        if (! $this->automatic_state_transitions) {
             return $this->application_state;
         }
-        
+
         // Event has ended, close everything
         $eventEnds = $this->carbonize($this->event_ends_at);
         if ($eventEnds && $now->gte($eventEnds)) {
             return 'closed';
         }
-        
+
         // Event is currently live
         $eventStarts = $this->carbonize($this->event_starts_at);
-        if ($eventStarts && $now->gte($eventStarts) && 
+        if ($eventStarts && $now->gte($eventStarts) &&
             ($eventEnds === null || $now->lt($eventEnds))) {
             return 'live_event';
         }
-        
+
         // Waitlist only period
         $waitlistStarts = $this->carbonize($this->waitlist_only_starts_at);
         if ($waitlistStarts && $now->gte($waitlistStarts)) {
             return 'closed_waitlist';
         }
-        
+
         // Registration closes
         $regCloses = $this->carbonize($this->registration_closes_at);
         if ($regCloses && $now->gte($regCloses)) {
             return 'closed';
         }
-        
+
         // Open for everyone
         $everyoneOpens = $this->carbonize($this->everyone_registration_opens_at);
         if ($everyoneOpens && $now->gte($everyoneOpens)) {
             return 'open_everyone';
         }
-        
+
         // Open for FLINTA* only
         $flintaOpens = $this->carbonize($this->flinta_registration_opens_at);
         if ($flintaOpens && $now->gte($flintaOpens)) {
             return 'open_flinta';
         }
-        
+
         // Default: closed
         return 'closed';
     }
@@ -133,23 +159,23 @@ class EventSettings extends Settings
     public function updateStateFromDateTime(): bool
     {
         $newState = $this->calculateAutomaticState();
-        
+
         if ($newState !== $this->application_state) {
             $oldState = $this->application_state;
             $this->application_state = $newState;
             $this->save();
-            
+
             // Log the state change
             logger()->info('Application state automatically changed', [
                 'from' => $oldState,
                 'to' => $newState,
                 'triggered_by' => 'automatic_datetime_check',
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ]);
-            
+
             return true;
         }
-        
+
         return false;
     }
 
@@ -158,7 +184,7 @@ class EventSettings extends Settings
      */
     public function getNextStateTransition(): ?array
     {
-        if (!$this->automatic_state_transitions) {
+        if (! $this->automatic_state_transitions) {
             return null;
         }
 
@@ -170,7 +196,7 @@ class EventSettings extends Settings
             $transitions[] = [
                 'datetime' => $flintaOpens,
                 'state' => 'open_flinta',
-                'label' => 'FLINTA* Registration Opens'
+                'label' => 'FLINTA* Registration Opens',
             ];
         }
 
@@ -179,7 +205,7 @@ class EventSettings extends Settings
             $transitions[] = [
                 'datetime' => $everyoneOpens,
                 'state' => 'open_everyone',
-                'label' => 'Registration Opens for Everyone'
+                'label' => 'Registration Opens for Everyone',
             ];
         }
 
@@ -188,7 +214,7 @@ class EventSettings extends Settings
             $transitions[] = [
                 'datetime' => $regCloses,
                 'state' => 'closed',
-                'label' => 'Registration Closes'
+                'label' => 'Registration Closes',
             ];
         }
 
@@ -197,7 +223,7 @@ class EventSettings extends Settings
             $transitions[] = [
                 'datetime' => $waitlistStarts,
                 'state' => 'closed_waitlist',
-                'label' => 'Waitlist Only Period Begins'
+                'label' => 'Waitlist Only Period Begins',
             ];
         }
 
@@ -206,7 +232,7 @@ class EventSettings extends Settings
             $transitions[] = [
                 'datetime' => $eventStarts,
                 'state' => 'live_event',
-                'label' => 'Event Begins'
+                'label' => 'Event Begins',
             ];
         }
 
@@ -215,7 +241,7 @@ class EventSettings extends Settings
             $transitions[] = [
                 'datetime' => $eventEnds,
                 'state' => 'closed',
-                'label' => 'Event Ends'
+                'label' => 'Event Ends',
             ];
         }
 
@@ -224,8 +250,8 @@ class EventSettings extends Settings
         }
 
         // Sort by datetime and return the next one
-        usort($transitions, fn($a, $b) => $a['datetime']->timestamp <=> $b['datetime']->timestamp);
-        
+        usort($transitions, fn ($a, $b) => $a['datetime']->timestamp <=> $b['datetime']->timestamp);
+
         return $transitions[0];
     }
 
@@ -237,15 +263,40 @@ class EventSettings extends Settings
         if ($value === null) {
             return null;
         }
-        
+
         if ($value instanceof Carbon) {
             return $value;
         }
-        
+
         if (is_string($value)) {
             return Carbon::parse($value);
         }
-        
+
         return null;
+    }
+
+    /**
+     * Get available locales for the application
+     */
+    public static function getAvailableLocales(): array
+    {
+        return ['en', 'de'];
+    }
+
+    /**
+     * Get question types with their labels
+     */
+    public static function getQuestionTypes(): array
+    {
+        return [
+            'text' => 'Short Text',
+            'textarea' => 'Long Text',
+            'number' => 'Number',
+            'email' => 'Email',
+            'select' => 'Dropdown',
+            'radio' => 'Radio Buttons',
+            'checkbox' => 'Checkboxes (Multiple)',
+            'date' => 'Date',
+        ];
     }
 }

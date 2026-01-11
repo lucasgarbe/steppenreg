@@ -2,12 +2,10 @@
 
 namespace App\Filament\Resources\MailTemplates\Tables;
 
-use App\Services\MailTemplateService;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -26,14 +24,14 @@ class MailTemplatesTable
                 TextColumn::make('key')
                     ->label('Type')
                     ->badge()
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'registration_confirmation' => 'Registration',
                         'draw_success' => 'Draw Success',
                         'draw_waitlist' => 'Waitlist',
                         'draw_rejection' => 'Rejection',
                         default => $state,
                     })
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'registration_confirmation' => 'success',
                         'draw_success' => 'success',
                         'draw_waitlist' => 'warning',
@@ -45,6 +43,7 @@ class MailTemplatesTable
                     ->limit(50)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
+
                         return strlen($state) > 50 ? $state : null;
                     }),
 
@@ -84,7 +83,7 @@ class MailTemplatesTable
                     ->label('Preview')
                     ->icon('heroicon-o-document-magnifying-glass')
                     ->color('info')
-                    ->url(fn($record) => route('email.preview', $record->key))
+                    ->url(fn ($record) => route('email.preview', $record->key))
                     ->openUrlInNewTab()
                     ->tooltip('Open email preview in new tab'),
 

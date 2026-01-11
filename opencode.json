@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "theme": "system",
+  "autoupdate": true,
+  "mcp": {
+    "laravel-boost": {
+      "enabled": true,
+      "type": "local",
+      "command": ["./vendor/bin/sail", "artisan", "boost:mcp"]
+    },
+  }
+}

@@ -2,20 +2,24 @@
 
 namespace App\Filament\Resources\Registrations\Pages;
 
+use App\Domain\Draw\Exceptions\DrawAlreadyExecutedException;
+use App\Domain\Draw\Exceptions\InsufficientRegistrationsException;
+use App\Domain\Draw\Services\DrawService;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Filament\Resources\Registrations\Widgets\DrawStatsWidget;
 use App\Filament\Resources\Registrations\Widgets\TrackStatsWidget;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Section;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class ManageDraw extends Page implements HasSchemas
@@ -23,7 +27,9 @@ class ManageDraw extends Page implements HasSchemas
     use InteractsWithSchemas;
 
     protected static string $resource = RegistrationResource::class;
+
     protected static ?string $title = 'Auslosung';
+
     protected string $view = 'filament.resources.registrations.pages.manage-draw';
 
     public ?array $data = [];
@@ -45,7 +51,7 @@ class ManageDraw extends Page implements HasSchemas
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
-                                        $label .= ' (' . $track['distance'] . ' km)';
+                                        $label .= ' ('.$track['distance'].' km)';
                                     }
                                     $options[$track['id']] = $label;
                                 }
@@ -73,7 +79,7 @@ class ManageDraw extends Page implements HasSchemas
         $state = $this->form->getState();
         Log::info('submitDraw', $state);
 
-        $this->drawRegistrations($state['track_id'], $state['participants_to_draw']);
+        $this->executeDraw($state['track_id'], $state['participants_to_draw']);
     }
 
     public function getTrackStats()
@@ -86,7 +92,7 @@ class ManageDraw extends Page implements HasSchemas
             $allStats[] = [
                 'track_name' => $track['name'],
                 'distance' => $track['distance'] ?? null,
-                'stats' => $stats
+                'stats' => $stats,
             ];
         }
 
@@ -115,7 +121,6 @@ class ManageDraw extends Page implements HasSchemas
 
         $total = $registrations->count();
         $drawn = $registrations->where('draw_status', 'drawn')->count();
-        $waitlist = $registrations->where('draw_status', 'waitlist')->count();
         $notDrawn = $registrations->where('draw_status', 'not_drawn')->count();
 
         $individuals = $registrations->whereNull('team_id')->where('draw_status', 'not_drawn')->count();
@@ -132,7 +137,6 @@ class ManageDraw extends Page implements HasSchemas
         return [
             'total' => $total,
             'drawn' => $drawn,
-            'waitlist' => $waitlist,
             'not_drawn' => $notDrawn,
             'individuals' => $individuals,
             'team_members' => $teamMembers,
@@ -141,170 +145,67 @@ class ManageDraw extends Page implements HasSchemas
         ];
     }
 
-    public function drawRegistrations(int $trackId, int $participantsToDraw)
+    public function executeDraw(int $trackId, int $participantsToDraw)
     {
-        Log::info('drawRegistrations', ['track_id' => $trackId, 'participants_to_draw' => $participantsToDraw]);
+        Log::info('executeDraw', ['track_id' => $trackId, 'participants_to_draw' => $participantsToDraw]);
 
-        // Get all drawing units (individuals + teams) that haven't been drawn yet
-        $individuals = Registration::where('track_id', $trackId)
-            ->whereNull('team_id')
-            ->where('draw_status', 'not_drawn')
-            ->get();
+        try {
+            $drawService = app(DrawService::class);
 
-        $teams = Team::where('track_id', $trackId)
-            ->whereHas('registrations', function ($query) {
-                $query->where('draw_status', 'not_drawn');
-            })
-            ->with(['registrations' => function ($query) {
-                $query->where('draw_status', 'not_drawn');
-            }])
-            ->get();
+            $draw = $drawService->executeDraw(
+                trackId: $trackId,
+                availableSpots: $participantsToDraw,
+                executedByUserId: Auth::id()
+            );
 
-        Log::info('Found drawing units', ['individuals' => $individuals->count(), 'teams' => $teams->count()]);
+            // Get track info for notification
+            $tracks = app(EventSettings::class)->tracks ?? [];
+            $trackInfo = collect($tracks)->firstWhere('id', $trackId);
+            $trackName = $trackInfo['name'] ?? "Track {$trackId}";
 
-        // Create drawing units collection and shuffle randomly
-        $drawingUnits = collect();
+            Notification::make()
+                ->title('Draw Completed Successfully!')
+                ->body("Drew {$draw->total_drawn} participants out of {$draw->total_registrations} for {$trackName}. Draw notifications are being sent via queue.")
+                ->success()
+                ->send();
 
-        // Add individuals as single-person units
-        foreach ($individuals as $individual) {
-            $drawingUnits->push([
-                'type' => 'individual',
-                'registrations' => collect([$individual]),
-                'participant_count' => 1,
+            Log::info('Draw completed', [
+                'draw_id' => $draw->id,
+                'total_drawn' => $draw->total_drawn,
+                'total_not_drawn' => $draw->total_not_drawn,
             ]);
-        }
 
-        // Add teams as multi-person units
-        foreach ($teams as $team) {
-            $drawingUnits->push([
-                'type' => 'team',
-                'team' => $team,
-                'registrations' => $team->registrations,
-                'participant_count' => $team->registrations->count(),
-            ]);
-        }
+        } catch (DrawAlreadyExecutedException $e) {
+            Notification::make()
+                ->title('Draw Already Executed')
+                ->body('A draw has already been executed for this track. Each track can only have one draw.')
+                ->danger()
+                ->send();
 
-        if ($drawingUnits->isEmpty()) {
+            Log::warning('Draw already executed for track', ['track_id' => $trackId]);
+
+        } catch (InsufficientRegistrationsException $e) {
             Notification::make()
                 ->title('Draw Failed')
                 ->body('No participants available for draw in this track.')
                 ->danger()
                 ->send();
-            return;
-        }
 
-        // Shuffle the drawing units randomly
-        $shuffledUnits = $drawingUnits->shuffle();
+            Log::warning('Insufficient registrations for draw', ['track_id' => $trackId]);
 
-        // Draw units until we reach the target participant count
-        $drawnRegistrations = collect();
-        $unitsDrawn = 0;
-        $participantsDrawn = 0;
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Draw Failed')
+                ->body('An error occurred while executing the draw: '.$e->getMessage())
+                ->danger()
+                ->send();
 
-        foreach ($shuffledUnits as $unit) {
-            // Check if drawing this unit would exceed our target
-            if ($participantsDrawn + $unit['participant_count'] > $participantsToDraw) {
-                continue; // Skip large teams that would exceed target
-            }
-
-            $drawnRegistrations = $drawnRegistrations->merge($unit['registrations']);
-            $unitsDrawn++;
-            $participantsDrawn += $unit['participant_count'];
-
-            Log::info('Drew unit', [
-                'type' => $unit['type'],
-                'participant_count' => $unit['participant_count'],
-                'total_drawn' => $participantsDrawn
+            Log::error('Draw execution failed', [
+                'track_id' => $trackId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
-
-            // Log individual registrations being drawn
-            foreach ($unit['registrations'] as $registration) {
-                Log::info('Drawn registration: ' . $registration->email);
-                $registration->draw_status = 'drawn';
-                $registration->drawn_at = now();
-                $registration->save();
-
-                // If this is a team registration, draw all team members
-                if ($registration->team) {
-                    Log::info('Drawn registration is in team: ' . $registration->team->name);
-                    $teamMembers = $registration->team->registrations()->where('draw_status', 'not_drawn')->get();
-
-                    foreach ($teamMembers as $teamMember) {
-                        if ($teamMember->id !== $registration->id) { // Don't double-process the original
-                            Log::info('Registration drawn through team: ' . $teamMember->email);
-                            $teamMember->draw_status = 'drawn';
-                            $teamMember->drawn_at = now();
-                            $teamMember->save();
-                        }
-                    }
-                }
-            }
-
-            // Stop if we've reached our target
-            if ($participantsDrawn >= $participantsToDraw) {
-                break;
-            }
         }
-
-        // Get track info for notification
-        $tracks = app(EventSettings::class)->tracks ?? [];
-        $trackInfo = collect($tracks)->firstWhere('id', $trackId);
-        $trackName = $trackInfo['name'] ?? "Track {$trackId}";
-
-        Notification::make()
-            ->title('Draw Completed Successfully!')
-            ->body("Drew {$participantsDrawn} participants from {$unitsDrawn} units for {$trackName}")
-            ->success()
-            ->send();
-
-        Log::info('Draw completed', ['units_drawn' => $unitsDrawn, 'participants_drawn' => $participantsDrawn]);
-    }
-
-    public function sendAllDrawNotifications()
-    {
-        // Get all registrations with draw results
-        $drawn = Registration::where('draw_status', 'drawn')->get();
-        $waitlist = Registration::where('draw_status', 'waitlist')->get();
-        $rejected = Registration::where('draw_status', 'not_drawn')->get();
-
-        $sent = 0;
-
-        // Send to drawn participants (generate withdraw tokens first)
-        foreach ($drawn as $registration) {
-            if (!$registration->withdraw_token) {
-                $registration->generateWithdrawToken();
-            }
-            \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
-            $sent++;
-        }
-
-        // Send to waitlist participants
-        foreach ($waitlist as $registration) {
-            \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
-            $sent++;
-        }
-
-        // Send to rejected participants (generate waitlist tokens first)
-        foreach ($rejected as $registration) {
-            if (!$registration->waitlist_token) {
-                $registration->generateWaitlistToken();
-            }
-            \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
-            $sent++;
-        }
-
-        Notification::make()
-            ->title("All draw notifications queued!")
-            ->body("Sent {$sent} emails to queue: {$drawn->count()} drawn, {$waitlist->count()} waitlist, {$rejected->count()} rejected")
-            ->success()
-            ->send();
-
-        Log::info('All draw notifications sent', [
-            'drawn' => $drawn->count(),
-            'waitlist' => $waitlist->count(),
-            'rejected' => $rejected->count(),
-            'total_sent' => $sent
-        ]);
     }
 
     protected function getHeaderWidgets(): array
