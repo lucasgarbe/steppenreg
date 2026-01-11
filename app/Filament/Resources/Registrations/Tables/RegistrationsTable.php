@@ -682,10 +682,14 @@ class RegistrationsTable
 
         foreach ($customQuestions as $question) {
             $key = $question['key'];
-            $label = $question['translations']['en']['label'] ?? $key;
+            $currentLocale = app()->getLocale();
+            $fullLabel = $question['translations'][$currentLocale]['label']
+                ?? $question['translations']['en']['label']
+                ?? $key;
 
             $columns[] = TextColumn::make("custom_answers.{$key}")
-                ->label($label)
+                ->label($key)
+                ->headerTooltip($fullLabel)
                 ->searchable()
                 ->toggleable(isToggledHiddenByDefault: false)
                 ->formatStateUsing(function ($state) use ($question) {
@@ -720,12 +724,11 @@ class RegistrationsTable
 
         foreach ($customQuestions as $question) {
             $key = $question['key'];
-            $label = $question['translations']['en']['label'] ?? $key;
 
             // Only add filters for select and radio types
             if (in_array($question['type'], ['select', 'radio'])) {
                 $filters[] = SelectFilter::make("custom_answers.{$key}")
-                    ->label($label)
+                    ->label($key)
                     ->options(collect($question['options'] ?? [])
                         ->pluck('label_en', 'value')
                         ->toArray())
