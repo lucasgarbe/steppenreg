@@ -1,5 +1,5 @@
 @php
-    $themeTextColor = $variables['theme_text_color'] ?? '#1a1a1a';
+    $themeTextColor = "#000000";
     $themeBackgroundColor = $variables['theme_background_color'] ?? '#fffdf8c2';
     $themePrimaryColor = $variables['theme_primary_color'] ?? '#F9C458';
     $themeAccentColor = $variables['theme_accent_color'] ?? '#7a58fc';
@@ -230,15 +230,15 @@
                 'html_input' => 'allow',
                 'allow_unsafe_links' => false,
             ];
-            
+
             $environment = new \League\CommonMark\Environment\Environment($config);
             $environment->addExtension(new \League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension());
             $environment->addExtension(new \League\CommonMark\Extension\Table\TableExtension());
-            
+
             $converter = new \League\CommonMark\MarkdownConverter($environment);
-            
+
             $htmlContent = $converter->convert($body)->getContent();
-            
+
             echo $htmlContent;
         @endphp
     </div>
