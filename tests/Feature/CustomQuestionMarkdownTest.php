@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Settings\EventSettings;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CustomQuestionMarkdownTest extends TestCase
 {
@@ -15,7 +15,7 @@ class CustomQuestionMarkdownTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Set up event settings with custom questions
         $settings = app(EventSettings::class);
         $settings->application_state = 'open';
@@ -241,11 +241,11 @@ class CustomQuestionMarkdownTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        
+
         // Check label
         $response->assertSee('href="https://example.com/terms"', false);
         $response->assertSee('<strong>terms</strong>', false);
-        
+
         // Check help text
         $response->assertSee('href="https://example.com"', false);
         $response->assertSee('<em>conditions</em>', false);

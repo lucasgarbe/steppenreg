@@ -14,7 +14,7 @@ class MarkdownRenderer
      * Converts Markdown to HTML and sanitizes the output to allow only safe tags.
      * All links automatically get target="_blank" and rel="noopener noreferrer" for security.
      *
-     * @param string|null $text The Markdown text to render
+     * @param  string|null  $text  The Markdown text to render
      * @return string The sanitized HTML output
      */
     public function render(?string $text): string

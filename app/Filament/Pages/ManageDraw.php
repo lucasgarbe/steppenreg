@@ -277,20 +277,9 @@ class ManageDraw extends Page implements HasSchemas
                 $registration->drawn_at = now();
                 $registration->save();
 
-                // If this is a team registration, draw all team members
-                if ($registration->team) {
-                    Log::info('Drawn registration is in team: '.$registration->team->name);
-                    $teamMembers = $registration->team->registrations()->where('draw_status', 'not_drawn')->get();
-
-                    foreach ($teamMembers as $teamMember) {
-                        if ($teamMember->id !== $registration->id) { // Don't double-process the original
-                            Log::info('Registration drawn through team: '.$teamMember->email);
-                            $teamMember->draw_status = 'drawn';
-                            $teamMember->drawn_at = now();
-                            $teamMember->save();
-                        }
-                    }
-                }
+                // NOTE: Team member synchronization is now handled automatically
+                // by RegistrationObserver, which updates all team members when
+                // any registration's draw_status changes
             }
 
             // Stop if we've reached our target
