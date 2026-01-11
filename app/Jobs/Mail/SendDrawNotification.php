@@ -12,9 +12,10 @@ use Illuminate\Support\Facades\Log;
 
 class SendDrawNotification implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
+
     public $backoff = [30, 120, 600]; // 30sec, 2min, 10min - faster for time-sensitive notifications
 
     public function __construct(

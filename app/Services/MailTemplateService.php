@@ -6,7 +6,6 @@ use App\Mail\TemplateBasedEmail;
 use App\Models\MailLog;
 use App\Models\MailTemplate;
 use App\Models\Registration;
-use App\Settings\EventSettings;
 use Illuminate\Support\Facades\Mail;
 
 class MailTemplateService
@@ -21,7 +20,7 @@ class MailTemplateService
             ->where('is_active', true)
             ->first();
 
-        if (!$template) {
+        if (! $template) {
             return null;
         }
 
@@ -49,12 +48,12 @@ class MailTemplateService
     public function previewTemplate(string $templateKey, ?Registration $registration = null): array
     {
         $template = MailTemplate::where('key', $templateKey)->first();
-        
-        if (!$template) {
+
+        if (! $template) {
             return ['error' => 'Template not found'];
         }
 
-        $variables = $registration 
+        $variables = $registration
             ? $this->variableResolver->resolve($registration)
             : $this->variableResolver->getSampleVariables();
 

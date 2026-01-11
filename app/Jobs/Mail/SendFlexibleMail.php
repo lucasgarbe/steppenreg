@@ -14,9 +14,10 @@ use Illuminate\Support\Facades\Mail;
 
 class SendFlexibleMail implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
+
     public $backoff = [30, 120, 600]; // 30sec, 2min, 10min
 
     public function __construct(
@@ -31,7 +32,7 @@ class SendFlexibleMail implements ShouldQueue
     {
         // Resolve template variables for this registration
         $variables = $variableResolver->resolve($this->registration);
-        
+
         // Process subject and message with variables
         $processedSubject = $this->processVariables($this->subject, $variables);
         $processedMessage = $this->processVariables($this->message, $variables);
@@ -58,7 +59,7 @@ class SendFlexibleMail implements ShouldQueue
                     $processedMessage,
                     $this->registration
                 ));
-            
+
             $mailLog->markAsSent();
         } catch (\Exception $e) {
             $mailLog->markAsFailed($e->getMessage());
@@ -69,10 +70,10 @@ class SendFlexibleMail implements ShouldQueue
     private function processVariables(string $content, array $variables): string
     {
         foreach ($variables as $key => $value) {
-            $placeholder = '{{' . $key . '}}';
+            $placeholder = '{{'.$key.'}}';
             $content = str_replace($placeholder, $value, $content);
         }
-        
+
         return $content;
     }
 

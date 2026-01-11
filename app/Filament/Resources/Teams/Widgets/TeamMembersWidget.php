@@ -10,7 +10,7 @@ class TeamMembersWidget extends BaseWidget
 {
     public $team;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public function mount($team = null): void
     {
@@ -47,7 +47,7 @@ class TeamMembersWidget extends BaseWidget
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'Finished' => 'success',
                         'Starting' => 'info',
                         'Payed' => 'warning',
@@ -66,4 +66,3 @@ class TeamMembersWidget extends BaseWidget
             ->paginated(false);
     }
 }
-

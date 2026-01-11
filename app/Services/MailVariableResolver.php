@@ -14,7 +14,7 @@ class MailVariableResolver
 
         $trackInfo = $this->getTrackInfo($registration->track_id, $eventSettings);
 
-        return [
+        $variables = [
             'name' => $registration->name,
             'email' => $registration->email,
             'track_name' => $trackInfo['name'] ?? 'Unknown Track',
@@ -27,14 +27,26 @@ class MailVariableResolver
             'participation_experience' => $this->getParticipationExperience($registration->participation_count ?? 0),
             'contact_email_link' => $this->getContactEmailLink(),
             'team_members_list' => $this->getTeamMembersList($registration),
+            'theme_primary_color' => $eventSettings->theme_primary_color ?? '#F9C458',
+            'theme_background_color' => $eventSettings->theme_background_color ?? '#fffdf8c2',
+            'theme_text_color' => $eventSettings->theme_text_color ?? '#1a1a1a',
+            'theme_accent_color' => $eventSettings->theme_accent_color ?? '#7a58fc',
         ];
+
+        // Add custom answer variables
+        foreach ($registration->custom_answers ?? [] as $key => $value) {
+            $formattedValue = is_array($value) ? implode(', ', $value) : (string) $value;
+            $variables["custom.{$key}"] = $formattedValue;
+        }
+
+        return $variables;
     }
 
     public function getSampleVariables(): array
     {
         $eventSettings = app(EventSettings::class);
 
-        return [
+        $sampleVars = [
             'name' => 'John Doe',
             'email' => 'john.doe@example.com',
             'track_name' => 'Example Track',
@@ -47,12 +59,32 @@ class MailVariableResolver
             'participation_experience' => 'Veteran (3rd time)',
             'contact_email_link' => $this->getContactEmailLink(),
             'team_members_list' => 'John Doe, Jane Smith, Bob Johnson',
+            'theme_primary_color' => $eventSettings->theme_primary_color ?? '#F9C458',
+            'theme_background_color' => $eventSettings->theme_background_color ?? '#fffdf8c2',
+            'theme_text_color' => $eventSettings->theme_text_color ?? '#1a1a1a',
+            'theme_accent_color' => $eventSettings->theme_accent_color ?? '#7a58fc',
         ];
+
+        // Add sample custom variables
+        $customQuestions = $eventSettings->custom_questions ?? [];
+        foreach ($customQuestions as $question) {
+            $sampleValue = match ($question['type']) {
+                'email' => 'sample@example.com',
+                'number' => '42',
+                'date' => Carbon::now()->format('d.m.Y'),
+                'checkbox' => 'Option 1, Option 2',
+                'select', 'radio' => $question['options'][0]['label_en'] ?? 'Sample Option',
+                default => 'Sample answer for '.($question['translations']['en']['label'] ?? $question['key'])
+            };
+            $sampleVars["custom.{$question['key']}"] = $sampleValue;
+        }
+
+        return $sampleVars;
     }
 
     private function getTrackInfo(int $trackId, EventSettings $settings): array
     {
-        if (!isset($settings->tracks) || !is_array($settings->tracks)) {
+        if (! isset($settings->tracks) || ! is_array($settings->tracks)) {
             return [];
         }
 
@@ -60,7 +92,7 @@ class MailVariableResolver
             if ($track['id'] == $trackId) {
                 return [
                     'name' => $track['name'],
-                    'distance' => isset($track['distance']) ? $track['distance'] . ' km' : '',
+                    'distance' => isset($track['distance']) ? $track['distance'].' km' : '',
                 ];
             }
         }
@@ -101,9 +133,9 @@ class MailVariableResolver
     private function getContactEmailLink(): string
     {
         // Use mail config or fallback
-        $contactEmail = config('mail.from.address', 'contact@' . $this->getEmailDomain());
+        $contactEmail = config('mail.from.address', 'contact@'.$this->getEmailDomain());
 
-        return '<a href="mailto:' . $contactEmail . '">E-Mail</a>';
+        return '<a href="mailto:'.$contactEmail.'">E-Mail</a>';
     }
 
     private function getParticipationExperience(int $count): string
@@ -111,19 +143,19 @@ class MailVariableResolver
         return match (true) {
             $count === 0 => 'First-time participant',
             $count === 1 => 'Returning participant (2nd time)',
-            $count >= 2 => 'Veteran (' . ($count + 1) . 'x participant)',
+            $count >= 2 => 'Veteran ('.($count + 1).'x participant)',
             default => 'Unknown'
         };
     }
 
     private function getTeamMembersList(Registration $registration): string
     {
-        if (!$registration->team_id) {
+        if (! $registration->team_id) {
             return '';
         }
 
         $teamMembers = $registration->team->registrations;
+
         return $teamMembers->pluck('name')->join(', ');
     }
 }
-

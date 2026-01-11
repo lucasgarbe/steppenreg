@@ -55,7 +55,7 @@ class Draw extends Model
         if ($this->total_registrations === 0) {
             return 0;
         }
-        
+
         return round(($this->total_drawn / $this->total_registrations) * 100, 2);
     }
 
@@ -63,13 +63,13 @@ class Draw extends Model
     {
         return Attribute::make(
             get: function () {
-                if (!$this->track_id) {
+                if (! $this->track_id) {
                     return null;
                 }
-                
+
                 $eventSettings = app(EventSettings::class);
                 $tracks = $eventSettings->tracks ?? [];
-                
+
                 return collect($tracks)->firstWhere('id', $this->track_id);
             }
         );
@@ -78,7 +78,7 @@ class Draw extends Model
     public function getTrackNameAttribute(): ?string
     {
         $track = $this->track;
-        
+
         return $track['name'] ?? null;
     }
 }

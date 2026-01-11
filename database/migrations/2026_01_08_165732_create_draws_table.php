@@ -23,7 +23,7 @@ return new class extends Migration
             $table->json('config')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             $table->unique('track_id');
             $table->index('track_id');
         });

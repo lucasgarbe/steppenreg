@@ -64,12 +64,12 @@ class Team extends Model
 
     public function getTrackAttribute(): ?array
     {
-        if (!$this->track_id) {
+        if (! $this->track_id) {
             return null;
         }
-        
+
         $tracks = app(EventSettings::class)->tracks ?? [];
-        
+
         return collect($tracks)->firstWhere('id', $this->track_id);
     }
 
@@ -84,30 +84,30 @@ class Team extends Model
         if ($this->getIsFull()) {
             return false;
         }
-        
+
         // Check track consistency
         if ($this->track_id && $this->track_id !== $registration->track_id) {
             return false;
         }
-        
+
         return true;
     }
 
     public function addMember($registration): bool
     {
-        if (!$this->canAcceptRegistration($registration)) {
+        if (! $this->canAcceptRegistration($registration)) {
             return false;
         }
-        
+
         // Set team track from first member if not set
-        if (!$this->track_id && $registration->track_id) {
+        if (! $this->track_id && $registration->track_id) {
             $this->track_id = $registration->track_id;
             $this->save();
         }
-        
+
         $registration->team_id = $this->id;
         $registration->save();
-        
+
         return true;
     }
 

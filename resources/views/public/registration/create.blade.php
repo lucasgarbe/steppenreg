@@ -251,6 +251,24 @@
             </div>
         </div>
 
+        <!-- Custom Questions Section -->
+        @php
+            $customQuestions = $eventSettings->custom_questions ?? [];
+        @endphp
+        @if(count($customQuestions) > 0)
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                {{ __('public.registration.additional_information') }}
+            </h2>
+
+            <div class="space-y-6">
+                @foreach($customQuestions as $question)
+                    @include('public.registration.partials.custom-question', ['question' => $question])
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         <!-- Submit Button -->
         <div class="flex justify-center">
             <x-public.button

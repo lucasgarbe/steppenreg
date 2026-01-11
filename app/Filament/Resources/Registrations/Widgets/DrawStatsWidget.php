@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Registrations\Widgets;
 
 use App\Models\Registration;
-use App\Settings\EventSettings;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -27,4 +26,3 @@ class DrawStatsWidget extends StatsOverviewWidget
         ];
     }
 }
-

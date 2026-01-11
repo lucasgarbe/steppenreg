@@ -8,6 +8,7 @@ return [
         'form_title' => 'Anmeldeformular',
         'personal_information' => 'Persönliche Informationen',
         'event_information' => 'Event-Informationen',
+        'additional_information' => 'Zusätzliche Informationen',
         'submit' => 'Anmeldung abschicken',
         'submitting' => 'Wird gesendet...',
 
@@ -37,6 +38,7 @@ return [
             'team_help' => 'Gib einen Rudelnamen ein, um einem bestehenden Rudel beizutreten oder ein neues zu erstellen. Achtet bitte darauf, dass alle im Rudel den gleichen Name eingeben',
             'notes' => 'Anmerkungen',
             'notes_placeholder' => 'Zusätzliche Informationen oder Anmerkungen (optional)',
+            'select_option' => 'Bitte auswählen',
         ],
 
         'flinta_notice' => [

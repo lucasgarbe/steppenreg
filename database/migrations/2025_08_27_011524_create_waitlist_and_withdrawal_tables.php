@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('position')->nullable()->comment('Cached waitlist position');
             $table->string('original_draw_status', 20)->default('not_drawn');
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['token']);
             $table->index(['registration_id', 'registered_at']);
@@ -39,7 +39,7 @@ return new class extends Migration
             $table->text('withdrawal_reason')->nullable();
             $table->boolean('is_withdrawn')->default(false);
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['token']);
             $table->index(['registration_id']);

@@ -9,6 +9,7 @@ use Illuminate\View\Component;
 class LanguageSwitcher extends Component
 {
     public array $languages;
+
     public string $currentLocale;
 
     /**

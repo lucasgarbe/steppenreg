@@ -41,7 +41,7 @@ class ManageEvent extends SettingsPage
                             ->label('Current Application State')
                             ->options(EventSettings::getApplicationStates())
                             ->required()
-                            ->helperText('Current state - may be overridden by automatic transitions')
+                            ->helperText('Current state - may be overridden by automatic transitions'),
                     ])
                     ->columns(2),
 
@@ -89,13 +89,13 @@ class ManageEvent extends SettingsPage
                         Toggle::make('manual_override_active')
                             ->label('Manual Override Active')
                             ->helperText('Temporarily override automatic transitions')
-                            ->visible(fn($get) => $get('automatic_state_transitions'))
+                            ->visible(fn ($get) => $get('automatic_state_transitions'))
                             ->reactive(),
 
                         Select::make('manual_override_state')
                             ->label('Override State')
                             ->options(EventSettings::getApplicationStates())
-                            ->visible(fn($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
+                            ->visible(fn ($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
                             ->helperText('This state will be used instead of automatic transitions')
                             ->native(false),
                     ])
@@ -191,10 +191,10 @@ class ManageEvent extends SettingsPage
                             ])
                             ->columns(2)
                             ->collapsible()
-                            ->itemLabel(fn(array $state): ?string => $state['name'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                             ->addActionLabel('Add Track')
                             ->deleteAction(
-                                fn($action) => $action->requiresConfirmation()
+                                fn ($action) => $action->requiresConfirmation()
                             ),
                     ]),
             ]);

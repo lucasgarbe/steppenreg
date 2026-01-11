@@ -5,8 +5,8 @@ namespace App\Filament\Resources\Registrations\Pages;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Settings\EventSettings;
 use Filament\Actions\CreateAction;
-use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListRegistrations extends ListRecords
@@ -24,7 +24,7 @@ class ListRegistrations extends ListRecords
     {
         $tabs = [
             'all' => Tab::make('All Registrations')
-                ->badge(fn() => static::$resource::getModel()::count()),
+                ->badge(fn () => static::$resource::getModel()::count()),
         ];
 
         $settings = app(EventSettings::class);
@@ -35,8 +35,8 @@ class ListRegistrations extends ListRecords
                 $trackName = $track['name'];
 
                 $tabs["track_{$trackId}"] = Tab::make($trackName)
-                    ->modifyQueryUsing(fn(Builder $query) => $query->where('track_id', $trackId))
-                    ->badge(fn() => static::$resource::getModel()::where('track_id', $trackId)->count());
+                    ->modifyQueryUsing(fn (Builder $query) => $query->where('track_id', $trackId))
+                    ->badge(fn () => static::$resource::getModel()::where('track_id', $trackId)->count());
             }
         }
 

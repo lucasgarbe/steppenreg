@@ -8,6 +8,7 @@ return [
         'form_title' => 'Registration Form',
         'personal_information' => 'Personal Information',
         'event_information' => 'Event Information',
+        'additional_information' => 'Additional Information',
         'submit' => 'Submit Registration',
         'submitting' => 'Submitting...',
 
@@ -37,6 +38,7 @@ return [
             'team_help' => 'Enter a pack name to join an existing pack or create a new one. Your teammates should enter the exact same pack name.',
             'notes' => 'Notes',
             'notes_placeholder' => 'Additional information or notes (optional)',
+            'select_option' => 'Please select',
         ],
 
         'flinta_notice' => [
