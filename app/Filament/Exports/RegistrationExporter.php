@@ -140,10 +140,9 @@ class RegistrationExporter extends Exporter
 
         foreach ($customQuestions as $question) {
             $key = $question['key'];
-            $label = $question['translations']['en']['label'] ?? $key;
 
             $columns[] = ExportColumn::make("custom_answers.{$key}")
-                ->label($label)
+                ->label($key)
                 ->state(function (Registration $record) use ($question, $key) {
                     $value = $record->getCustomAnswer($key);
 
