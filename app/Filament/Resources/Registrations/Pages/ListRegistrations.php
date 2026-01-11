@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Registrations\Pages;
 
+use App\Filament\Exports\RegistrationExporter;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Settings\EventSettings;
 use Filament\Actions\CreateAction;
+use Filament\Actions\ExportAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,6 +18,10 @@ class ListRegistrations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            ExportAction::make()
+                ->exporter(RegistrationExporter::class)
+                ->color('primary')
+                ->label(__('messages.export')),
             CreateAction::make()->color('success'),
         ];
     }
