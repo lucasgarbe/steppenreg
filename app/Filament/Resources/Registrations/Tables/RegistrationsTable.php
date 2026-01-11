@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Registrations\Tables;
 
+use App\Filament\Exports\RegistrationExporter;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
@@ -658,6 +660,10 @@ class RegistrationsTable
                         })
                         ->modalWidth('xl')
                         ->deselectRecordsAfterCompletion(),
+
+                    ExportBulkAction::make()
+                        ->exporter(RegistrationExporter::class)
+                        ->label(__('messages.export')),
 
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
