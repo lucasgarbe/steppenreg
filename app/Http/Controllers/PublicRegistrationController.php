@@ -75,15 +75,32 @@ class PublicRegistrationController extends Controller
             $rules['gender'] = 'required|string|in:flinta';
         }
 
-        // Build dynamic validation rules for custom questions
+        // Build dynamic validation rules and custom error messages for custom questions
         $customQuestions = $eventSettings->custom_questions ?? [];
+        $customMessages = [];
+        
+        // Get fallback validation messages from translation files
+        $fallbackMessages = trans('public.registration.custom_questions.validation');
+        
         foreach ($customQuestions as $question) {
             $key = $question['key'];
             $fieldRules = [];
+            $fieldName = "custom_answers.{$key}";
+            
+            // Get translations for current locale
+            $locale = app()->getLocale();
+            $translations = $question['translations'][$locale] ?? $question['translations']['en'] ?? [];
 
             // Required/optional
             if ($question['required'] ?? false) {
                 $fieldRules[] = 'required';
+                
+                // Custom required error message or fallback
+                if (! empty($translations['error_required'])) {
+                    $customMessages["{$fieldName}.required"] = $translations['error_required'];
+                } else {
+                    $customMessages["{$fieldName}.required"] = $fallbackMessages['required'] ?? 'Dieses Feld ist erforderlich.';
+                }
             } else {
                 $fieldRules[] = 'nullable';
             }
@@ -93,24 +110,79 @@ class PublicRegistrationController extends Controller
                 case 'email':
                     $fieldRules[] = 'email';
                     $fieldRules[] = 'max:255';
+                    
+                    // Custom invalid error for email or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.email"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.email"] = $fallbackMessages['email'] ?? 'Bitte gib eine gültige E-Mail-Adresse ein.';
+                    }
+                    
+                    // Custom max length error or fallback
+                    if (! empty($translations['error_max'])) {
+                        $customMessages["{$fieldName}.max"] = $translations['error_max'];
+                    } else {
+                        $customMessages["{$fieldName}.max"] = $fallbackMessages['max']['string'] ?? ':attribute darf maximal :max Zeichen lang sein.';
+                    }
                     break;
+                    
                 case 'number':
                     $fieldRules[] = 'numeric';
+                    
+                    // Custom invalid error for numeric or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.numeric"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.numeric"] = $fallbackMessages['numeric'] ?? 'Bitte gib eine Zahl ein.';
+                    }
                     break;
+                    
                 case 'text':
                     $fieldRules[] = 'string';
                     $fieldRules[] = 'max:255';
+                    
+                    // Custom max length error or fallback
+                    if (! empty($translations['error_max'])) {
+                        $customMessages["{$fieldName}.max"] = $translations['error_max'];
+                    } else {
+                        $customMessages["{$fieldName}.max"] = $fallbackMessages['max']['string'] ?? 'Die Eingabe darf maximal :max Zeichen lang sein.';
+                    }
                     break;
+                    
                 case 'textarea':
                     $fieldRules[] = 'string';
                     $fieldRules[] = 'max:1000';
+                    
+                    // Custom max length error or fallback
+                    if (! empty($translations['error_max'])) {
+                        $customMessages["{$fieldName}.max"] = $translations['error_max'];
+                    } else {
+                        $customMessages["{$fieldName}.max"] = $fallbackMessages['max']['string'] ?? 'Die Eingabe darf maximal :max Zeichen lang sein.';
+                    }
                     break;
+                    
                 case 'date':
                     $fieldRules[] = 'date';
+                    
+                    // Custom invalid error for date or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.date"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.date"] = $fallbackMessages['date'] ?? 'Bitte gib ein gültiges Datum ein.';
+                    }
                     break;
+                    
                 case 'checkbox':
                     $fieldRules[] = 'array';
+                    
+                    // Custom invalid error for array or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.array"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.array"] = $fallbackMessages['array'] ?? 'Bitte wähle gültige Optionen aus.';
+                    }
                     break;
+                    
                 case 'select':
                 case 'radio':
                     // Validate against allowed options
@@ -119,6 +191,13 @@ class PublicRegistrationController extends Controller
                         ->toArray();
                     if (! empty($allowedValues)) {
                         $fieldRules[] = Rule::in($allowedValues);
+                        
+                        // Custom invalid error for select/radio or fallback
+                        if (! empty($translations['error_invalid'])) {
+                            $customMessages["{$fieldName}.in"] = $translations['error_invalid'];
+                        } else {
+                            $customMessages["{$fieldName}.in"] = $fallbackMessages['in'] ?? 'Der ausgewählte Wert ist ungültig.';
+                        }
                     }
                     break;
             }
@@ -128,10 +207,10 @@ class PublicRegistrationController extends Controller
                 $fieldRules = array_merge($fieldRules, $question['validation']);
             }
 
-            $rules["custom_answers.{$key}"] = $fieldRules;
+            $rules[$fieldName] = $fieldRules;
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, $customMessages);
 
         $teamId = null;
 

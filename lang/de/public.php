@@ -69,6 +69,20 @@ return [
             'age_min' => 'Du musst mindestens :min Jahre alt sein.',
             'team_full' => 'Das gewählte Team ist bereits voll.',
         ],
+
+        'custom_questions' => [
+            'validation' => [
+                'required' => 'Dieses Feld ist erforderlich.',
+                'email' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
+                'numeric' => 'Bitte gib eine Zahl ein.',
+                'date' => 'Bitte gib ein gültiges Datum ein.',
+                'max' => [
+                    'string' => 'Die Eingabe darf maximal :max Zeichen lang sein.',
+                ],
+                'in' => 'Der ausgewählte Wert ist ungültig.',
+                'array' => 'Bitte wähle gültige Optionen aus.',
+            ],
+        ],
     ],
 
     // Waitlist
