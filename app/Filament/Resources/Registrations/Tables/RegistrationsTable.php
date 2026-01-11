@@ -398,7 +398,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.send_draw_results'))
                         ->icon('heroicon-o-envelope')
                         ->color('primary')
-                        ->visible(fn ($record) => $record?->draw_status === 'drawn')
+                        ->visible(fn ($record) => in_array($record?->draw_status, ['drawn', 'not_drawn']))
                         ->action(function ($record) {
                             // Send draw notification email
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
@@ -564,8 +564,8 @@ class RegistrationsTable
                         ->action(function (Collection $records) {
                             $sent = 0;
                             foreach ($records as $record) {
-                                // Only send to records that are drawn
-                                if ($record->draw_status === 'drawn') {
+                                // Only send to registrations that have been processed in the draw
+                                if (in_array($record->draw_status, ['drawn', 'not_drawn'])) {
                                     \App\Jobs\Mail\SendDrawNotification::dispatch($record);
                                     $sent++;
                                 }
@@ -579,7 +579,7 @@ class RegistrationsTable
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Send Draw Result Emails')
-                        ->modalDescription('This will send draw result emails to all selected drawn participants.')
+                        ->modalDescription('This will send draw result emails to all selected participants (drawn and not drawn).')
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('send_custom_email')
