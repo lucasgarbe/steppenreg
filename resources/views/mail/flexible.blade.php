@@ -1,6 +1,6 @@
 @php
     $eventSettings = app(\App\Settings\EventSettings::class);
-    $themeTextColor = $eventSettings->theme_text_color ?? '#1a1a1a';
+    $themeTextColor = "#000000";
     $themeBackgroundColor = $eventSettings->theme_background_color ?? '#fffdf8c2';
     $themePrimaryColor = $eventSettings->theme_primary_color ?? '#F9C458';
     $themeAccentColor = $eventSettings->theme_accent_color ?? '#7a58fc';
