@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -27,7 +27,7 @@ return new class extends Migration
                 $table->dropIndex(['withdrawn_at']);
                 $table->dropIndex(['promoted_from_waitlist_at']);
                 $table->dropIndex(['is_withdrawn']);
-                
+
                 // Drop columns
                 $table->dropColumn([
                     'waitlist_token',
@@ -44,7 +44,7 @@ return new class extends Migration
             });
         }
     }
-    
+
     private function recreateTableForSQLite(): void
     {
         // Create temporary table with clean structure
@@ -77,7 +77,7 @@ return new class extends Migration
             $table->index(['starting_number']);
             $table->index(['promoted_from_waitlist_at']);
         });
-        
+
         // Copy data from old table to new table (only clean columns)
         DB::statement('
             INSERT INTO registrations_temp (
@@ -91,7 +91,7 @@ return new class extends Migration
                 notes, promoted_from_waitlist_at, created_at, updated_at, deleted_at
             FROM registrations
         ');
-        
+
         // Drop old table and rename new one
         Schema::dropIfExists('registrations');
         Schema::rename('registrations_temp', 'registrations');
@@ -114,7 +114,7 @@ return new class extends Migration
             $table->text('withdrawal_reason')->nullable();
             $table->timestamp('promoted_from_waitlist_at')->nullable();
             $table->boolean('is_withdrawn')->default(false);
-            
+
             // Re-add indexes
             $table->index(['waitlist_token']);
             $table->index(['waitlist_token_expires_at']);

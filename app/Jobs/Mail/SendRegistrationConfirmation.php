@@ -11,9 +11,10 @@ use Illuminate\Queue\SerializesModels;
 
 class SendRegistrationConfirmation implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
+
     public $backoff = [60, 300, 900]; // 1min, 5min, 15min
 
     public function __construct(

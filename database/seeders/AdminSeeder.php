@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
         User::factory()->create([
             'name' => 'admin',
             'email' => 'admin@bab.spw',
-            'password' => Hash::make('admin')
+            'password' => Hash::make('admin'),
         ]);
 
         $this->command->info('Created admin account');

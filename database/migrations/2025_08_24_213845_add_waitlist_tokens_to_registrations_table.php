@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamp('withdrawn_at')->nullable()->after('waitlist_registered_at');
             $table->string('original_draw_status', 20)->nullable()->after('withdrawn_at');
             $table->text('withdrawal_reason')->nullable()->after('original_draw_status');
-            
+
             $table->index(['waitlist_token']);
             $table->index(['withdraw_token']);
             $table->index(['waitlist_registered_at']);
@@ -36,14 +36,14 @@ return new class extends Migration
             $table->dropIndex(['withdraw_token']);
             $table->dropIndex(['waitlist_registered_at']);
             $table->dropIndex(['withdrawn_at']);
-            
+
             $table->dropColumn([
                 'waitlist_token',
-                'withdraw_token', 
+                'withdraw_token',
                 'waitlist_registered_at',
                 'withdrawn_at',
                 'original_draw_status',
-                'withdrawal_reason'
+                'withdrawal_reason',
             ]);
         });
     }

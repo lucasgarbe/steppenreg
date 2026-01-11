@@ -9,13 +9,13 @@ use App\Filament\Resources\Registrations\Schemas\RegistrationForm;
 use App\Filament\Resources\Registrations\Tables\RegistrationsTable;
 use App\Models\Registration;
 use BackedEnum;
-use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class RegistrationResource extends Resource
 {
@@ -24,9 +24,9 @@ class RegistrationResource extends Resource
     protected static string|UnitEnum|null $navigationGroup = 'Registration';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-    
+
     protected static ?string $navigationLabel = 'Registrations';
-    
+
     protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'name';

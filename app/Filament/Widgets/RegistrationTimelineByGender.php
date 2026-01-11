@@ -14,7 +14,7 @@ class RegistrationTimelineByGender extends ChartWidget
 {
     protected ?string $heading = 'Registration Timeline By Gender';
 
-    protected int | string | array $columnSpan = 1;
+    protected int|string|array $columnSpan = 1;
 
     protected static ?int $sort = 4;
 
@@ -74,7 +74,7 @@ class RegistrationTimelineByGender extends ChartWidget
             'all_gender' => [
                 'label' => 'All Gender',
                 'color' => 'rgb(59, 130, 246)',  // Blue
-            ]
+            ],
         ];
 
         foreach ($genderConfig as $genderKey => $config) {
@@ -100,7 +100,7 @@ class RegistrationTimelineByGender extends ChartWidget
                 'label' => $config['label'],
                 'data' => $dataPoints,
                 'borderColor' => $config['color'],
-                'backgroundColor' => $config['color'] . '20',
+                'backgroundColor' => $config['color'].'20',
                 'tension' => 0.3,
                 'fill' => false,
                 'pointBackgroundColor' => $config['color'],
@@ -138,7 +138,7 @@ class RegistrationTimelineByGender extends ChartWidget
 
         if (isset($settings->tracks) && is_array($settings->tracks)) {
             foreach ($settings->tracks as $track) {
-                $filters[(string)$track['id']] = $track['name'];
+                $filters[(string) $track['id']] = $track['name'];
             }
         }
 
@@ -157,7 +157,7 @@ class RegistrationTimelineByGender extends ChartWidget
                     Forms\Components\Select::make('trackFilter')
                         ->label('Track')
                         ->options($this->getTrackFilters())
-                        ->default($this->trackFilter)
+                        ->default($this->trackFilter),
                 ])
                 ->action(function (array $data) {
                     $this->trackFilter = $data['trackFilter'];
@@ -181,23 +181,23 @@ class RegistrationTimelineByGender extends ChartWidget
                 ],
                 'title' => [
                     'display' => true,
-                    'text' => 'Cumulative registrations over time by gender category'
-                ]
+                    'text' => 'Cumulative registrations over time by gender category',
+                ],
             ],
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
                     'title' => [
                         'display' => true,
-                        'text' => 'Number of Registrations'
-                    ]
+                        'text' => 'Number of Registrations',
+                    ],
                 ],
                 'x' => [
                     'title' => [
                         'display' => true,
-                        'text' => 'Date'
-                    ]
-                ]
+                        'text' => 'Date',
+                    ],
+                ],
             ],
             'interaction' => [
                 'intersect' => false,

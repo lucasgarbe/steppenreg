@@ -3,18 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Models\MailLog;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
-use BackedEnum;
-use UnitEnum;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\Action;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 class MailLogResource extends Resource
 {
@@ -40,14 +37,14 @@ class MailLogResource extends Resource
                 TextColumn::make('template_key')
                     ->label('Template')
                     ->badge()
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'registration_confirmation' => 'Registration',
                         'draw_success' => 'Draw Success',
                         'draw_waitlist' => 'Waitlist',
                         'draw_rejection' => 'Rejection',
                         default => $state,
                     })
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'registration_confirmation' => 'success',
                         'draw_success' => 'success',
                         'draw_waitlist' => 'warning',
@@ -57,7 +54,7 @@ class MailLogResource extends Resource
 
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'sent' => 'success',
                         'failed' => 'danger',
                         'queued' => 'warning',
@@ -84,6 +81,7 @@ class MailLogResource extends Resource
                     ->limit(30)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
+
                         return $state && strlen($state) > 30 ? $state : null;
                     })
                     ->placeholder('No errors'),
@@ -107,7 +105,7 @@ class MailLogResource extends Resource
 
                 Filter::make('recent')
                     ->label('Recent (Last 24h)')
-                    ->query(fn(Builder $query): Builder => $query->where('created_at', '>=', now()->subDay()))
+                    ->query(fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDay()))
                     ->default(),
             ])
             ->defaultSort('created_at', 'desc');
@@ -130,4 +128,3 @@ class MailLogResource extends Resource
         return false;
     }
 }
-

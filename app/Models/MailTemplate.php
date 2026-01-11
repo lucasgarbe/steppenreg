@@ -30,7 +30,7 @@ class MailTemplate extends Model
         $body = $this->body;
 
         foreach ($variables as $key => $value) {
-            $placeholder = '{{' . $key . '}}';
+            $placeholder = '{{'.$key.'}}';
             $subject = str_replace($placeholder, $value, $subject);
             $body = str_replace($placeholder, $value, $body);
         }
@@ -43,9 +43,9 @@ class MailTemplate extends Model
 
     public function getVariablesFromContent(): array
     {
-        $content = $this->subject . ' ' . $this->body;
+        $content = $this->subject.' '.$this->body;
         preg_match_all('/\{\{([^}]+)\}\}/', $content, $matches);
-        
+
         return array_unique($matches[1] ?? []);
     }
 
@@ -60,11 +60,13 @@ class MailTemplate extends Model
             'draw_status' => 'Draw status',
             'team_name' => 'Team name (if applicable)',
             'track_distance' => 'Track distance',
-            'participation_count' => 'Number of previous participations (0 for first-time)',
-            'participation_experience' => 'Participation experience level (First-time/Returning/Veteran)',
             'waitlist_url' => 'Waitlist registration URL',
             'withdraw_url' => 'Withdrawal URL',
             'contact_email_link' => 'Contact email link (clickable)',
+            'theme_primary_color' => 'Theme primary color (configured in settings)',
+            'theme_background_color' => 'Theme background color (configured in settings)',
+            'theme_text_color' => 'Theme text color (configured in settings)',
+            'theme_accent_color' => 'Theme accent color (configured in settings)',
         ];
     }
 }

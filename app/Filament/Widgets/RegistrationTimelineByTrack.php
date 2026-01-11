@@ -12,7 +12,7 @@ class RegistrationTimelineByTrack extends ChartWidget
 {
     protected ?string $heading = 'Registration Timeline By Track';
 
-    protected int | string | array $columnSpan = 1;
+    protected int|string|array $columnSpan = 1;
 
     protected static ?int $sort = 4;
 
@@ -92,7 +92,7 @@ class RegistrationTimelineByTrack extends ChartWidget
                 'label' => $trackName,
                 'data' => $dataPoints,
                 'borderColor' => $colors[$index % count($colors)],
-                'backgroundColor' => $colors[$index % count($colors)] . '20',
+                'backgroundColor' => $colors[$index % count($colors)].'20',
                 'tension' => 0.3,
                 'fill' => false,
                 'pointBackgroundColor' => $colors[$index % count($colors)],
@@ -132,23 +132,23 @@ class RegistrationTimelineByTrack extends ChartWidget
                 ],
                 'title' => [
                     'display' => true,
-                    'text' => 'Cumulative registrations over time by track'
-                ]
+                    'text' => 'Cumulative registrations over time by track',
+                ],
             ],
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
                     'title' => [
                         'display' => true,
-                        'text' => 'Number of Registrations'
-                    ]
+                        'text' => 'Number of Registrations',
+                    ],
                 ],
                 'x' => [
                     'title' => [
                         'display' => true,
-                        'text' => 'Date'
-                    ]
-                ]
+                        'text' => 'Date',
+                    ],
+                ],
             ],
             'interaction' => [
                 'intersect' => false,

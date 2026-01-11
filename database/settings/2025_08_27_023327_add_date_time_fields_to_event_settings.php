@@ -13,7 +13,7 @@ return new class extends SettingsMigration
         $this->migrator->add('event.waitlist_only_starts_at', null);
         $this->migrator->add('event.event_starts_at', null);
         $this->migrator->add('event.event_ends_at', null);
-        
+
         // Control flags
         $this->migrator->add('event.automatic_state_transitions', false);
         $this->migrator->add('event.manual_override_active', false);

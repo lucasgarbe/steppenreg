@@ -4,13 +4,12 @@ namespace App\Filament\Resources\MailTemplates\Schemas;
 
 use App\Models\MailTemplate;
 use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Placeholder;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section as SchemaSection;
+use Filament\Schemas\Schema;
 
 class MailTemplateForm
 {
@@ -59,8 +58,8 @@ class MailTemplateForm
                                 'bulletList',
                                 'orderedList',
                                 'heading',
-                                'table'
-                            ])
+                                'table',
+                            ]),
                     ]),
 
                 SchemaSection::make('Available Variables')
@@ -72,7 +71,7 @@ class MailTemplateForm
                                 $help = "**Available Variables:**\n\n";
 
                                 foreach ($variables as $key => $description) {
-                                    $help .= "• `{{" . $key . "}}` - " . $description . "\n";
+                                    $help .= '• `{{'.$key.'}}` - '.$description."\n";
                                 }
 
                                 $help .= "\n**Markdown Formatting:**\n\n";
@@ -93,7 +92,6 @@ class MailTemplateForm
                                 return $help;
                             })
                             ->columnSpanFull(),
-
 
                     ])
                     ->collapsible(),

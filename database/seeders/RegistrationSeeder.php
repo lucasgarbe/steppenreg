@@ -22,7 +22,7 @@ class RegistrationSeeder extends Seeder
         Registration::factory(8)->starting()->create();
         Registration::factory(3)->finished()->create();
 
-        $this->command->info('Created ' . Registration::count() . ' sample registrations');
+        $this->command->info('Created '.Registration::count().' sample registrations');
         $this->command->table(
             ['Status', 'Count'],
             [
@@ -35,12 +35,12 @@ class RegistrationSeeder extends Seeder
 
         // Show registrations by track
         $settings = app(EventSettings::class);
-        if (!empty($settings->tracks)) {
+        if (! empty($settings->tracks)) {
             $this->command->info('Registrations by Track:');
             $trackStats = [];
             foreach ($settings->tracks as $track) {
                 $count = Registration::where('track_id', $track['id'])->count();
-                $trackStats[] = [$track['name'], $count . ' participants'];
+                $trackStats[] = [$track['name'], $count.' participants'];
             }
             $this->command->table(['Track', 'Registrations'], $trackStats);
         }

@@ -2,22 +2,23 @@
 
 namespace App\Filament\Pages;
 
-use App\Settings\EventSettings;
 use App\Filament\Widgets\DailyRegistrations;
+use App\Filament\Widgets\RegistrationStats;
 use App\Filament\Widgets\RegistrationTimelineByGender;
 use App\Filament\Widgets\RegistrationTimelineByTrack;
-use App\Filament\Widgets\RegistrationStats;
 use App\Filament\Widgets\StateTransitionWidget;
 use App\Filament\Widgets\TeamStats;
+use App\Settings\EventSettings;
 use BackedEnum;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
 class ManageEvent extends SettingsPage
@@ -36,16 +37,46 @@ class ManageEvent extends SettingsPage
                     ->schema([
                         TextInput::make('event_name')
                             ->required(),
-                        Toggle::make('site_active')
-                            ->required(),
                         Select::make('application_state')
                             ->label('Current Application State')
                             ->options(EventSettings::getApplicationStates())
                             ->required()
-                            ->helperText('Current state - may be overridden by automatic transitions')
-                            ->native(false),
+                            ->helperText('Current state - may be overridden by automatic transitions'),
                     ])
                     ->columns(2),
+
+                Section::make('Organization / Club Information')
+                    ->description('Configure your organization\'s branding and contact information')
+                    ->schema([
+                        TextInput::make('organization_name')
+                            ->label('Organization Name')
+                            ->required()
+                            ->helperText('Full name of your club or organization (e.g., "Your Organization e.V.")'),
+
+                        TextInput::make('organization_website')
+                            ->label('Organization Website')
+                            ->url()
+                            ->required()
+                            ->helperText('Your club\'s main website URL'),
+
+                        TextInput::make('contact_email')
+                            ->label('Contact Email')
+                            ->email()
+                            ->required()
+                            ->helperText('Support email for participants to reach out'),
+
+                        TextInput::make('organization_logo_path')
+                            ->label('Logo Filename')
+                            ->required()
+                            ->helperText('Filename of your logo in the public directory (e.g., "logo.png")'),
+
+                        TextInput::make('event_website_url')
+                            ->label('Event Website URL')
+                            ->url()
+                            ->helperText('Specific page about this event (optional)'),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
 
                 Section::make('Automatic State Management')
                     ->schema([
@@ -58,13 +89,13 @@ class ManageEvent extends SettingsPage
                         Toggle::make('manual_override_active')
                             ->label('Manual Override Active')
                             ->helperText('Temporarily override automatic transitions')
-                            ->visible(fn($get) => $get('automatic_state_transitions'))
+                            ->visible(fn ($get) => $get('automatic_state_transitions'))
                             ->reactive(),
 
                         Select::make('manual_override_state')
                             ->label('Override State')
                             ->options(EventSettings::getApplicationStates())
-                            ->visible(fn($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
+                            ->visible(fn ($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
                             ->helperText('This state will be used instead of automatic transitions')
                             ->native(false),
                     ])
@@ -111,6 +142,33 @@ class ManageEvent extends SettingsPage
                     ])
                     ->columns(2)
                     ->collapsible(),
+
+                Section::make('Theme Colors')
+                    ->description('Customize the colors used on public-facing pages and forms')
+                    ->schema([
+                        ColorPicker::make('theme_primary_color')
+                            ->label('Primary Color')
+                            ->helperText('Used for buttons, form focus states, and active elements')
+                            ->default('#F9C458'),
+
+                        ColorPicker::make('theme_background_color')
+                            ->label('Background Color')
+                            ->helperText('Page background color')
+                            ->default('#fffdf8c2'),
+
+                        ColorPicker::make('theme_text_color')
+                            ->label('Text & Border Color')
+                            ->helperText('Primary text color and container borders')
+                            ->default('#1a1a1a'),
+
+                        ColorPicker::make('theme_accent_color')
+                            ->label('Secondary Accent Color')
+                            ->helperText('Secondary accent for additional highlights')
+                            ->default('#7a58fc'),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
                 Section::make('Tracks')
                     ->schema([
                         Repeater::make('tracks')
@@ -133,15 +191,15 @@ class ManageEvent extends SettingsPage
                             ])
                             ->columns(2)
                             ->collapsible()
-                            ->itemLabel(fn(array $state): ?string => $state['name'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                             ->addActionLabel('Add Track')
                             ->deleteAction(
-                                fn($action) => $action->requiresConfirmation()
+                                fn ($action) => $action->requiresConfirmation()
                             ),
                     ]),
             ]);
     }
-    
+
     public function getWidgets(): array
     {
         return [
@@ -153,8 +211,8 @@ class ManageEvent extends SettingsPage
             RegistrationTimelineByGender::class,
         ];
     }
-    
-    public function getColumns(): int | string | array
+
+    public function getColumns(): int|string|array
     {
         return 3;
     }

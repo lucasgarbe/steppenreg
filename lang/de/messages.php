@@ -97,4 +97,3 @@ return [
     'import' => 'Importieren',
     'bulk_actions' => 'Massenaktionen',
 ];
-
