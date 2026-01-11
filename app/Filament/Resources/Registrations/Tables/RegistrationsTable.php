@@ -179,6 +179,8 @@ class RegistrationsTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                ...self::getCustomQuestionColumns(),
             ])
             ->filters([
                 Filter::make('track')
@@ -347,6 +349,9 @@ class RegistrationsTable
                             default => $query,
                         };
                     }),
+
+                ...self::getCustomQuestionFilters(),
+
                 TrashedFilter::make(),
             ])
             ->filtersFormColumns(2)
@@ -699,5 +704,71 @@ class RegistrationsTable
             ])
             ->paginated([10, 25, 50, 100, 'all'])
             ->defaultSort('created_at', 'desc');
+    }
+
+    protected static function getCustomQuestionColumns(): array
+    {
+        $columns = [];
+        $eventSettings = app(\App\Settings\EventSettings::class);
+        $customQuestions = $eventSettings->custom_questions ?? [];
+
+        foreach ($customQuestions as $question) {
+            $key = $question['key'];
+            $label = $question['translations']['en']['label'] ?? $key;
+
+            $columns[] = TextColumn::make("custom_answers.{$key}")
+                ->label($label)
+                ->searchable()
+                ->toggleable(isToggledHiddenByDefault: false)
+                ->formatStateUsing(function ($state) use ($question) {
+                    if ($question['type'] === 'checkbox' && is_array($state)) {
+                        return implode(', ', $state);
+                    }
+                    if (empty($state)) {
+                        return '---';
+                    }
+                    // For select/radio, try to show label instead of value
+                    if (in_array($question['type'], ['select', 'radio'])) {
+                        $option = collect($question['options'] ?? [])
+                            ->firstWhere('value', $state);
+                        if ($option) {
+                            return $option['label_en'] ?? $state;
+                        }
+                    }
+
+                    return $state;
+                })
+                ->placeholder('---');
+        }
+
+        return $columns;
+    }
+
+    protected static function getCustomQuestionFilters(): array
+    {
+        $filters = [];
+        $eventSettings = app(\App\Settings\EventSettings::class);
+        $customQuestions = $eventSettings->custom_questions ?? [];
+
+        foreach ($customQuestions as $question) {
+            $key = $question['key'];
+            $label = $question['translations']['en']['label'] ?? $key;
+
+            // Only add filters for select and radio types
+            if (in_array($question['type'], ['select', 'radio'])) {
+                $filters[] = SelectFilter::make("custom_answers.{$key}")
+                    ->label($label)
+                    ->options(collect($question['options'] ?? [])
+                        ->pluck('label_en', 'value')
+                        ->toArray())
+                    ->query(function (Builder $query, array $data) use ($key) {
+                        if (! empty($data['value'])) {
+                            $query->where("custom_answers->{$key}", $data['value']);
+                        }
+                    });
+            }
+        }
+
+        return $filters;
     }
 }

@@ -25,14 +25,14 @@ class PublicRegistrationController extends Controller
             // Registration is closed (waitlist is managed via email links, not public form)
             return view('public.registration.closed', [
                 'eventSettings' => $eventSettings,
-                'state' => $applicationState
+                'state' => $applicationState,
             ]);
         }
 
         if ($isLiveEvent) {
             // Live event - show special message
             return view('public.registration.live-event', [
-                'eventSettings' => $eventSettings
+                'eventSettings' => $eventSettings,
             ]);
         }
 
@@ -76,7 +76,63 @@ class PublicRegistrationController extends Controller
             $rules['gender'] = 'required|string|in:flinta';
         }
 
-        $request->validate($rules);
+        // Build dynamic validation rules for custom questions
+        $customQuestions = $eventSettings->custom_questions ?? [];
+        foreach ($customQuestions as $question) {
+            $key = $question['key'];
+            $fieldRules = [];
+
+            // Required/optional
+            if ($question['required'] ?? false) {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            // Type-specific validation
+            switch ($question['type']) {
+                case 'email':
+                    $fieldRules[] = 'email';
+                    $fieldRules[] = 'max:255';
+                    break;
+                case 'number':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'text':
+                    $fieldRules[] = 'string';
+                    $fieldRules[] = 'max:255';
+                    break;
+                case 'textarea':
+                    $fieldRules[] = 'string';
+                    $fieldRules[] = 'max:1000';
+                    break;
+                case 'date':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'checkbox':
+                    $fieldRules[] = 'array';
+                    break;
+                case 'select':
+                case 'radio':
+                    // Validate against allowed options
+                    $allowedValues = collect($question['options'] ?? [])
+                        ->pluck('value')
+                        ->toArray();
+                    if (! empty($allowedValues)) {
+                        $fieldRules[] = Rule::in($allowedValues);
+                    }
+                    break;
+            }
+
+            // Custom validation rules from question config
+            if (! empty($question['validation']) && is_array($question['validation'])) {
+                $fieldRules = array_merge($fieldRules, $question['validation']);
+            }
+
+            $rules["custom_answers.{$key}"] = $fieldRules;
+        }
+
+        $validated = $request->validate($rules);
 
         $teamId = null;
 
@@ -125,14 +181,15 @@ class PublicRegistrationController extends Controller
 
         // Create registration
         Registration::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'age' => $request->age,
-            'gender' => $request->gender,
-            'track_id' => $request->track_id,
-            'participation_count' => $request->participation_count,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'age' => $validated['age'],
+            'gender' => $validated['gender'],
+            'track_id' => $validated['track_id'],
+            'participation_count' => $validated['participation_count'],
             'team_id' => $teamId,
-            'notes' => $request->notes,
+            'notes' => $validated['notes'] ?? null,
+            'custom_answers' => $validated['custom_answers'] ?? null,
             'draw_status' => $drawStatus,
             'payed' => false,
             'starting' => false,
@@ -144,6 +201,7 @@ class PublicRegistrationController extends Controller
     public function success()
     {
         $eventSettings = app(EventSettings::class);
+
         return view('public.registration.success', [
             'eventSettings' => $eventSettings,
         ]);

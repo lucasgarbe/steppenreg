@@ -16,7 +16,7 @@ return new class extends Migration
             $table->timestamp('withdraw_token_expires_at')->nullable()->after('withdraw_token');
             $table->timestamp('promoted_from_waitlist_at')->nullable()->after('withdrawal_reason');
             $table->boolean('is_withdrawn')->default(false)->after('promoted_from_waitlist_at');
-            
+
             $table->index(['waitlist_token_expires_at']);
             $table->index(['withdraw_token_expires_at']);
             $table->index(['promoted_from_waitlist_at']);
@@ -34,12 +34,12 @@ return new class extends Migration
             $table->dropIndex(['withdraw_token_expires_at']);
             $table->dropIndex(['promoted_from_waitlist_at']);
             $table->dropIndex(['is_withdrawn']);
-            
+
             $table->dropColumn([
                 'waitlist_token_expires_at',
                 'withdraw_token_expires_at',
                 'promoted_from_waitlist_at',
-                'is_withdrawn'
+                'is_withdrawn',
             ]);
         });
     }

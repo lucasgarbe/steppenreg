@@ -16,22 +16,22 @@ class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         // Get locale from session, URL parameter, or use German as default
-        $locale = $request->get('locale') 
-            ?? Session::get('locale') 
+        $locale = $request->get('locale')
+            ?? Session::get('locale')
             ?? 'de'; // Default to German
-        
+
         // Validate locale
         $supportedLocales = ['de', 'en'];
-        if (!in_array($locale, $supportedLocales)) {
+        if (! in_array($locale, $supportedLocales)) {
             $locale = 'de'; // Default to German
         }
-        
+
         // Set the application locale
         App::setLocale($locale);
-        
+
         // Store in session for future requests
         Session::put('locale', $locale);
-        
+
         return $next($request);
     }
 }

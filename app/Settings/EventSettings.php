@@ -23,6 +23,8 @@ class EventSettings extends Settings
 
     public array $tracks;
 
+    public array $custom_questions = [];
+
     // DateTime-based automatic state management
     public mixed $flinta_registration_opens_at = null;
 
@@ -271,5 +273,30 @@ class EventSettings extends Settings
         }
 
         return null;
+    }
+
+    /**
+     * Get available locales for the application
+     */
+    public static function getAvailableLocales(): array
+    {
+        return ['en', 'de'];
+    }
+
+    /**
+     * Get question types with their labels
+     */
+    public static function getQuestionTypes(): array
+    {
+        return [
+            'text' => 'Short Text',
+            'textarea' => 'Long Text',
+            'number' => 'Number',
+            'email' => 'Email',
+            'select' => 'Dropdown',
+            'radio' => 'Radio Buttons',
+            'checkbox' => 'Checkboxes (Multiple)',
+            'date' => 'Date',
+        ];
     }
 }

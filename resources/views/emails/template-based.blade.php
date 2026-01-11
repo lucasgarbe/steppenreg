@@ -1,3 +1,9 @@
+@php
+    $themeTextColor = $variables['theme_text_color'] ?? '#1a1a1a';
+    $themeBackgroundColor = $variables['theme_background_color'] ?? '#fffdf8c2';
+    $themePrimaryColor = $variables['theme_primary_color'] ?? '#F9C458';
+    $themeAccentColor = $variables['theme_accent_color'] ?? '#7a58fc';
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,11 +15,11 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #1a1a1a;
+            color: <?php echo $themeTextColor; ?>;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #fffdf8c2;
+            background-color: <?php echo $themeBackgroundColor; ?>;
         }
 
         .email-container {
@@ -58,7 +64,7 @@
         }
 
         a {
-            color: #3498db;
+            color: <?php echo $themePrimaryColor; ?>;
             text-decoration: none;
         }
 
@@ -69,7 +75,7 @@
         .button {
             display: inline-block;
             padding: 12px 24px;
-            background-color: #3498db;
+            background-color: <?php echo $themePrimaryColor; ?>;
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 6px;
@@ -78,7 +84,8 @@
         }
 
         .button:hover {
-            background-color: #2980b9;
+            background-color: <?php echo $themePrimaryColor; ?>;
+            opacity: 0.9;
             text-decoration: none;
         }
 
@@ -108,7 +115,7 @@
 
         .panel {
             background-color: #f8f9fa;
-            border-left: 4px solid #3498db;
+            border-left: 4px solid <?php echo $themeAccentColor; ?>;
             padding: 15px;
             margin: 20px 0;
         }

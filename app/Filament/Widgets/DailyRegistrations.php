@@ -11,7 +11,7 @@ class DailyRegistrations extends ChartWidget
 {
     protected ?string $heading = 'Daily Registration Activity';
 
-    protected int | string | array $columnSpan = 1;
+    protected int|string|array $columnSpan = 1;
 
     protected static ?int $sort = 4;
 
@@ -72,7 +72,7 @@ class DailyRegistrations extends ChartWidget
                     'borderWidth' => 2,
                     'borderRadius' => 4,
                     'borderSkipped' => false,
-                ]
+                ],
             ],
             'labels' => $dates,
         ];
@@ -102,26 +102,26 @@ class DailyRegistrations extends ChartWidget
                 ],
                 'title' => [
                     'display' => true,
-                    'text' => 'Number of new registrations per day'
-                ]
+                    'text' => 'Number of new registrations per day',
+                ],
             ],
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
                     'title' => [
                         'display' => true,
-                        'text' => 'Number of Registrations'
+                        'text' => 'Number of Registrations',
                     ],
                     'ticks' => [
                         'stepSize' => 1,
-                    ]
+                    ],
                 ],
                 'x' => [
                     'title' => [
                         'display' => true,
-                        'text' => 'Date'
-                    ]
-                ]
+                        'text' => 'Date',
+                    ],
+                ],
             ],
             'interaction' => [
                 'intersect' => false,

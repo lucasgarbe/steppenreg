@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,11 +13,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('registrations', function (Blueprint $table) {
-            $table->foreignId('draw_id')->nullable()->after('track_id')
-                ->constrained('draws')->onDelete('set null');
-
-            $table->index(['draw_id', 'draw_status']);
+            $table->jsonb('custom_answers')->nullable()->after('notes');
         });
+
+        // Add GIN index for better JSON query performance on PostgreSQL
+        DB::statement('CREATE INDEX IF NOT EXISTS registrations_custom_answers_gin_idx ON registrations USING GIN (custom_answers)');
     }
 
     /**
@@ -24,10 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        DB::statement('DROP INDEX IF EXISTS registrations_custom_answers_gin_idx');
+
         Schema::table('registrations', function (Blueprint $table) {
-            $table->dropForeign(['draw_id']);
-            $table->dropIndex(['draw_id', 'draw_status']);
-            $table->dropColumn('draw_id');
+            $table->dropColumn('custom_answers');
         });
     }
 };

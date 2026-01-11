@@ -5,9 +5,9 @@ namespace App\Filament\Resources\Registrations\Schemas;
 use App\Models\Team;
 use App\Settings\EventSettings;
 use Filament\Forms;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
 
 class RegistrationForm
 {
@@ -63,15 +63,15 @@ class RegistrationForm
                             ->options(function () {
                                 $tracks = app(EventSettings::class)->tracks ?? [];
                                 $options = [];
-                                
+
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
-                                        $label .= ' (' . $track['distance'] . ' km)';
+                                        $label .= ' ('.$track['distance'].' km)';
                                     }
                                     $options[$track['id']] = $label;
                                 }
-                                
+
                                 return $options;
                             })
                             ->required()
@@ -82,10 +82,10 @@ class RegistrationForm
                             ->label('Team Selection')
                             ->options(function (Get $get) {
                                 $trackId = $get('track_id');
-                                if (!$trackId) {
+                                if (! $trackId) {
                                     return [];
                                 }
-                                
+
                                 return Team::forTrack($trackId)
                                     ->notFull()
                                     ->withCount('registrations')
@@ -95,18 +95,18 @@ class RegistrationForm
                                         $memberCount = $team->registrations_count;
                                         $maxMembers = $team->max_members;
                                         $available = $maxMembers - $memberCount;
-                                        
+
                                         $label .= " ({$memberCount}/{$maxMembers})";
                                         if ($available <= 2) {
                                             $label .= " - {$available} spots left";
                                         }
-                                        
+
                                         // Show track name if team has different track
                                         if ($team->track_id && $team->track_id !== $trackId) {
                                             $trackName = $team->track_name ?? "Track {$team->track_id}";
                                             $label .= " [{$trackName}]";
                                         }
-                                        
+
                                         return [$team->id => $label];
                                     })
                                     ->toArray();
@@ -133,6 +133,7 @@ class RegistrationForm
                                     'max_members' => $data['max_members'] ?? 5,
                                     'track_id' => $get('track_id'), // Set track from registration
                                 ]);
+
                                 return $team->id;
                             }),
                     ])->columns(2),
@@ -173,6 +174,70 @@ class RegistrationForm
                             ->rows(4)
                             ->placeholder('Any additional notes about this registration...'),
                     ]),
+
+                Section::make('Custom Questions')
+                    ->description('Event-specific questions and answers')
+                    ->schema(function () {
+                        $eventSettings = app(EventSettings::class);
+                        $customQuestions = $eventSettings->custom_questions ?? [];
+                        $fields = [];
+
+                        foreach ($customQuestions as $question) {
+                            $key = $question['key'];
+                            $label = $question['translations']['en']['label'] ?? $key;
+
+                            $field = match ($question['type']) {
+                                'text', 'email' => Forms\Components\TextInput::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->required($question['required'] ?? false),
+
+                                'textarea' => Forms\Components\Textarea::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->rows(3)
+                                    ->required($question['required'] ?? false),
+
+                                'number' => Forms\Components\TextInput::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->numeric()
+                                    ->required($question['required'] ?? false),
+
+                                'select' => Forms\Components\Select::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->options(collect($question['options'] ?? [])
+                                        ->pluck('label_en', 'value')
+                                        ->toArray())
+                                    ->required($question['required'] ?? false),
+
+                                'radio' => Forms\Components\Radio::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->options(collect($question['options'] ?? [])
+                                        ->pluck('label_en', 'value')
+                                        ->toArray())
+                                    ->required($question['required'] ?? false),
+
+                                'checkbox' => Forms\Components\CheckboxList::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->options(collect($question['options'] ?? [])
+                                        ->pluck('label_en', 'value')
+                                        ->toArray())
+                                    ->required($question['required'] ?? false),
+
+                                'date' => Forms\Components\DatePicker::make("custom_answers.{$key}")
+                                    ->label($label)
+                                    ->required($question['required'] ?? false),
+
+                                default => null
+                            };
+
+                            if ($field) {
+                                $fields[] = $field;
+                            }
+                        }
+
+                        return $fields;
+                    })
+                    ->columns(2)
+                    ->visible(fn () => ! empty(app(EventSettings::class)->custom_questions)),
             ]);
     }
 }

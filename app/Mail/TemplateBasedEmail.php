@@ -5,7 +5,6 @@ namespace App\Mail;
 use App\Models\MailTemplate;
 use App\Models\Registration;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -30,10 +29,10 @@ class TemplateBasedEmail extends Mailable
     public function envelope(): Envelope
     {
         $subject = $this->template->subject;
-        
+
         // Replace variables in subject
         foreach ($this->variables as $key => $value) {
-            $placeholder = '{{' . $key . '}}';
+            $placeholder = '{{'.$key.'}}';
             $subject = str_replace($placeholder, $value, $subject);
         }
 

@@ -26,7 +26,7 @@ class DrawService
         // Check if draw already executed for this track
         if (Draw::where('track_id', $trackId)->exists()) {
             throw new DrawAlreadyExecutedException(
-                "A draw has already been executed for this track"
+                'A draw has already been executed for this track'
             );
         }
 
@@ -38,7 +38,7 @@ class DrawService
 
         if ($registrations->isEmpty()) {
             throw new InsufficientRegistrationsException(
-                "No registrations available for draw"
+                'No registrations available for draw'
             );
         }
 
@@ -72,7 +72,7 @@ class DrawService
                     'drawn_at' => now(),
                     'draw_id' => $draw->id,
                 ]);
-                
+
                 event(new RegistrationDrawn($registration->fresh()));
             }
 
@@ -81,7 +81,7 @@ class DrawService
                 $registration->update([
                     'draw_id' => $draw->id,
                 ]);
-                
+
                 event(new RegistrationNotDrawn($registration->fresh()));
             }
 
@@ -158,7 +158,7 @@ class DrawService
     {
         $draw = Draw::where('track_id', $trackId)->first();
 
-        if (!$draw) {
+        if (! $draw) {
             return null;
         }
 

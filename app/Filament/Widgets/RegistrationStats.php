@@ -5,11 +5,11 @@ namespace App\Filament\Widgets;
 use App\Settings\EventSettings;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Psy\Readline\Hoa\Event;
 
 class RegistrationStats extends StatsOverviewWidget
 {
     protected static ?int $sort = 2;
+
     protected function getStats(): array
     {
         $stats = \App\Models\Registration::getStats();
@@ -27,7 +27,7 @@ class RegistrationStats extends StatsOverviewWidget
         array_push(
             $statCards,
             Stat::make('FLINTA* Registrations', $stats['gender_flinta'])
-                ->description($stats['total'] > 0 ? number_format($stats['gender_flinta'] / $stats['total'] * 100, 2, ',', '') . '%' : 'N/A')
+                ->description($stats['total'] > 0 ? number_format($stats['gender_flinta'] / $stats['total'] * 100, 2, ',', '').'%' : 'N/A')
                 ->descriptionIcon('heroicon-m-percent-badge')
                 ->color('primary')
         );
@@ -35,7 +35,7 @@ class RegistrationStats extends StatsOverviewWidget
         array_push(
             $statCards,
             Stat::make('All Gender Registrations', $stats['gender_all_gender'])
-                ->description($stats['total'] > 0 ? number_format($stats['gender_all_gender'] / $stats['total'] * 100, 2, ',', '') . '%' : 'N/A')
+                ->description($stats['total'] > 0 ? number_format($stats['gender_all_gender'] / $stats['total'] * 100, 2, ',', '').'%' : 'N/A')
                 ->descriptionIcon('heroicon-m-percent-badge')
                 ->color('primary')
         );
@@ -43,7 +43,7 @@ class RegistrationStats extends StatsOverviewWidget
         array_push(
             $statCards,
             Stat::make('Paid Registrations', $stats['payed'])
-                ->description($stats['unpayed'] . ' unpaid')
+                ->description($stats['unpayed'].' unpaid')
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('success')
         );

@@ -44,6 +44,7 @@ class Registration extends Model
         'starting_number',
         'finish_time',
         'notes',
+        'custom_answers',
     ];
 
     protected $casts = [
@@ -52,6 +53,7 @@ class Registration extends Model
         'starting' => 'boolean',
         'drawn_at' => 'datetime',
         'finish_time' => 'datetime:H:i',
+        'custom_answers' => 'array',
     ];
 
     // Relationships
@@ -119,7 +121,7 @@ class Registration extends Model
 
     public function getHasFinishedAttribute(): bool
     {
-        return !is_null($this->finish_time);
+        return ! is_null($this->finish_time);
     }
 
     public function getIsDrawnAttribute(): bool
@@ -129,7 +131,7 @@ class Registration extends Model
 
     public function getTrackAttribute(): ?array
     {
-        if (!$this->track_id) {
+        if (! $this->track_id) {
             return null;
         }
 
@@ -179,6 +181,19 @@ class Registration extends Model
         }
 
         return __('messages.registered');
+    }
+
+    // Custom answers helper methods
+    public function getCustomAnswer(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->custom_answers, $key, $default);
+    }
+
+    public function setCustomAnswer(string $key, mixed $value): void
+    {
+        $answers = $this->custom_answers ?? [];
+        data_set($answers, $key, $value);
+        $this->custom_answers = $answers;
     }
 
     // Static methods

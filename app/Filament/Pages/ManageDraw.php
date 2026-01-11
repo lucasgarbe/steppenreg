@@ -7,18 +7,18 @@ use App\Filament\Resources\Registrations\Widgets\TrackStatsWidget;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
+use BackedEnum;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Section;
-use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use BackedEnum;
-use UnitEnum;
 use Illuminate\Support\Facades\Log;
+use UnitEnum;
 
 class ManageDraw extends Page implements HasSchemas
 {
@@ -37,6 +37,7 @@ class ManageDraw extends Page implements HasSchemas
     protected string $view = 'filament.pages.manage-draw';
 
     public ?array $data = [];
+
     public ?array $emailData = [];
 
     public function form(Schema $schema): Schema
@@ -56,7 +57,7 @@ class ManageDraw extends Page implements HasSchemas
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
-                                        $label .= ' (' . $track['distance'] . ' km)';
+                                        $label .= ' ('.$track['distance'].' km)';
                                     }
                                     $options[$track['id']] = $label;
                                 }
@@ -92,13 +93,13 @@ class ManageDraw extends Page implements HasSchemas
                             ->options(function () {
                                 $tracks = app(EventSettings::class)->tracks ?? [];
                                 $options = [
-                                    'all' => 'All Tracks'
+                                    'all' => 'All Tracks',
                                 ];
 
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
-                                        $label .= ' (' . $track['distance'] . ' km)';
+                                        $label .= ' ('.$track['distance'].' km)';
                                     }
                                     $options[$track['id']] = $label;
                                 }
@@ -137,7 +138,7 @@ class ManageDraw extends Page implements HasSchemas
             $allStats[] = [
                 'track_name' => $track['name'],
                 'distance' => $track['distance'] ?? null,
-                'stats' => $stats
+                'stats' => $stats,
             ];
         }
 
@@ -241,6 +242,7 @@ class ManageDraw extends Page implements HasSchemas
                 ->body('No participants available for draw in this track.')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -265,24 +267,24 @@ class ManageDraw extends Page implements HasSchemas
             Log::info('Drew unit', [
                 'type' => $unit['type'],
                 'participant_count' => $unit['participant_count'],
-                'total_drawn' => $participantsDrawn
+                'total_drawn' => $participantsDrawn,
             ]);
 
             // Log individual registrations being drawn
             foreach ($unit['registrations'] as $registration) {
-                Log::info('Drawn registration: ' . $registration->email);
+                Log::info('Drawn registration: '.$registration->email);
                 $registration->draw_status = 'drawn';
                 $registration->drawn_at = now();
                 $registration->save();
 
                 // If this is a team registration, draw all team members
                 if ($registration->team) {
-                    Log::info('Drawn registration is in team: ' . $registration->team->name);
+                    Log::info('Drawn registration is in team: '.$registration->team->name);
                     $teamMembers = $registration->team->registrations()->where('draw_status', 'not_drawn')->get();
 
                     foreach ($teamMembers as $teamMember) {
                         if ($teamMember->id !== $registration->id) { // Don't double-process the original
-                            Log::info('Registration drawn through team: ' . $teamMember->email);
+                            Log::info('Registration drawn through team: '.$teamMember->email);
                             $teamMember->draw_status = 'drawn';
                             $teamMember->drawn_at = now();
                             $teamMember->save();
@@ -342,7 +344,7 @@ class ManageDraw extends Page implements HasSchemas
 
         // Send to drawn participants (generate withdraw tokens first)
         foreach ($drawn as $registration) {
-            if (!$registration->withdraw_token) {
+            if (! $registration->withdraw_token) {
                 $registration->generateWithdrawToken();
             }
             \App\Jobs\Mail\SendDrawNotification::dispatch($registration);
@@ -364,7 +366,7 @@ class ManageDraw extends Page implements HasSchemas
                     continue; // Skip other team members
                 }
                 $processedTeams[] = $registration->team_id;
-                
+
                 // Find team captain (first member in not_drawn status)
                 $teamCaptain = $registration->team->registrations()->where('draw_status', 'not_drawn')->first();
                 if ($teamCaptain) {
@@ -387,7 +389,7 @@ class ManageDraw extends Page implements HasSchemas
             $track = collect($tracks)->firstWhere('id', $trackId);
             $trackInfo = $track ? " for {$track['name']}" : " for Track {$trackId}";
         } else {
-            $trackInfo = " for all tracks";
+            $trackInfo = ' for all tracks';
         }
 
         Notification::make()
@@ -401,7 +403,7 @@ class ManageDraw extends Page implements HasSchemas
             'drawn' => $drawn->count(),
             'waitlist' => $waitlist->count(),
             'rejected' => $rejected->count(),
-            'total_sent' => $sent
+            'total_sent' => $sent,
         ]);
     }
 

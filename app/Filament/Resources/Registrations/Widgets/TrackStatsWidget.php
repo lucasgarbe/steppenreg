@@ -5,16 +5,16 @@ namespace App\Filament\Resources\Registrations\Widgets;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
-use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 
 class TrackStatsWidget extends BaseWidget
 {
     protected static ?string $heading = 'Track Statistics';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {
@@ -67,10 +67,14 @@ class TrackStatsWidget extends BaseWidget
     protected function getTableQuery(): Builder
     {
         // Create a dummy model to satisfy the table requirement
-        $model = new class extends \Illuminate\Database\Eloquent\Model {
+        $model = new class extends \Illuminate\Database\Eloquent\Model
+        {
             protected $table = 'track_statistics_widget';
+
             protected $fillable = ['*'];
+
             public $timestamps = false;
+
             protected $attributes = [];
         };
 
@@ -83,10 +87,14 @@ class TrackStatsWidget extends BaseWidget
         $data = collect();
 
         // Create a model class for our data
-        $modelClass = new class extends \Illuminate\Database\Eloquent\Model {
+        $modelClass = new class extends \Illuminate\Database\Eloquent\Model
+        {
             protected $table = 'track_statistics_widget';
+
             protected $fillable = ['*'];
+
             public $timestamps = false;
+
             protected $attributes = [];
         };
 

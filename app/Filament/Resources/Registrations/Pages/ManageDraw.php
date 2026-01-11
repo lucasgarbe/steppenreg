@@ -11,14 +11,14 @@ use App\Filament\Resources\Registrations\Widgets\TrackStatsWidget;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Section;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -27,7 +27,9 @@ class ManageDraw extends Page implements HasSchemas
     use InteractsWithSchemas;
 
     protected static string $resource = RegistrationResource::class;
+
     protected static ?string $title = 'Auslosung';
+
     protected string $view = 'filament.resources.registrations.pages.manage-draw';
 
     public ?array $data = [];
@@ -49,7 +51,7 @@ class ManageDraw extends Page implements HasSchemas
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
-                                        $label .= ' (' . $track['distance'] . ' km)';
+                                        $label .= ' ('.$track['distance'].' km)';
                                     }
                                     $options[$track['id']] = $label;
                                 }
@@ -90,7 +92,7 @@ class ManageDraw extends Page implements HasSchemas
             $allStats[] = [
                 'track_name' => $track['name'],
                 'distance' => $track['distance'] ?? null,
-                'stats' => $stats
+                'stats' => $stats,
             ];
         }
 
@@ -170,7 +172,7 @@ class ManageDraw extends Page implements HasSchemas
             Log::info('Draw completed', [
                 'draw_id' => $draw->id,
                 'total_drawn' => $draw->total_drawn,
-                'total_not_drawn' => $draw->total_not_drawn
+                'total_not_drawn' => $draw->total_not_drawn,
             ]);
 
         } catch (DrawAlreadyExecutedException $e) {
@@ -194,14 +196,14 @@ class ManageDraw extends Page implements HasSchemas
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Draw Failed')
-                ->body('An error occurred while executing the draw: ' . $e->getMessage())
+                ->body('An error occurred while executing the draw: '.$e->getMessage())
                 ->danger()
                 ->send();
 
             Log::error('Draw execution failed', [
                 'track_id' => $trackId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
