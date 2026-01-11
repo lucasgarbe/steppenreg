@@ -1,36 +1,44 @@
 <?php
 
-namespace App\Filament\Resources\Registrations\Pages;
+namespace App\Domain\Draw\Filament\Pages;
 
 use App\Domain\Draw\Exceptions\DrawAlreadyExecutedException;
 use App\Domain\Draw\Exceptions\InsufficientRegistrationsException;
+use App\Domain\Draw\Filament\Widgets\DrawStatsWidget;
+use App\Domain\Draw\Filament\Widgets\TrackStatsWidget;
 use App\Domain\Draw\Services\DrawService;
-use App\Filament\Resources\Registrations\RegistrationResource;
-use App\Filament\Resources\Registrations\Widgets\DrawStatsWidget;
-use App\Filament\Resources\Registrations\Widgets\TrackStatsWidget;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
+use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\Page;
+use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use UnitEnum;
 
 class ManageDraw extends Page implements HasSchemas
 {
     use InteractsWithSchemas;
 
-    protected static string $resource = RegistrationResource::class;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGiftTop;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Registration';
+
+    protected static ?string $navigationLabel = 'Manage Draw';
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $title = 'Auslosung';
 
-    protected string $view = 'filament.resources.registrations.pages.manage-draw';
+    protected string $view = 'filament.draw.pages.manage-draw';
 
     public ?array $data = [];
 

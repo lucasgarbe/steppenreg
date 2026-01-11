@@ -60,8 +60,6 @@ class MailTemplate extends Model
             'draw_status' => 'Draw status',
             'team_name' => 'Team name (if applicable)',
             'track_distance' => 'Track distance',
-            'waitlist_url' => 'Waitlist registration URL',
-            'withdraw_url' => 'Withdrawal URL',
             'contact_email_link' => 'Contact email link (clickable)',
             'theme_primary_color' => 'Theme primary color (configured in settings)',
             'theme_background_color' => 'Theme background color (configured in settings)',
