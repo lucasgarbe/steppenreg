@@ -97,19 +97,19 @@ class ManageCustomQuestions extends SettingsPage
                                                     ->label(strtoupper($locale).' Required Error')
                                                     ->maxLength(255)
                                                     ->placeholder($locale === 'de' ? 'z.B. Bitte akzeptiere die Bedingungen.' : 'e.g. Please accept the terms.')
-                                                    ->helperText("Message when field is empty (optional)"),
+                                                    ->helperText('Message when field is empty (optional)'),
 
                                                 TextInput::make("translations.{$locale}.error_invalid")
                                                     ->label(strtoupper($locale).' Invalid Error')
                                                     ->maxLength(255)
                                                     ->placeholder($locale === 'de' ? 'z.B. Bitte gib einen gültigen Wert ein.' : 'e.g. Please enter a valid value.')
-                                                    ->helperText("Message for type validation (email, number, date) (optional)"),
+                                                    ->helperText('Message for type validation (email, number, date) (optional)'),
 
                                                 TextInput::make("translations.{$locale}.error_max")
                                                     ->label(strtoupper($locale).' Too Long Error')
                                                     ->maxLength(255)
                                                     ->placeholder($locale === 'de' ? 'z.B. Die Eingabe ist zu lang.' : 'e.g. The input is too long.')
-                                                    ->helperText("Message when input exceeds maximum length (optional)")
+                                                    ->helperText('Message when input exceeds maximum length (optional)')
                                                     ->visible(fn (Get $get): bool => in_array($get('type'), ['text', 'textarea', 'email']))
                                                     ->columnSpanFull(),
                                             ];

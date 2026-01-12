@@ -621,14 +621,38 @@ class RegistrationsTable
                             \Filament\Forms\Components\Placeholder::make('variables_help')
                                 ->label('Available Template Variables')
                                 ->content(function () {
-                                    $variables = \App\Models\MailTemplate::getAvailableVariables();
+                                    $variablesGrouped = \App\Models\MailTemplate::getAvailableVariablesGrouped();
                                     $help = "Use these variables in your subject and message to personalize emails:\n\n";
 
-                                    foreach ($variables as $key => $description) {
-                                        $help .= '• **{{'.$key.'}}** - '.$description."\n";
+                                    foreach ($variablesGrouped as $groupName => $variables) {
+                                        $help .= "**{$groupName}:**\n\n";
+
+                                        foreach ($variables as $key => $description) {
+                                            $help .= '• **{{'.$key.'}}** - '.$description."\n";
+                                        }
+
+                                        $help .= "\n";
                                     }
 
-                                    $help .= "\nExample: \"Dear {{name}}, you are registered for {{track_name}}!\"";
+                                    // Add explanatory note about custom questions
+                                    if (isset($variablesGrouped['Custom Question Answers']) && ! empty($variablesGrouped['Custom Question Answers'])) {
+                                        $help .= "**Custom Question Variables:**\n\n";
+                                        $help .= "Use locale suffixes for bilingual emails:\n";
+                                        $help .= "• No suffix for raw values (e.g., `{{custom.shirt_size}}`)\n";
+
+                                        if (\App\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                            $help .= "• `.en` suffix for English labels (e.g., `{{custom.shirt_size.en}}`)\n";
+                                            $help .= "• `.de` suffix for German labels (e.g., `{{custom.shirt_size.de}}`)\n\n";
+                                        }
+                                    }
+
+                                    $help .= "**Example:**\n";
+                                    $help .= '"Dear {{name}}, you are registered for {{track_name}}!"';
+
+                                    if (\App\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                        $help .= "\n\n**Bilingual Example:**\n";
+                                        $help .= '"Shirt Size / Hemdgröße: {{custom.shirt_size.en}} / {{custom.shirt_size.de}}"';
+                                    }
 
                                     return $help;
                                 })
