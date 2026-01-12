@@ -173,6 +173,47 @@ Then restart: `./vendor/bin/sail down && ./vendor/bin/sail up -d`
 ./vendor/bin/sail npm run dev
 ```
 
+---
+
+## Scheduler Setup
+
+Steppenreg uses Laravel's task scheduler to automatically update registration phases based on configured datetime transitions in gender categories.
+
+### Development
+
+Start the scheduler daemon in a separate terminal:
+
+```bash
+./vendor/bin/sail artisan schedule:work
+```
+
+**Important**: Keep this running while developing. It checks every minute for scheduled tasks.
+
+### Testing State Transitions
+
+```bash
+# Check what would change (dry run)
+./vendor/bin/sail artisan event:update-state --dry-run
+
+# Force an update (even if automatic transitions are disabled)
+./vendor/bin/sail artisan event:update-state --force
+
+# View scheduled tasks
+./vendor/bin/sail artisan schedule:list
+```
+
+### Verification
+
+Check if scheduler is working:
+
+```bash
+# View recent scheduler activity in logs
+./vendor/bin/sail artisan log:tail | grep "state"
+
+# Check last state update
+./vendor/bin/sail logs | grep "Application state"
+```
+
 ### Shell Alias (Optional)
 
 Add to `~/.zshrc` or `~/.bashrc`:
@@ -259,6 +300,70 @@ Run these commands after deployment:
 
 # Optimize Composer autoloader
 ./vendor/bin/sail composer install --optimize-autoloader --no-dev
+```
+
+### Scheduler Setup (Production)
+
+**Critical**: The scheduler MUST be running for automatic registration phase transitions to work.
+
+#### Option 1: System Cron (Recommended)
+
+Add this to your server's crontab (`crontab -e`):
+
+```cron
+* * * * * cd /path/to/steppenreg && ./vendor/bin/sail artisan schedule:run >> /dev/null 2>&1
+```
+
+Or if not using Sail in production:
+
+```cron
+* * * * * cd /path/to/steppenreg && php artisan schedule:run >> /dev/null 2>&1
+```
+
+**Important**: Replace `/path/to/steppenreg` with your actual application path.
+
+#### Option 2: Systemd Service (Alternative)
+
+Create `/etc/systemd/system/steppenreg-scheduler.service`:
+
+```ini
+[Unit]
+Description=Steppenreg Scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/path/to/steppenreg
+ExecStart=/usr/bin/php /path/to/steppenreg/artisan schedule:work
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable steppenreg-scheduler
+sudo systemctl start steppenreg-scheduler
+sudo systemctl status steppenreg-scheduler
+```
+
+#### Monitoring Scheduler
+
+Verify scheduler is working:
+
+```bash
+# View scheduled tasks
+php artisan schedule:list
+
+# Check logs for state transitions
+tail -f storage/logs/laravel.log | grep "Application state"
+
+# Test state update manually
+php artisan event:update-state --dry-run
 ```
 
 ### Reverse Proxy Setup
