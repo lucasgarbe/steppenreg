@@ -23,12 +23,39 @@ class StateTransitionWidget extends StatsOverviewWidget
             ->description('Application state right now')
             ->descriptionIcon('heroicon-m-information-circle')
             ->color(match ($currentState) {
-                'open_flinta', 'open_everyone' => 'success',
-                'closed_waitlist' => 'warning',
+                'priority_period', 'general_open' => 'success',
                 'live_event' => 'info',
                 'closed' => 'danger',
                 default => 'gray'
             });
+
+        // Show available categories during priority_period
+        if ($currentState === 'priority_period') {
+            $activeCategories = $eventSettings->getActiveGenderCategories();
+            $locale = app()->getLocale();
+            $labels = collect($activeCategories)
+                ->pluck("translations.{$locale}.label")
+                ->join(', ');
+
+            $stats[] = Stat::make('Open For', $labels ?: 'None')
+                ->description('Currently available priority categories')
+                ->descriptionIcon('heroicon-m-users')
+                ->color('info');
+        }
+
+        // Show all categories during general_open
+        if ($currentState === 'general_open') {
+            $allCategories = $eventSettings->gender_categories;
+            $locale = app()->getLocale();
+            $labels = collect($allCategories)
+                ->pluck("translations.{$locale}.label")
+                ->join(', ');
+
+            $stats[] = Stat::make('Open For', $labels)
+                ->description('All categories available')
+                ->descriptionIcon('heroicon-m-users')
+                ->color('success');
+        }
 
         // Automatic Transitions Status
         if ($eventSettings->automatic_state_transitions) {

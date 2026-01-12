@@ -98,7 +98,6 @@ return [
             'individual_registrations' => 'Individual Registrations',
             'drawn_only' => 'Drawn Only',
             'not_drawn_only' => 'Not Drawn Only',
-            'waitlist_only' => 'Waitlist Only',
             'status' => 'Status',
             'select_status' => 'Select Status',
             'all_statuses' => 'All statuses',

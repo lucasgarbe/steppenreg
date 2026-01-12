@@ -143,21 +143,64 @@ class Registration extends Model
         return $this->track['name'] ?? null;
     }
 
-    public function getGenderLabelAttribute(): ?string
+    public function getGenderLabelAttribute(): string
     {
-        return match ($this->gender) {
-            'flinta' => __('messages.gender_flinta'),
-            'all_gender' => __('messages.gender_all_gender'),
-            default => null,
-        };
+        $categories = app(EventSettings::class)->gender_categories;
+        $category = collect($categories)->firstWhere('key', $this->gender);
+
+        if (! $category) {
+            return $this->gender ?? '';
+        }
+
+        $locale = app()->getLocale();
+
+        return $category['translations'][$locale]['label'] ?? $category['key'];
     }
 
+    public function getGenderColorAttribute(): string
+    {
+        $categories = app(EventSettings::class)->gender_categories;
+        $category = collect($categories)->firstWhere('key', $this->gender);
+
+        return $category['color'] ?? '#6b7280';
+    }
+
+    /**
+     * Get gender options for FRONTEND registration (respects state restrictions)
+     */
     public static function getGenderOptions(): array
     {
-        return [
-            'flinta' => __('messages.gender_flinta'),
-            'all_gender' => __('messages.gender_all_gender'),
-        ];
+        $eventSettings = app(EventSettings::class);
+        $availableCategories = $eventSettings->getAvailableGenderCategories();
+        $locale = app()->getLocale();
+
+        return collect($availableCategories)
+            ->sortBy('sort_order')
+            ->mapWithKeys(function ($category) use ($locale) {
+                return [
+                    $category['key'] => $category['translations'][$locale]['label'] ?? $category['key'],
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
+     * Get ALL gender options for ADMIN panels (ignores state restrictions)
+     */
+    public static function getGenderOptionsForAdmin(): array
+    {
+        $eventSettings = app(EventSettings::class);
+        $allCategories = $eventSettings->getAllGenderCategoriesForAdmin();
+        $locale = app()->getLocale();
+
+        return collect($allCategories)
+            ->sortBy('sort_order')
+            ->mapWithKeys(function ($category) use ($locale) {
+                return [
+                    $category['key'] => $category['translations'][$locale]['label'] ?? $category['key'],
+                ];
+            })
+            ->toArray();
     }
 
     public function getStatusAttribute(): string
@@ -197,7 +240,7 @@ class Registration extends Model
     // Static methods
     public static function getStats(): array
     {
-        return [
+        $stats = [
             'total' => static::count(),
             'drawn' => static::drawn()->count(),
             'not_drawn' => static::notDrawn()->count(),
@@ -205,8 +248,14 @@ class Registration extends Model
             'unpayed' => static::unpayed()->count(),
             'starting' => static::starting()->count(),
             'finished' => static::finished()->count(),
-            'gender_flinta' => static::where('gender', 'flinta')->count(),
-            'gender_all_gender' => static::where('gender', 'all_gender')->count(),
         ];
+
+        $categories = app(EventSettings::class)->gender_categories;
+        foreach ($categories as $category) {
+            $key = 'gender_'.$category['key'];
+            $stats[$key] = static::where('gender', $category['key'])->count();
+        }
+
+        return $stats;
     }
 }

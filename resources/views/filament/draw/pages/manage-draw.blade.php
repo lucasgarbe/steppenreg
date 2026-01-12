@@ -37,12 +37,11 @@
                 <div class="ml-3">
                     <h3 class="text-sm font-medium text-blue-800">About Draw Notifications</h3>
                     <div class="mt-2 text-sm text-blue-700">
-                        <p>The "Send All Draw Results" button will:</p>
+                        <p>The "Send All Draw Results" button will notify participants about their draw status:</p>
                         <ul class="mt-1 list-disc pl-5 space-y-1">
-                            <li><strong>Drawn participants:</strong> Get withdrawal links and congratulations</li>
-                            <li><strong>Waitlist participants:</strong> Get status confirmation</li>  
-                            <li><strong>Not drawn participants:</strong> Get waitlist registration links</li>
-                            <li><strong>All necessary tokens</strong> are generated automatically before sending</li>
+                            <li><strong>Drawn participants:</strong> Get congratulations and event details</li>
+                            <li><strong>Not drawn participants:</strong> Get notification about the results</li>
+                            <li>Emails are queued and sent automatically</li>
                         </ul>
                     </div>
                 </div>

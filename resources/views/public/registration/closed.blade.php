@@ -11,16 +11,8 @@
         />
 
         <div class="text-gray-600 space-y-4 mb-8">
-            @if($state === 'closed')
-                <p class="text-lg">{{ __('public.event_closed.message') }}</p>
-                <p>{{ __('public.event_closed.info') }}</p>
-            @elseif($state === 'closed_waitlist')
-                <p class="text-lg">{{ __('public.waitlist_closed.message', ['event' => $eventSettings->event_name]) }}</p>
-                <p>{{ __('public.waitlist_closed.info') }}</p>
-                <p class="text-sm text-gray-500">{{ __('public.waitlist_closed.email_instruction') }}</p>
-            @else
-                <p class="text-lg">{{ __('public.event_closed.not_available') }}</p>
-            @endif
+            <p class="text-lg">{{ __('public.event_closed.message') }}</p>
+            <p>{{ __('public.event_closed.info') }}</p>
         </div>
 
         <!-- Contact Information -->
