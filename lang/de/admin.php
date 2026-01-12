@@ -98,7 +98,6 @@ return [
             'individual_registrations' => 'Einzelanmeldungen',
             'drawn_only' => 'Nur Geloste',
             'not_drawn_only' => 'Nur Nicht-Geloste',
-            'waitlist_only' => 'Nur Warteliste',
             'status' => 'Status',
             'select_status' => 'Status auswählen',
             'all_statuses' => 'Alle Status',

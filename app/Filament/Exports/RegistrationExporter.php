@@ -44,10 +44,12 @@ class RegistrationExporter extends Exporter
 
             ExportColumn::make('gender')
                 ->label('Gender')
-                ->formatStateUsing(fn (?string $state): string => match ($state) {
-                    'flinta' => 'FLINTA*',
-                    'all_gender' => 'All Gender',
-                    default => '---',
+                ->formatStateUsing(function (?string $state, Registration $record): string {
+                    if (! $state) {
+                        return '---';
+                    }
+
+                    return $record->gender_label;
                 }),
 
             ExportColumn::make('track_name')

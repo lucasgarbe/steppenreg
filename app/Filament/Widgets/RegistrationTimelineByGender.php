@@ -64,20 +64,13 @@ class RegistrationTimelineByGender extends ChartWidget
             ->get()
             ->groupBy('gender');
 
-        // Prepare datasets for each gender
+        // Prepare datasets for each gender dynamically
         $datasets = [];
-        $genderConfig = [
-            'flinta' => [
-                'label' => 'FLINTA*',
-                'color' => 'rgb(139, 92, 246)',  // Purple
-            ],
-            'all_gender' => [
-                'label' => 'All Gender',
-                'color' => 'rgb(59, 130, 246)',  // Blue
-            ],
-        ];
+        $categories = app(EventSettings::class)->gender_categories;
+        $locale = app()->getLocale();
 
-        foreach ($genderConfig as $genderKey => $config) {
+        foreach ($categories as $category) {
+            $genderKey = $category['key'];
             $genderData = $registrationData->get($genderKey, collect());
 
             // Fill data array with daily counts
@@ -96,14 +89,17 @@ class RegistrationTimelineByGender extends ChartWidget
                 $current->addDay();
             }
 
+            $label = $category['translations'][$locale]['label'] ?? $category['key'];
+            $color = $category['color'] ?? '#6b7280';
+
             $datasets[] = [
-                'label' => $config['label'],
+                'label' => $label,
                 'data' => $dataPoints,
-                'borderColor' => $config['color'],
-                'backgroundColor' => $config['color'].'20',
+                'borderColor' => $color,
+                'backgroundColor' => $color.'20',
                 'tension' => 0.3,
                 'fill' => false,
-                'pointBackgroundColor' => $config['color'],
+                'pointBackgroundColor' => $color,
                 'pointBorderColor' => '#fff',
                 'pointBorderWidth' => 2,
                 'pointRadius' => 4,

@@ -13,11 +13,13 @@ use BackedEnum;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
@@ -89,13 +91,13 @@ class ManageEvent extends SettingsPage
                         Toggle::make('manual_override_active')
                             ->label('Manual Override Active')
                             ->helperText('Temporarily override automatic transitions')
-                            ->visible(fn ($get) => $get('automatic_state_transitions'))
+                            ->visible(fn($get) => $get('automatic_state_transitions'))
                             ->reactive(),
 
                         Select::make('manual_override_state')
                             ->label('Override State')
                             ->options(EventSettings::getApplicationStates())
-                            ->visible(fn ($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
+                            ->visible(fn($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
                             ->helperText('This state will be used instead of automatic transitions')
                             ->native(false),
                     ])
@@ -103,28 +105,11 @@ class ManageEvent extends SettingsPage
                     ->collapsible(),
 
                 Section::make('Registration Timeline')
+                    ->description('Gender category registration times are configured in the Gender Categories section below.')
                     ->schema([
-                        DateTimePicker::make('flinta_registration_opens_at')
-                            ->label('FLINTA* Registration Opens')
-                            ->helperText('When registration opens for FLINTA* participants only')
-                            ->seconds(false)
-                            ->timezone(config('app.timezone')),
-
-                        DateTimePicker::make('everyone_registration_opens_at')
-                            ->label('Everyone Registration Opens')
-                            ->helperText('When registration opens for all participants')
-                            ->seconds(false)
-                            ->timezone(config('app.timezone')),
-
                         DateTimePicker::make('registration_closes_at')
                             ->label('Registration Closes')
                             ->helperText('When new registrations are no longer accepted')
-                            ->seconds(false)
-                            ->timezone(config('app.timezone')),
-
-                        DateTimePicker::make('waitlist_only_starts_at')
-                            ->label('Waitlist Only Begins')
-                            ->helperText('When only waitlist registrations are allowed')
                             ->seconds(false)
                             ->timezone(config('app.timezone')),
 
@@ -191,12 +176,133 @@ class ManageEvent extends SettingsPage
                             ])
                             ->columns(2)
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
+                            ->itemLabel(fn(array $state): ?string => $state['name'] ?? null)
                             ->addActionLabel('Add Track')
                             ->deleteAction(
-                                fn ($action) => $action->requiresConfirmation()
+                                fn($action) => $action->requiresConfirmation()
                             ),
                     ]),
+
+                Section::make('Gender Categories')
+                    ->description('Configure gender categories with priority access and custom messaging. Priority categories open first, then general categories.')
+                    ->schema([
+                        Repeater::make('gender_categories')
+                            ->schema([
+                                TextInput::make('key')
+                                    ->label('Category Key')
+                                    ->required()
+                                    ->helperText('Unique identifier (lowercase, underscores only). Cannot be changed once registrations exist.')
+                                    ->regex('/^[a-z0-9_]+$/')
+                                    ->maxLength(50)
+                                    ->columnSpan(2),
+
+                                Toggle::make('is_priority')
+                                    ->label('Priority')
+                                    ->helperText('Gets early access during priority registration period')
+                                    ->default(false)
+                                    ->reactive()
+                                    ->columnSpan(1),
+
+                                ColorPicker::make('color')
+                                    ->label('Badge Color')
+                                    ->required()
+                                    ->helperText('Color for badges, charts, and visual indicators')
+                                    ->columnSpan(1),
+
+                                DateTimePicker::make('registration_opens_at')
+                                    ->label('Registration Opens')
+                                    ->required(fn(Get $get) => $get('../../automatic_state_transitions') ?? false)
+                                    ->helperText(function (Get $get): string {
+                                        $isPriority = $get('is_priority');
+                                        $root = $get('../../');
+                                        $autoTransitions = $root['automatic_state_transitions'] ?? false;
+
+                                        if ($autoTransitions) {
+                                            $type = $isPriority ? 'priority' : 'general';
+
+                                            return "Required. When this {$type} category opens. Priority must open before general.";
+                                        }
+
+                                        return 'Optional. Set for automatic state transitions.';
+                                    })
+                                    ->seconds(false)
+                                    ->timezone(config('app.timezone'))
+                                    ->columnSpan(2),
+
+                                Section::make('Translations')
+                                    ->description('Category labels for each language')
+                                    ->schema([
+                                        TextInput::make('translations.en.label')
+                                            ->label('English Label')
+                                            ->required()
+                                            ->maxLength(100),
+
+                                        TextInput::make('translations.de.label')
+                                            ->label('German Label')
+                                            ->required()
+                                            ->maxLength(100),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsible()
+                                    ->columnSpanFull(),
+
+                                Section::make('Priority Period Message')
+                                    ->description('Optional custom message shown when this category is available during priority period. Supports rich text formatting.')
+                                    ->schema([
+                                        RichEditor::make('message.en')
+                                            ->label('English Message')
+                                            ->toolbarButtons([
+                                                'bold',
+                                                'italic',
+                                                'link',
+                                                'bulletList',
+                                                'orderedList',
+                                            ])
+                                            ->helperText('Shown to users who can access this category')
+                                            ->maxLength(2000),
+
+                                        RichEditor::make('message.de')
+                                            ->label('German Message')
+                                            ->toolbarButtons([
+                                                'bold',
+                                                'italic',
+                                                'link',
+                                                'bulletList',
+                                                'orderedList',
+                                            ])
+                                            ->helperText('German version of the message')
+                                            ->maxLength(2000),
+
+                                        Select::make('message_style')
+                                            ->label('Message Style')
+                                            ->options([
+                                                'info' => 'Info (Blue)',
+                                                'success' => 'Success (Green)',
+                                                'warning' => 'Warning (Yellow)',
+                                                'pride' => 'Pride (Rainbow)',
+                                            ])
+                                            ->default('info')
+                                            ->helperText('Visual styling for the message box')
+                                            ->native(false),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsible()
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(3)
+                            ->collapsible()
+                            ->reorderable()
+                            ->reorderableWithButtons()
+                            ->itemLabel(fn(array $state): ?string => ($state['is_priority'] ?? false ? '[Priority] ' : '') . ($state['translations']['en']['label'] ?? $state['key'] ?? null))
+                            ->addActionLabel('Add Gender Category')
+                            ->deleteAction(
+                                fn($action) => $action
+                                    ->requiresConfirmation()
+                                    ->modalDescription('This may affect existing registrations with this category.')
+                            )
+                            ->defaultItems(0),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
@@ -215,5 +321,33 @@ class ManageEvent extends SettingsPage
     public function getColumns(): int|string|array
     {
         return 3;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Add sort_order to gender categories based on position
+        if (isset($data['gender_categories'])) {
+            foreach ($data['gender_categories'] as $index => $category) {
+                $data['gender_categories'][$index]['sort_order'] = $index + 1;
+            }
+        }
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        // Validate category opening times
+        $eventSettings = app(EventSettings::class);
+        $errors = $eventSettings->validateCategoryOpeningTimes();
+
+        if (! empty($errors)) {
+            \Filament\Notifications\Notification::make()
+                ->title('Category Opening Time Validation')
+                ->body(implode(' ', $errors))
+                ->warning()
+                ->persistent()
+                ->send();
+        }
     }
 }

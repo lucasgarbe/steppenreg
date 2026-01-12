@@ -15,14 +15,12 @@ class PublicRegistrationController extends Controller
         $eventSettings = app(EventSettings::class);
         $tracks = $eventSettings->tracks ?? [];
 
-        // Check application state and determine access
         $applicationState = $eventSettings->application_state;
-        $isFlintaOnly = $eventSettings->isOpenForFlintaOnly();
+        $isPriorityPeriod = ($applicationState === 'priority_period');
         $isLiveEvent = $eventSettings->isLiveEvent();
 
-        // Handle different states
-        if ($applicationState === 'closed' || $applicationState === 'closed_waitlist') {
-            // Registration is closed (waitlist is managed via email links, not public form)
+        // Handle closed state
+        if ($applicationState === 'closed') {
             return view('public.registration.closed', [
                 'eventSettings' => $eventSettings,
                 'state' => $applicationState,
@@ -30,18 +28,27 @@ class PublicRegistrationController extends Controller
         }
 
         if ($isLiveEvent) {
-            // Live event - show special message
             return view('public.registration.live-event', [
                 'eventSettings' => $eventSettings,
             ]);
         }
 
-        // Registration is open (either FLINTA* only or everyone)
+        // Get available categories based on state
+        $availableCategories = $eventSettings->getAvailableGenderCategories();
+
+        // Get categories with messages for display
+        $categoriesWithMessages = collect($availableCategories)
+            ->filter(fn ($cat) => ! empty($cat['message'][app()->getLocale()]))
+            ->values()
+            ->toArray();
+
         return view('public.registration.create', compact(
             'tracks',
             'eventSettings',
             'applicationState',
-            'isFlintaOnly'
+            'isPriorityPeriod',
+            'availableCategories',
+            'categoriesWithMessages'
         ));
     }
 
@@ -50,30 +57,27 @@ class PublicRegistrationController extends Controller
         $eventSettings = app(EventSettings::class);
 
         // Check if registration is allowed
-        if (
-            $eventSettings->application_state === 'closed' ||
-            $eventSettings->application_state === 'closed_waitlist' ||
-            $eventSettings->isLiveEvent()
-        ) {
+        if ($eventSettings->application_state === 'closed' ||
+            $eventSettings->isLiveEvent()) {
             return redirect()->route('registration.create')
                 ->withErrors(['general' => 'Registration is currently closed.']);
         }
 
-        // Prepare validation rules
+        // Get available gender keys based on current state
+        $availableGenderKeys = collect($eventSettings->getAvailableGenderCategories())
+            ->pluck('key')
+            ->toArray();
+
+        // Validation rules
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'age' => 'required|integer|min:1|max:120',
-            'gender' => 'required|string|in:flinta,all_gender',
+            'gender' => 'required|string|in:'.implode(',', $availableGenderKeys),
             'track_id' => 'required|integer',
             'team_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ];
-
-        // If only FLINTA* registration is open, restrict gender selection
-        if ($eventSettings->isOpenForFlintaOnly()) {
-            $rules['gender'] = 'required|string|in:flinta';
-        }
 
         // Build dynamic validation rules and custom error messages for custom questions
         $customQuestions = $eventSettings->custom_questions ?? [];

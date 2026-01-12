@@ -25,14 +25,14 @@ class EventSettings extends Settings
 
     public array $custom_questions = [];
 
+    public array $gender_categories = [];
+
     // DateTime-based automatic state management
     public mixed $flinta_registration_opens_at = null;
 
     public mixed $everyone_registration_opens_at = null;
 
     public mixed $registration_closes_at = null;
-
-    public mixed $waitlist_only_starts_at = null;
 
     public mixed $event_starts_at = null;
 
@@ -63,9 +63,8 @@ class EventSettings extends Settings
     {
         return [
             'closed' => 'Closed',
-            'open_flinta' => 'Open for FLINTA*',
-            'open_everyone' => 'Open for Everyone',
-            'closed_waitlist' => 'Closed - Waitlist Only',
+            'priority_period' => 'Priority Registration Active',
+            'general_open' => 'Open for All Categories',
             'live_event' => 'Live Event',
         ];
     }
@@ -77,22 +76,133 @@ class EventSettings extends Settings
 
     public function isRegistrationOpen(): bool
     {
-        return in_array($this->application_state, ['open_flinta', 'open_everyone', 'closed_waitlist']);
+        return in_array($this->application_state, ['priority_period', 'general_open']);
     }
 
-    public function isOpenForFlintaOnly(): bool
+    public function isOpenForPriorityOnly(): bool
     {
-        return $this->application_state === 'open_flinta';
-    }
-
-    public function isWaitlistOnly(): bool
-    {
-        return $this->application_state === 'closed_waitlist';
+        return $this->application_state === 'priority_period';
     }
 
     public function isLiveEvent(): bool
     {
         return $this->application_state === 'live_event';
+    }
+
+    /**
+     * Get gender categories marked as priority
+     */
+    public function getPriorityGenderCategories(): array
+    {
+        return collect($this->gender_categories)
+            ->filter(fn ($cat) => $cat['is_priority'] ?? false)
+            ->sortBy('sort_order')
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get gender categories marked as general (non-priority)
+     */
+    public function getGeneralGenderCategories(): array
+    {
+        return collect($this->gender_categories)
+            ->filter(fn ($cat) => ! ($cat['is_priority'] ?? false))
+            ->sortBy('sort_order')
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get categories available for FRONTEND registration based on current state
+     * During priority_period: priority categories (manual mode: all priority, auto mode: opened priority)
+     * During general_open: ALL categories
+     * During closed/live_event: none
+     */
+    public function getAvailableGenderCategories(): array
+    {
+        // If general open, return ALL categories
+        if ($this->application_state === 'general_open') {
+            return collect($this->gender_categories)
+                ->sortBy('sort_order')
+                ->values()
+                ->toArray();
+        }
+
+        // During priority period
+        if ($this->application_state === 'priority_period') {
+            // Manual mode: return all priority categories
+            if (! $this->automatic_state_transitions) {
+                return $this->getPriorityGenderCategories();
+            }
+
+            // Automatic mode: return only opened priority categories
+            $openedCategories = $this->getActiveGenderCategories();
+
+            return collect($openedCategories)
+                ->filter(fn ($cat) => $cat['is_priority'] ?? false)
+                ->values()
+                ->toArray();
+        }
+
+        // Closed or live event - no categories available
+        return [];
+    }
+
+    /**
+     * Get category by key
+     */
+    public function getCategoryByKey(string $key): ?array
+    {
+        return collect($this->gender_categories)
+            ->firstWhere('key', $key);
+    }
+
+    /**
+     * Get ALL gender categories for ADMIN panels (ignores state and time restrictions)
+     * Use this for admin forms, filters, and dropdowns
+     */
+    public function getAllGenderCategoriesForAdmin(): array
+    {
+        return collect($this->gender_categories)
+            ->sortBy('sort_order')
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Validate that priority categories open before general categories
+     * Returns array of validation errors, empty if valid
+     */
+    public function validateCategoryOpeningTimes(): array
+    {
+        $errors = [];
+        $priorityCategories = $this->getPriorityGenderCategories();
+        $generalCategories = $this->getGeneralGenderCategories();
+
+        if (empty($priorityCategories) || empty($generalCategories)) {
+            return $errors; // No validation needed if missing one type
+        }
+
+        // Get latest priority opening time
+        $latestPriorityTime = collect($priorityCategories)
+            ->map(fn ($cat) => $this->carbonize($cat['registration_opens_at'] ?? null))
+            ->filter()
+            ->max();
+
+        // Get earliest general opening time
+        $earliestGeneralTime = collect($generalCategories)
+            ->map(fn ($cat) => $this->carbonize($cat['registration_opens_at'] ?? null))
+            ->filter()
+            ->min();
+
+        if ($latestPriorityTime && $earliestGeneralTime) {
+            if ($latestPriorityTime->gte($earliestGeneralTime)) {
+                $errors[] = "Priority categories must open before general categories. Latest priority: {$latestPriorityTime->format('Y-m-d H:i')}, Earliest general: {$earliestGeneralTime->format('Y-m-d H:i')}";
+            }
+        }
+
+        return $errors;
     }
 
     /**
@@ -125,28 +235,56 @@ class EventSettings extends Settings
             return 'live_event';
         }
 
-        // Waitlist only period
-        $waitlistStarts = $this->carbonize($this->waitlist_only_starts_at);
-        if ($waitlistStarts && $now->gte($waitlistStarts)) {
-            return 'closed_waitlist';
-        }
-
         // Registration closes
         $regCloses = $this->carbonize($this->registration_closes_at);
         if ($regCloses && $now->gte($regCloses)) {
             return 'closed';
         }
 
-        // Open for everyone
-        $everyoneOpens = $this->carbonize($this->everyone_registration_opens_at);
-        if ($everyoneOpens && $now->gte($everyoneOpens)) {
-            return 'open_everyone';
+        // Check priority vs general category opening logic
+        $priorityCategories = $this->getPriorityGenderCategories();
+        $generalCategories = $this->getGeneralGenderCategories();
+
+        // If no categories configured, stay closed
+        if (empty($this->gender_categories)) {
+            return 'closed';
         }
 
-        // Open for FLINTA* only
-        $flintaOpens = $this->carbonize($this->flinta_registration_opens_at);
-        if ($flintaOpens && $now->gte($flintaOpens)) {
-            return 'open_flinta';
+        // Check if ANY general (non-priority) category has opened
+        $anyGeneralCategoryOpened = collect($generalCategories)->some(function ($cat) use ($now) {
+            $opensAt = $this->carbonize($cat['registration_opens_at'] ?? null);
+
+            return $opensAt && $now->gte($opensAt);
+        });
+
+        // If any general category opened, transition to general_open
+        if ($anyGeneralCategoryOpened) {
+            return 'general_open';
+        }
+
+        // Check if ALL priority categories have opened (and no general opened yet)
+        $allPriorityCategoriesOpened = ! empty($priorityCategories) &&
+            collect($priorityCategories)->every(function ($cat) use ($now) {
+                $opensAt = $this->carbonize($cat['registration_opens_at'] ?? null);
+
+                return $opensAt && $now->gte($opensAt);
+            });
+
+        // If all priority opened but no general categories exist, go to general_open
+        if ($allPriorityCategoriesOpened && empty($generalCategories)) {
+            return 'general_open';
+        }
+
+        // Check if ANY priority category has opened
+        $anyPriorityCategoryOpened = collect($priorityCategories)->some(function ($cat) use ($now) {
+            $opensAt = $this->carbonize($cat['registration_opens_at'] ?? null);
+
+            return $opensAt && $now->gte($opensAt);
+        });
+
+        // If some priority categories opened (but not all general yet), priority_period
+        if ($anyPriorityCategoryOpened) {
+            return 'priority_period';
         }
 
         // Default: closed
@@ -191,22 +329,38 @@ class EventSettings extends Settings
         $now = now();
         $transitions = [];
 
-        $flintaOpens = $this->carbonize($this->flinta_registration_opens_at);
-        if ($flintaOpens && $now->lt($flintaOpens)) {
-            $transitions[] = [
-                'datetime' => $flintaOpens,
-                'state' => 'open_flinta',
-                'label' => 'FLINTA* Registration Opens',
-            ];
+        // Add transitions for each gender category
+        $priorityCategories = $this->getPriorityGenderCategories();
+        $generalCategories = $this->getGeneralGenderCategories();
+
+        // Priority category openings
+        foreach ($priorityCategories as $category) {
+            $opensAt = $this->carbonize($category['registration_opens_at'] ?? null);
+            if ($opensAt && $now->lt($opensAt)) {
+                $locale = app()->getLocale();
+                $label = $category['translations'][$locale]['label'] ?? $category['key'];
+
+                $transitions[] = [
+                    'datetime' => $opensAt,
+                    'state' => 'priority_period',
+                    'label' => "{$label} Priority Registration Opens",
+                ];
+            }
         }
 
-        $everyoneOpens = $this->carbonize($this->everyone_registration_opens_at);
-        if ($everyoneOpens && $now->lt($everyoneOpens)) {
-            $transitions[] = [
-                'datetime' => $everyoneOpens,
-                'state' => 'open_everyone',
-                'label' => 'Registration Opens for Everyone',
-            ];
+        // General category openings
+        foreach ($generalCategories as $category) {
+            $opensAt = $this->carbonize($category['registration_opens_at'] ?? null);
+            if ($opensAt && $now->lt($opensAt)) {
+                $locale = app()->getLocale();
+                $label = $category['translations'][$locale]['label'] ?? $category['key'];
+
+                $transitions[] = [
+                    'datetime' => $opensAt,
+                    'state' => 'general_open',
+                    'label' => "{$label} Opens - General Registration",
+                ];
+            }
         }
 
         $regCloses = $this->carbonize($this->registration_closes_at);
@@ -215,15 +369,6 @@ class EventSettings extends Settings
                 'datetime' => $regCloses,
                 'state' => 'closed',
                 'label' => 'Registration Closes',
-            ];
-        }
-
-        $waitlistStarts = $this->carbonize($this->waitlist_only_starts_at);
-        if ($waitlistStarts && $now->lt($waitlistStarts)) {
-            $transitions[] = [
-                'datetime' => $waitlistStarts,
-                'state' => 'closed_waitlist',
-                'label' => 'Waitlist Only Period Begins',
             ];
         }
 
@@ -298,5 +443,53 @@ class EventSettings extends Settings
             'checkbox' => 'Checkboxes (Multiple)',
             'date' => 'Date',
         ];
+    }
+
+    /**
+     * Get gender categories that are currently open for registration
+     * In manual mode (automatic_state_transitions = false), returns all categories
+     * In automatic mode, filters by registration_opens_at time
+     */
+    public function getActiveGenderCategories(): array
+    {
+        $now = now();
+
+        return collect($this->gender_categories)
+            ->filter(function ($category) use ($now) {
+                // If automatic transitions disabled, don't filter by time
+                if (! $this->automatic_state_transitions) {
+                    return true; // All categories considered "active"
+                }
+
+                // In automatic mode, check opening time
+                $opensAt = $this->carbonize($category['registration_opens_at'] ?? null);
+
+                return $opensAt && $now->gte($opensAt);
+            })
+            ->sortBy('sort_order')
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get array of gender category keys that are allowed to register right now
+     */
+    public function getAllowedGenderKeys(): array
+    {
+        return collect($this->getActiveGenderCategories())
+            ->pluck('key')
+            ->toArray();
+    }
+
+
+
+    /**
+     * Get all gender category keys (for validation)
+     */
+    public function getAllGenderKeys(): array
+    {
+        return collect($this->gender_categories)
+            ->pluck('key')
+            ->toArray();
     }
 }
