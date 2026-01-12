@@ -50,16 +50,16 @@ class UpdateApplicationState extends Command
         $calculatedState = $eventSettings->calculateAutomaticState();
 
         if ($calculatedState === $currentState) {
-            $this->info("✅ State is correct: <comment>{$currentState}</comment>");
+            $this->info("State is correct: <comment>{$currentState}</comment>");
 
             // Show next transition if available
             $nextTransition = $eventSettings->getNextStateTransition();
             if ($nextTransition) {
                 $this->line('');
                 $this->info('Next Transition:');
-                $this->line("  📅 {$nextTransition['datetime']->format('Y-m-d H:i:s T')}");
-                $this->line("  🔄 {$nextTransition['label']} → <comment>{$nextTransition['state']}</comment>");
-                $this->line('  ⏱️  In '.$nextTransition['datetime']->diffForHumans());
+                $this->line("  Date: {$nextTransition['datetime']->format('Y-m-d H:i:s T')}");
+                $this->line("  Change: {$nextTransition['label']} -> <comment>{$nextTransition['state']}</comment>");
+                $this->line("  In: ".$nextTransition['datetime']->diffForHumans());
             } else {
                 $this->line('');
                 $this->info('No upcoming automatic transitions scheduled.');
@@ -80,7 +80,7 @@ class UpdateApplicationState extends Command
         }
 
         if ($isDryRun) {
-            $this->info('🔍 [DRY RUN] No changes made.');
+            $this->info('[DRY RUN] No changes made.');
 
             return self::SUCCESS;
         }
@@ -90,8 +90,8 @@ class UpdateApplicationState extends Command
         $eventSettings->application_state = $calculatedState;
         $eventSettings->save();
 
-        $this->info('✅ State updated successfully!');
-        $this->line("  Updated: <comment>{$oldState}</comment> → <comment>{$calculatedState}</comment>");
+        $this->info('State updated successfully!');
+        $this->line("  Updated: <comment>{$oldState}</comment> -> <comment>{$calculatedState}</comment>");
 
         // Log the change
         logger()->info('Application state updated via command', [
@@ -109,9 +109,9 @@ class UpdateApplicationState extends Command
         if ($nextTransition) {
             $this->line('');
             $this->info('Next Transition:');
-            $this->line("  📅 {$nextTransition['datetime']->format('Y-m-d H:i:s T')}");
-            $this->line("  🔄 {$nextTransition['label']} → <comment>{$nextTransition['state']}</comment>");
-            $this->line('  ⏱️  In '.$nextTransition['datetime']->diffForHumans());
+            $this->line("  Date: {$nextTransition['datetime']->format('Y-m-d H:i:s T')}");
+            $this->line("  Change: {$nextTransition['label']} -> <comment>{$nextTransition['state']}</comment>");
+            $this->line("  In: ".$nextTransition['datetime']->diffForHumans());
         }
 
         return self::SUCCESS;

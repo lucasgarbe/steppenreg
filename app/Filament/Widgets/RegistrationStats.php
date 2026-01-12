@@ -24,21 +24,23 @@ class RegistrationStats extends StatsOverviewWidget
                 ->color('primary')
         );
 
-        array_push(
-            $statCards,
-            Stat::make('FLINTA* Registrations', $stats['gender_flinta'])
-                ->description($stats['total'] > 0 ? number_format($stats['gender_flinta'] / $stats['total'] * 100, 2, ',', '').'%' : 'N/A')
-                ->descriptionIcon('heroicon-m-percent-badge')
-                ->color('primary')
-        );
+        $categories = app(EventSettings::class)->gender_categories;
+        $locale = app()->getLocale();
 
-        array_push(
-            $statCards,
-            Stat::make('All Gender Registrations', $stats['gender_all_gender'])
-                ->description($stats['total'] > 0 ? number_format($stats['gender_all_gender'] / $stats['total'] * 100, 2, ',', '').'%' : 'N/A')
-                ->descriptionIcon('heroicon-m-percent-badge')
-                ->color('primary')
-        );
+        foreach ($categories as $category) {
+            $key = 'gender_'.$category['key'];
+            $count = $stats[$key] ?? 0;
+            $percentage = $stats['total'] > 0 ? number_format($count / $stats['total'] * 100, 2, ',', '') : '0';
+            $label = $category['translations'][$locale]['label'] ?? $category['key'];
+
+            array_push(
+                $statCards,
+                Stat::make($label.' Registrations', $count)
+                    ->description($percentage.'%')
+                    ->descriptionIcon('heroicon-m-percent-badge')
+                    ->color('primary')
+            );
+        }
 
         array_push(
             $statCards,

@@ -10,7 +10,6 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class TeamsTable
 {
@@ -38,70 +37,57 @@ class TeamsTable
                     ->sortable(),
 
                 TextColumn::make('gender_ratio')
-                    ->label('FLINTA*/All Gender')
+                    ->label('Gender Distribution')
                     ->getStateUsing(function ($record) {
                         $registrations = $record->registrations;
                         if ($registrations->isEmpty()) {
                             return '—';
                         }
 
-                        $flintaCount = $registrations->where('gender', 'flinta')->count();
-                        $allGenderCount = $registrations->where('gender', 'all_gender')->count();
-                        $total = $registrations->count();
+                        $categories = app(\App\Settings\EventSettings::class)->gender_categories;
+                        $counts = [];
 
-                        // Show as "F/A" format (e.g., "2/3" means 2 FLINTA*, 3 All Gender)
-                        return "{$flintaCount}/{$allGenderCount}";
+                        foreach ($categories as $category) {
+                            $key = $category['key'];
+                            $count = $registrations->where('gender', $key)->count();
+                            $counts[$key] = $count;
+                        }
+
+                        // Show abbreviated format (e.g., "F:2 A:3")
+                        $parts = [];
+                        foreach ($counts as $key => $count) {
+                            $abbr = strtoupper(substr($key, 0, 1));
+                            $parts[] = "{$abbr}:{$count}";
+                        }
+
+                        return implode(' ', $parts);
                     })
                     ->badge()
-                    ->color(function ($state) {
-                        if ($state === '—') {
-                            return 'gray';
-                        }
-
-                        [$flinta, $allGender] = explode('/', $state);
-                        $flintaCount = (int) $flinta;
-                        $allGenderCount = (int) $allGender;
-                        $total = $flintaCount + $allGenderCount;
-
-                        if ($total === 0) {
-                            return 'gray';
-                        }
-
-                        $flintaPercentage = ($flintaCount / $total) * 100;
-
-                        // Color based on FLINTA* percentage
-                        return match (true) {
-                            $flintaPercentage >= 50 => 'purple',
-                            $flintaPercentage >= 30 => 'info',
-                            $flintaPercentage > 0 => 'warning',
-                            default => 'gray'
-                        };
-                    })
+                    ->color('info')
                     ->tooltip(function ($record) {
                         $registrations = $record->registrations;
                         if ($registrations->isEmpty()) {
                             return null;
                         }
 
-                        $flintaCount = $registrations->where('gender', 'flinta')->count();
-                        $allGenderCount = $registrations->where('gender', 'all_gender')->count();
+                        $categories = app(\App\Settings\EventSettings::class)->gender_categories;
+                        $locale = app()->getLocale();
                         $total = $registrations->count();
 
                         if ($total === 0) {
                             return null;
                         }
 
-                        $flintaPercentage = round(($flintaCount / $total) * 100, 1);
-                        $allGenderPercentage = round(($allGenderCount / $total) * 100, 1);
+                        $lines = [];
+                        foreach ($categories as $category) {
+                            $key = $category['key'];
+                            $label = $category['translations'][$locale]['label'] ?? $key;
+                            $count = $registrations->where('gender', $key)->count();
+                            $percentage = round(($count / $total) * 100, 1);
+                            $lines[] = "{$label}: {$count} ({$percentage}%)";
+                        }
 
-                        return "FLINTA*: {$flintaCount} ({$flintaPercentage}%)\nAll Gender: {$allGenderCount} ({$allGenderPercentage}%)";
-                    })
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->withCount([
-                            'registrations as flinta_count' => function ($query) {
-                                $query->where('gender', 'flinta');
-                            },
-                        ])->orderBy('flinta_count', $direction);
+                        return implode("\n", $lines);
                     }),
 
                 TextColumn::make('created_at')

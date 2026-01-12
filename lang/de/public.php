@@ -32,9 +32,10 @@ return [
             'select_option' => 'Bitte auswählen',
         ],
 
-        'flinta_notice' => [
-            'title' => 'FLINTA* Anmeldung geöffnet',
-            'message' => 'Derzeit nur für FLINTA* Teilnehmer*innen geöffnet.',
+        'priority_notice' => [
+            'title' => 'Prioritäts-Registrierungsphase',
+            'message' => 'Die Registrierung ist derzeit für ausgewählte Kategorien geöffnet.',
+            'available_for' => 'Derzeit verfügbar für',
         ],
 
         'team_options' => [
@@ -171,12 +172,6 @@ return [
         'click_to_send_email' => 'Klicken um E-Mail zu senden',
         'email_subject' => 'Frage zu :event',
         'not_available' => 'Anmeldung ist derzeit nicht verfügbar.',
-    ],
-
-    'waitlist_closed' => [
-        'message' => 'Die Anmeldung für :event ist derzeit geschlossen.',
-        'info' => 'Die Wartelisten-Verwaltung erfolgt über personalisierte E-Mail-Benachrichtigungen an registrierte Teilnehmer*innen.',
-        'email_instruction' => 'Falls du eine Wartelisten-Einladung per E-Mail erhalten hast, verwende bitte den Link in dieser Nachricht.',
     ],
 
     'maintenance' => [

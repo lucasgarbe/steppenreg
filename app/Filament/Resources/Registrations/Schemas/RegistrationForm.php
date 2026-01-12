@@ -41,13 +41,10 @@ class RegistrationForm
 
                         Forms\Components\Select::make('gender')
                             ->label('Gender Category')
-                            ->options([
-                                'flinta' => 'FLINTA*',
-                                'all_gender' => 'All Gender',
-                            ])
+                            ->options(fn () => \App\Models\Registration::getGenderOptionsForAdmin())
                             ->required()
-                            ->placeholder('Select gender category')
-                            ->helperText('FLINTA* includes women, lesbians, inter, non-binary, trans, and agender people'),
+                            ->searchable()
+                            ->placeholder('Select gender category'),
 
                         Forms\Components\Select::make('track_id')
                             ->label('Track Selection')
