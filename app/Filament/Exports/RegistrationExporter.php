@@ -7,7 +7,6 @@ use App\Settings\EventSettings;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
-use Filament\Forms\Components\Toggle;
 use Illuminate\Database\Eloquent\Builder;
 
 class RegistrationExporter extends Exporter
@@ -16,7 +15,7 @@ class RegistrationExporter extends Exporter
 
     public static function getColumns(): array
     {
-        return [
+        $baseColumns = [
             ExportColumn::make('id')
                 ->label('ID'),
 
@@ -44,10 +43,12 @@ class RegistrationExporter extends Exporter
 
             ExportColumn::make('gender')
                 ->label('Gender')
-                ->formatStateUsing(fn (?string $state): string => match ($state) {
-                    'flinta' => 'FLINTA*',
-                    'all_gender' => 'All Gender',
-                    default => '---',
+                ->formatStateUsing(function (?string $state, Registration $record): string {
+                    if (! $state) {
+                        return '---';
+                    }
+
+                    return $record->gender_label;
                 }),
 
             ExportColumn::make('track_name')
@@ -63,7 +64,6 @@ class RegistrationExporter extends Exporter
                 ->formatStateUsing(fn (?string $state): string => match ($state) {
                     'drawn' => 'Drawn',
                     'not_drawn' => 'Not Drawn',
-                    'waitlist' => 'Waitlist',
                     default => '---',
                 }),
 
@@ -91,63 +91,24 @@ class RegistrationExporter extends Exporter
                 ->label('Registration Date')
                 ->formatStateUsing(fn ($state): string => $state->format('Y-m-d H:i:s')),
         ];
-    }
 
-    public static function getCompletedNotificationBody(Export $export): string
-    {
-        $body = 'Your registration export has completed and '.number_format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
-
-        if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
-        }
-
-        return $body;
-    }
-
-    public static function getOptionsFormComponents(): array
-    {
-        return [
-            Toggle::make('includeCustomQuestions')
-                ->label('Include Custom Questions Data')
-                ->default(false)
-                ->helperText('Add custom question answers as additional columns in the export'),
-        ];
-    }
-
-    public static function modifyQuery(Builder $query): Builder
-    {
-        return $query->with('team');
-    }
-
-    public function resolveColumns(): array
-    {
-        $columns = static::getColumns();
-
-        $options = $this->getOptions();
-
-        if ($options['includeCustomQuestions'] ?? false) {
-            $columns = array_merge($columns, $this->getCustomQuestionColumns());
-        }
-
-        return $columns;
-    }
-
-    protected function getCustomQuestionColumns(): array
-    {
-        $columns = [];
         $eventSettings = app(EventSettings::class);
         $customQuestions = $eventSettings->custom_questions ?? [];
 
+        $customColumns = [];
         foreach ($customQuestions as $question) {
-            $key = $question['key'];
-            $label = $question['translations']['en']['label'] ?? $key;
+            $key = $question['key'] ?? null;
 
-            $columns[] = ExportColumn::make("custom_answers.{$key}")
-                ->label($label)
+            if (! $key) {
+                continue;
+            }
+
+            $customColumns[] = ExportColumn::make($key)
+                ->label($key)
                 ->state(function (Registration $record) use ($question, $key) {
                     $value = $record->getCustomAnswer($key);
 
-                    if (empty($value)) {
+                    if (is_null($value) || (is_string($value) && trim($value) === '') || (is_array($value) && empty($value))) {
                         return '---';
                     }
 
@@ -165,10 +126,27 @@ class RegistrationExporter extends Exporter
                     }
 
                     return (string) $value;
-                });
+                })
+                ->enabledByDefault(true);
         }
 
-        return $columns;
+        return array_merge($baseColumns, $customColumns);
+    }
+
+    public static function getCompletedNotificationBody(Export $export): string
+    {
+        $body = 'Your registration export has completed and '.number_format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
+
+        if ($failedRowsCount = $export->getFailedRowsCount()) {
+            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
+        }
+
+        return $body;
+    }
+
+    public static function modifyQuery(Builder $query): Builder
+    {
+        return $query->with('team');
     }
 
     public function getFormats(): array

@@ -67,14 +67,37 @@ class MailTemplateForm
                         Placeholder::make('variables_help')
                             ->label('')
                             ->content(function () {
-                                $variables = MailTemplate::getAvailableVariables();
-                                $help = "**Available Variables:**\n\n";
+                                $variablesGrouped = MailTemplate::getAvailableVariablesGrouped();
+                                $help = '';
 
-                                foreach ($variables as $key => $description) {
-                                    $help .= '• `{{'.$key.'}}` - '.$description."\n";
+                                foreach ($variablesGrouped as $groupName => $variables) {
+                                    $help .= "**{$groupName}:**\n\n";
+
+                                    foreach ($variables as $key => $description) {
+                                        $help .= '• `{{'.$key.'}}` - '.$description."\n";
+                                    }
+
+                                    $help .= "\n";
                                 }
 
-                                $help .= "\n**Markdown Formatting:**\n\n";
+                                // Add explanatory note about custom questions
+                                if (isset($variablesGrouped['Custom Question Answers']) && ! empty($variablesGrouped['Custom Question Answers'])) {
+                                    $help .= "**Custom Question Variables:**\n\n";
+                                    $help .= "Custom questions provide different variable formats:\n";
+                                    $help .= "• `{{custom.key}}` - Raw stored value (e.g., 's' for shirt size)\n";
+
+                                    // Check if any questions have locale-suffixed variants
+                                    if (MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                        $help .= "• `{{custom.key.en}}` - English label (e.g., 'Small') - for select/radio/checkbox only\n";
+                                        $help .= "• `{{custom.key.de}}` - German label (e.g., 'Klein') - for select/radio/checkbox only\n\n";
+                                        $help .= "**Bilingual Email Example:**\n";
+                                        $help .= "\"Shirt Size / Hemdgröße: `{{custom.shirt_size.en}}` / `{{custom.shirt_size.de}}`\"\n\n";
+                                    }
+
+                                    $help .= "Configure custom questions in the Custom Questions settings.\n\n";
+                                }
+
+                                $help .= "**Markdown Formatting:**\n\n";
                                 $help .= "• **Bold text** - `**bold**`\n";
                                 $help .= "• *Italic text* - `*italic*`\n";
                                 $help .= "• [Link text](https://example.com) - `[Link text](https://example.com)`\n";

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Registrations\Tables;
 
 use App\Filament\Exports\RegistrationExporter;
+use App\Models\Registration;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
@@ -47,15 +48,15 @@ class RegistrationsTable
                             default => 'gray',
                         };
                     })
-                    ->visible(fn () => config('steppenreg.features.starting_numbers', true)),
+                    ->visible(fn() => config('steppenreg.features.starting_numbers', true)),
 
                 TextColumn::make('name')
                     ->label(__('admin.registrations.columns.name'))
                     ->searchable()
                     ->sortable()
-                    ->icon(fn ($record) => $record?->notes ? 'heroicon-s-document-text' : null)
+                    ->icon(fn($record) => $record?->notes ? 'heroicon-s-document-text' : null)
                     ->iconColor('primary')
-                    ->tooltip(fn ($record) => $record?->notes ? __('admin.registrations.tooltips.has_notes') : null),
+                    ->tooltip(fn($record) => $record?->notes ? __('admin.registrations.tooltips.has_notes') : null),
 
                 TextColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
@@ -67,7 +68,7 @@ class RegistrationsTable
                     ->sortable()
                     ->numeric()
                     ->badge()
-                    ->color(fn (?int $state): string => match (true) {
+                    ->color(fn(?int $state): string => match (true) {
                         $state < 18 => 'danger',
                         $state >= 18 && $state <= 25 => 'warning',
                         $state >= 26 && $state <= 50 => 'success',
@@ -80,12 +81,13 @@ class RegistrationsTable
                     ->label(__('admin.registrations.columns.gender'))
                     ->placeholder(__('admin.form.placeholders.not_specified'))
                     ->sortable()
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'FLINTA*' => 'purple',
-                        'All Gender' => 'blue',
-                        default => 'gray',
-                    })
+                    ->html()
+                    ->formatStateUsing(fn(Registration $record): string => sprintf(
+                        '<span style="background-color: %s; color: %s; border: 1px solid;" class="fi-badge flex items-center justify-center gap-x-1 rounded-md text-xs font-medium px-2 min-w-[theme(spacing.6)] py-1">%s</span>',
+                        $record->gender_color,
+                        static::getContrastColor($record->gender_color),
+                        htmlspecialchars($record->gender_label)
+                    ))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('track_name')
@@ -105,7 +107,7 @@ class RegistrationsTable
                 TextColumn::make('draw_status')
                     ->label(__('admin.registrations.columns.draw_status'))
                     ->badge()
-                    ->color(fn ($record): string => match ($record?->draw_status) {
+                    ->color(fn($record): string => match ($record?->draw_status) {
                         'drawn' => 'success',
                         'not_drawn' => 'gray',
                         default => 'gray',
@@ -145,7 +147,7 @@ class RegistrationsTable
                             default => $record?->status ?? '',
                         };
                     })
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Finished' => 'success',
                         'Starting' => 'info',
                         'Paid' => 'warning',
@@ -160,8 +162,8 @@ class RegistrationsTable
                     ->limit(50)
                     ->placeholder(__('admin.form.placeholders.no_notes'))
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->icon(fn ($record) => $record?->notes ? 'heroicon-s-document-text' : null)
-                    ->color(fn ($record) => $record?->notes ? 'primary' : null),
+                    ->icon(fn($record) => $record?->notes ? 'heroicon-s-document-text' : null)
+                    ->color(fn($record) => $record?->notes ? 'primary' : null),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.registrations.columns.created_at'))
@@ -184,7 +186,7 @@ class RegistrationsTable
                                 foreach ($tracks as $track) {
                                     $label = $track['name'];
                                     if (isset($track['distance'])) {
-                                        $label .= ' ('.$track['distance'].' km)';
+                                        $label .= ' (' . $track['distance'] . ' km)';
                                     }
                                     $options[$track['id']] = $label;
                                 }
@@ -194,7 +196,7 @@ class RegistrationsTable
                             ->placeholder('All tracks'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query->when($data['track_id'], fn ($query, $trackId) => $query->where('track_id', $trackId));
+                        return $query->when($data['track_id'], fn($query, $trackId) => $query->where('track_id', $trackId));
                     }),
 
                 SelectFilter::make('payed')
@@ -270,16 +272,13 @@ class RegistrationsTable
                     ->form([
                         \Filament\Forms\Components\Select::make('gender')
                             ->label('Select Gender')
-                            ->options([
-                                'flinta' => 'FLINTA*',
-                                'all_gender' => 'All Gender',
-                            ])
+                            ->options(fn () => Registration::getGenderOptionsForAdmin())
                             ->placeholder('All genders'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['gender'] ?? false,
-                            fn (Builder $query, $gender) => $query->where('gender', $gender)
+                            fn(Builder $query, $gender) => $query->where('gender', $gender)
                         );
                     }),
                 /**/
@@ -324,13 +323,13 @@ class RegistrationsTable
                     ->label('Angekommen')
                     ->color('success')
                     ->button()
-                    ->action(fn ($record) => $record->update(['finish_time' => now()])),
+                    ->action(fn($record) => $record->update(['finish_time' => now()])),
 
                 Action::make('DNF')
                     ->label('DNF')
                     ->color('danger')
                     ->button()
-                    ->action(fn ($record) => $record->update(['finish_time' => '00:00'])),
+                    ->action(fn($record) => $record->update(['finish_time' => '00:00'])),
 
                 ActionGroup::make([
                     EditAction::make(),
@@ -339,10 +338,10 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_drawn'))
                         ->icon('heroicon-o-star')
                         ->color('success')
-                        ->visible(fn ($record) => $record?->draw_status !== 'drawn')
+                        ->visible(fn($record) => $record?->draw_status !== 'drawn')
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_drawn'))
-                        ->modalDescription(fn ($record) => "Mark {$record->name} as drawn?")
+                        ->modalDescription(fn($record) => "Mark {$record->name} as drawn?")
                         ->action(function ($record) {
                             $record->update([
                                 'draw_status' => 'drawn',
@@ -360,10 +359,10 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
-                        ->visible(fn ($record) => $record?->draw_status !== 'not_drawn')
+                        ->visible(fn($record) => $record?->draw_status !== 'not_drawn')
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_not_drawn'))
-                        ->modalDescription(fn ($record) => "Mark {$record->name} as not drawn?")
+                        ->modalDescription(fn($record) => "Mark {$record->name} as not drawn?")
                         ->action(function ($record) {
                             $record->update([
                                 'draw_status' => 'not_drawn',
@@ -383,7 +382,7 @@ class RegistrationsTable
                         ->color('info')
                         ->requiresConfirmation()
                         ->modalHeading('Send Registration Confirmation')
-                        ->modalDescription(fn ($record) => "Send registration confirmation email to {$record->name} ({$record->email})?")
+                        ->modalDescription(fn($record) => "Send registration confirmation email to {$record->name} ({$record->email})?")
                         ->action(function ($record) {
                             \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
 
@@ -398,7 +397,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.send_draw_results'))
                         ->icon('heroicon-o-envelope')
                         ->color('primary')
-                        ->visible(fn ($record) => in_array($record?->draw_status, ['drawn', 'not_drawn']))
+                        ->visible(fn($record) => in_array($record?->draw_status, ['drawn', 'not_drawn']))
                         ->action(function ($record) {
                             // Send draw notification email
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
@@ -414,10 +413,10 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_paid'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn ($record) => ! $record?->payed)
+                        ->visible(fn($record) => ! $record?->payed)
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_paid'))
-                        ->modalDescription(fn ($record) => "Mark {$record->name} as paid?")
+                        ->modalDescription(fn($record) => "Mark {$record->name} as paid?")
                         ->action(function ($record) {
                             $record->update(['payed' => true]);
 
@@ -432,10 +431,10 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_starting'))
                         ->icon('heroicon-o-play-circle')
                         ->color('info')
-                        ->visible(fn ($record) => ! $record?->starting && $record?->payed)
+                        ->visible(fn($record) => ! $record?->starting && $record?->payed)
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_starting'))
-                        ->modalDescription(fn ($record) => "Mark {$record->name} as starting?")
+                        ->modalDescription(fn($record) => "Mark {$record->name} as starting?")
                         ->action(function ($record) {
                             $record->update(['starting' => true]);
 
@@ -450,13 +449,14 @@ class RegistrationsTable
                         ->label('Assign Starting Number')
                         ->icon('heroicon-o-hashtag')
                         ->color('warning')
-                        ->visible(fn ($record) => config('steppenreg.features.starting_numbers', true) &&
-                            $record?->draw_status === 'drawn' &&
-                            ! $record?->starting_number
+                        ->visible(
+                            fn($record) => config('steppenreg.features.starting_numbers', true) &&
+                                $record?->draw_status === 'drawn' &&
+                                ! $record?->starting_number
                         )
                         ->requiresConfirmation()
                         ->modalHeading('Assign Starting Number')
-                        ->modalDescription(fn ($record) => "Assign starting number to {$record->name}?")
+                        ->modalDescription(fn($record) => "Assign starting number to {$record->name}?")
                         ->action(function ($record) {
                             $service = app(\App\Domain\StartingNumber\Services\StartingNumberService::class);
                             $number = $service->assignNumber($record);
@@ -465,7 +465,7 @@ class RegistrationsTable
                                 $record->update(['starting_number' => $number]);
                                 \Filament\Notifications\Notification::make()
                                     ->title('Starting number assigned')
-                                    ->body('Assigned starting number '.$service->formatNumber($number)." to {$record->name}")
+                                    ->body('Assigned starting number ' . $service->formatNumber($number) . " to {$record->name}")
                                     ->success()
                                     ->send();
                             } else {
@@ -484,21 +484,21 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_paid'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->action(fn (Collection $records) => $records->each->update(['payed' => true]))
+                        ->action(fn(Collection $records) => $records->each->update(['payed' => true]))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_starting')
                         ->label(__('admin.registrations.actions.mark_as_starting'))
                         ->icon('heroicon-o-play-circle')
                         ->color('info')
-                        ->action(fn (Collection $records) => $records->each->update(['starting' => true]))
+                        ->action(fn(Collection $records) => $records->each->update(['starting' => true]))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_drawn')
                         ->label(__('admin.registrations.actions.mark_as_drawn'))
                         ->icon('heroicon-o-star')
                         ->color('success')
-                        ->action(fn (Collection $records) => $records->each->update([
+                        ->action(fn(Collection $records) => $records->each->update([
                             'draw_status' => 'drawn',
                             'drawn_at' => now(),
                         ]))
@@ -508,7 +508,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
-                        ->action(fn (Collection $records) => $records->each->update([
+                        ->action(fn(Collection $records) => $records->each->update([
                             'draw_status' => 'not_drawn',
                             'drawn_at' => null,
                         ]))
@@ -518,7 +518,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.assign_starting_numbers'))
                         ->icon('heroicon-o-hashtag')
                         ->color('info')
-                        ->visible(fn () => config('steppenreg.features.starting_numbers', true))
+                        ->visible(fn() => config('steppenreg.features.starting_numbers', true))
                         ->action(function (Collection $records) {
                             $service = app(\App\Domain\StartingNumber\Services\StartingNumberService::class);
                             $results = $service->bulkAssignNumbers($records->pluck('id')->toArray());
@@ -586,8 +586,8 @@ class RegistrationsTable
                         ->label('Send Custom Email')
                         ->icon('heroicon-o-paper-airplane')
                         ->color('info')
-                        ->fillForm(fn (Collection $records) => [
-                            'to' => $records->map(fn ($record) => $record->email)->implode(', '),
+                        ->fillForm(fn(Collection $records) => [
+                            'to' => $records->map(fn($record) => $record->email)->implode(', '),
                         ])
                         ->form([
                             \Filament\Forms\Components\TextInput::make('to')
@@ -621,14 +621,38 @@ class RegistrationsTable
                             \Filament\Forms\Components\Placeholder::make('variables_help')
                                 ->label('Available Template Variables')
                                 ->content(function () {
-                                    $variables = \App\Models\MailTemplate::getAvailableVariables();
+                                    $variablesGrouped = \App\Models\MailTemplate::getAvailableVariablesGrouped();
                                     $help = "Use these variables in your subject and message to personalize emails:\n\n";
 
-                                    foreach ($variables as $key => $description) {
-                                        $help .= '• **{{'.$key.'}}** - '.$description."\n";
+                                    foreach ($variablesGrouped as $groupName => $variables) {
+                                        $help .= "**{$groupName}:**\n\n";
+
+                                        foreach ($variables as $key => $description) {
+                                            $help .= '• **{{' . $key . '}}** - ' . $description . "\n";
+                                        }
+
+                                        $help .= "\n";
                                     }
 
-                                    $help .= "\nExample: \"Dear {{name}}, you are registered for {{track_name}}!\"";
+                                    // Add explanatory note about custom questions
+                                    if (isset($variablesGrouped['Custom Question Answers']) && ! empty($variablesGrouped['Custom Question Answers'])) {
+                                        $help .= "**Custom Question Variables:**\n\n";
+                                        $help .= "Use locale suffixes for bilingual emails:\n";
+                                        $help .= "• No suffix for raw values (e.g., `{{custom.shirt_size}}`)\n";
+
+                                        if (\App\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                            $help .= "• `.en` suffix for English labels (e.g., `{{custom.shirt_size.en}}`)\n";
+                                            $help .= "• `.de` suffix for German labels (e.g., `{{custom.shirt_size.de}}`)\n\n";
+                                        }
+                                    }
+
+                                    $help .= "**Example:**\n";
+                                    $help .= '"Dear {{name}}, you are registered for {{track_name}}!"';
+
+                                    if (\App\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                        $help .= "\n\n**Bilingual Example:**\n";
+                                        $help .= '"Shirt Size / Hemdgröße: {{custom.shirt_size.en}} / {{custom.shirt_size.de}}"';
+                                    }
 
                                     return $help;
                                 })
@@ -682,10 +706,14 @@ class RegistrationsTable
 
         foreach ($customQuestions as $question) {
             $key = $question['key'];
-            $label = $question['translations']['en']['label'] ?? $key;
+            $currentLocale = app()->getLocale();
+            $fullLabel = $question['translations'][$currentLocale]['label']
+                ?? $question['translations']['en']['label']
+                ?? $key;
 
             $columns[] = TextColumn::make("custom_answers.{$key}")
-                ->label($label)
+                ->label($key)
+                ->headerTooltip($fullLabel)
                 ->searchable()
                 ->toggleable(isToggledHiddenByDefault: false)
                 ->formatStateUsing(function ($state) use ($question) {
@@ -720,12 +748,11 @@ class RegistrationsTable
 
         foreach ($customQuestions as $question) {
             $key = $question['key'];
-            $label = $question['translations']['en']['label'] ?? $key;
 
             // Only add filters for select and radio types
             if (in_array($question['type'], ['select', 'radio'])) {
                 $filters[] = SelectFilter::make("custom_answers.{$key}")
-                    ->label($label)
+                    ->label($key)
                     ->options(collect($question['options'] ?? [])
                         ->pluck('label_en', 'value')
                         ->toArray())
@@ -738,5 +765,25 @@ class RegistrationsTable
         }
 
         return $filters;
+    }
+
+    /**
+     * Calculate contrasting text color (white or black) for given background color
+     */
+    private static function getContrastColor(string $hexColor): string
+    {
+        // Remove # if present
+        $hex = ltrim($hexColor, '#');
+
+        // Convert to RGB
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+
+        // Calculate relative luminance
+        $luminance = (0.299 * $r + 0.587 * $g + 0.114 * $b) / 255;
+
+        // Return white for dark backgrounds, black for light backgrounds
+        return $luminance > 0.5 ? '#000000' : '#ffffff';
     }
 }

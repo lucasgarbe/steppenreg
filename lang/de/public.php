@@ -32,9 +32,10 @@ return [
             'select_option' => 'Bitte auswählen',
         ],
 
-        'flinta_notice' => [
-            'title' => 'FLINTA* Anmeldung geöffnet',
-            'message' => 'Derzeit nur für FLINTA* Teilnehmer*innen geöffnet.',
+        'priority_notice' => [
+            'title' => 'Prioritäts-Registrierungsphase',
+            'message' => 'Die Registrierung ist derzeit für ausgewählte Kategorien geöffnet.',
+            'available_for' => 'Derzeit verfügbar für',
         ],
 
         'team_options' => [
@@ -68,6 +69,20 @@ return [
             'age_required' => 'Alter ist erforderlich.',
             'age_min' => 'Du musst mindestens :min Jahre alt sein.',
             'team_full' => 'Das gewählte Team ist bereits voll.',
+        ],
+
+        'custom_questions' => [
+            'validation' => [
+                'required' => 'Dieses Feld ist erforderlich.',
+                'email' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
+                'numeric' => 'Bitte gib eine Zahl ein.',
+                'date' => 'Bitte gib ein gültiges Datum ein.',
+                'max' => [
+                    'string' => 'Die Eingabe darf maximal :max Zeichen lang sein.',
+                ],
+                'in' => 'Der ausgewählte Wert ist ungültig.',
+                'array' => 'Bitte wähle gültige Optionen aus.',
+            ],
         ],
     ],
 
@@ -157,12 +172,6 @@ return [
         'click_to_send_email' => 'Klicken um E-Mail zu senden',
         'email_subject' => 'Frage zu :event',
         'not_available' => 'Anmeldung ist derzeit nicht verfügbar.',
-    ],
-
-    'waitlist_closed' => [
-        'message' => 'Die Anmeldung für :event ist derzeit geschlossen.',
-        'info' => 'Die Wartelisten-Verwaltung erfolgt über personalisierte E-Mail-Benachrichtigungen an registrierte Teilnehmer*innen.',
-        'email_instruction' => 'Falls du eine Wartelisten-Einladung per E-Mail erhalten hast, verwende bitte den Link in dieser Nachricht.',
     ],
 
     'maintenance' => [

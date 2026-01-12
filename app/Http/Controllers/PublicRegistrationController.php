@@ -15,14 +15,12 @@ class PublicRegistrationController extends Controller
         $eventSettings = app(EventSettings::class);
         $tracks = $eventSettings->tracks ?? [];
 
-        // Check application state and determine access
         $applicationState = $eventSettings->application_state;
-        $isFlintaOnly = $eventSettings->isOpenForFlintaOnly();
+        $isPriorityPeriod = ($applicationState === 'priority_period');
         $isLiveEvent = $eventSettings->isLiveEvent();
 
-        // Handle different states
-        if ($applicationState === 'closed' || $applicationState === 'closed_waitlist') {
-            // Registration is closed (waitlist is managed via email links, not public form)
+        // Handle closed state
+        if ($applicationState === 'closed') {
             return view('public.registration.closed', [
                 'eventSettings' => $eventSettings,
                 'state' => $applicationState,
@@ -30,18 +28,27 @@ class PublicRegistrationController extends Controller
         }
 
         if ($isLiveEvent) {
-            // Live event - show special message
             return view('public.registration.live-event', [
                 'eventSettings' => $eventSettings,
             ]);
         }
 
-        // Registration is open (either FLINTA* only or everyone)
+        // Get available categories based on state
+        $availableCategories = $eventSettings->getAvailableGenderCategories();
+
+        // Get categories with messages for display
+        $categoriesWithMessages = collect($availableCategories)
+            ->filter(fn ($cat) => ! empty($cat['message'][app()->getLocale()]))
+            ->values()
+            ->toArray();
+
         return view('public.registration.create', compact(
             'tracks',
             'eventSettings',
             'applicationState',
-            'isFlintaOnly'
+            'isPriorityPeriod',
+            'availableCategories',
+            'categoriesWithMessages'
         ));
     }
 
@@ -50,40 +57,54 @@ class PublicRegistrationController extends Controller
         $eventSettings = app(EventSettings::class);
 
         // Check if registration is allowed
-        if (
-            $eventSettings->application_state === 'closed' ||
-            $eventSettings->application_state === 'closed_waitlist' ||
-            $eventSettings->isLiveEvent()
-        ) {
+        if ($eventSettings->application_state === 'closed' ||
+            $eventSettings->isLiveEvent()) {
             return redirect()->route('registration.create')
                 ->withErrors(['general' => 'Registration is currently closed.']);
         }
 
-        // Prepare validation rules
+        // Get available gender keys based on current state
+        $availableGenderKeys = collect($eventSettings->getAvailableGenderCategories())
+            ->pluck('key')
+            ->toArray();
+
+        // Validation rules
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'age' => 'required|integer|min:1|max:120',
-            'gender' => 'required|string|in:flinta,all_gender',
+            'gender' => 'required|string|in:'.implode(',', $availableGenderKeys),
             'track_id' => 'required|integer',
             'team_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ];
 
-        // If only FLINTA* registration is open, restrict gender selection
-        if ($eventSettings->isOpenForFlintaOnly()) {
-            $rules['gender'] = 'required|string|in:flinta';
-        }
-
-        // Build dynamic validation rules for custom questions
+        // Build dynamic validation rules and custom error messages for custom questions
         $customQuestions = $eventSettings->custom_questions ?? [];
+        $customMessages = [];
+
+        // Get fallback validation messages from translation files
+        $fallbackMessages = trans('public.registration.custom_questions.validation');
+
         foreach ($customQuestions as $question) {
             $key = $question['key'];
             $fieldRules = [];
+            $fieldName = "custom_answers.{$key}";
+
+            // Get translations for current locale
+            $locale = app()->getLocale();
+            $translations = $question['translations'][$locale] ?? $question['translations']['en'] ?? [];
 
             // Required/optional
             if ($question['required'] ?? false) {
                 $fieldRules[] = 'required';
+
+                // Custom required error message or fallback
+                if (! empty($translations['error_required'])) {
+                    $customMessages["{$fieldName}.required"] = $translations['error_required'];
+                } else {
+                    $customMessages["{$fieldName}.required"] = $fallbackMessages['required'] ?? 'Dieses Feld ist erforderlich.';
+                }
             } else {
                 $fieldRules[] = 'nullable';
             }
@@ -93,24 +114,79 @@ class PublicRegistrationController extends Controller
                 case 'email':
                     $fieldRules[] = 'email';
                     $fieldRules[] = 'max:255';
+
+                    // Custom invalid error for email or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.email"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.email"] = $fallbackMessages['email'] ?? 'Bitte gib eine gültige E-Mail-Adresse ein.';
+                    }
+
+                    // Custom max length error or fallback
+                    if (! empty($translations['error_max'])) {
+                        $customMessages["{$fieldName}.max"] = $translations['error_max'];
+                    } else {
+                        $customMessages["{$fieldName}.max"] = $fallbackMessages['max']['string'] ?? ':attribute darf maximal :max Zeichen lang sein.';
+                    }
                     break;
+
                 case 'number':
                     $fieldRules[] = 'numeric';
+
+                    // Custom invalid error for numeric or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.numeric"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.numeric"] = $fallbackMessages['numeric'] ?? 'Bitte gib eine Zahl ein.';
+                    }
                     break;
+
                 case 'text':
                     $fieldRules[] = 'string';
                     $fieldRules[] = 'max:255';
+
+                    // Custom max length error or fallback
+                    if (! empty($translations['error_max'])) {
+                        $customMessages["{$fieldName}.max"] = $translations['error_max'];
+                    } else {
+                        $customMessages["{$fieldName}.max"] = $fallbackMessages['max']['string'] ?? 'Die Eingabe darf maximal :max Zeichen lang sein.';
+                    }
                     break;
+
                 case 'textarea':
                     $fieldRules[] = 'string';
                     $fieldRules[] = 'max:1000';
+
+                    // Custom max length error or fallback
+                    if (! empty($translations['error_max'])) {
+                        $customMessages["{$fieldName}.max"] = $translations['error_max'];
+                    } else {
+                        $customMessages["{$fieldName}.max"] = $fallbackMessages['max']['string'] ?? 'Die Eingabe darf maximal :max Zeichen lang sein.';
+                    }
                     break;
+
                 case 'date':
                     $fieldRules[] = 'date';
+
+                    // Custom invalid error for date or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.date"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.date"] = $fallbackMessages['date'] ?? 'Bitte gib ein gültiges Datum ein.';
+                    }
                     break;
+
                 case 'checkbox':
                     $fieldRules[] = 'array';
+
+                    // Custom invalid error for array or fallback
+                    if (! empty($translations['error_invalid'])) {
+                        $customMessages["{$fieldName}.array"] = $translations['error_invalid'];
+                    } else {
+                        $customMessages["{$fieldName}.array"] = $fallbackMessages['array'] ?? 'Bitte wähle gültige Optionen aus.';
+                    }
                     break;
+
                 case 'select':
                 case 'radio':
                     // Validate against allowed options
@@ -119,6 +195,13 @@ class PublicRegistrationController extends Controller
                         ->toArray();
                     if (! empty($allowedValues)) {
                         $fieldRules[] = Rule::in($allowedValues);
+
+                        // Custom invalid error for select/radio or fallback
+                        if (! empty($translations['error_invalid'])) {
+                            $customMessages["{$fieldName}.in"] = $translations['error_invalid'];
+                        } else {
+                            $customMessages["{$fieldName}.in"] = $fallbackMessages['in'] ?? 'Der ausgewählte Wert ist ungültig.';
+                        }
                     }
                     break;
             }
@@ -128,10 +211,10 @@ class PublicRegistrationController extends Controller
                 $fieldRules = array_merge($fieldRules, $question['validation']);
             }
 
-            $rules["custom_answers.{$key}"] = $fieldRules;
+            $rules[$fieldName] = $fieldRules;
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, $customMessages);
 
         $teamId = null;
 

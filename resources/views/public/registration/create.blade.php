@@ -12,13 +12,43 @@
         :title="$eventSettings->event_name .' '. __('public.registration.title')"
         :subtitle="__('public.registration.subtitle')"
     >
-        @if($isFlintaOnly)
-            <x-public.alert type="pride" :icon="false" class="mt-4">
-                <h3 class="text-sm font-medium">{{ __('public.registration.flinta_notice.title') }}</h3>
-                <div class="mt-1 text-sm">
-                    <p>{{ __('public.registration.flinta_notice.message') }}</p>
-                </div>
-            </x-public.alert>
+        @if($isPriorityPeriod && !empty($availableCategories))
+            <!-- Show custom messages for categories that have them -->
+            @foreach($categoriesWithMessages as $category)
+                @php
+                    $locale = app()->getLocale();
+                    $message = $category['message'][$locale] ?? null;
+                    $messageStyle = $category['message_style'] ?? 'info';
+                    $categoryLabel = $category['translations'][$locale]['label'] ?? $category['key'];
+                @endphp
+                
+                @if($message)
+                    <x-public.alert 
+                        type="{{ $messageStyle }}" 
+                        :icon="false" 
+                        class="mt-4"
+                    >
+                        <h3 class="text-sm font-medium mb-2">{{ $categoryLabel }}</h3>
+                        <div class="text-sm prose prose-sm max-w-none">
+                            {!! $message !!}
+                        </div>
+                    </x-public.alert>
+                @endif
+            @endforeach
+            
+            <!-- Default priority message if no custom messages -->
+            @if(empty($categoriesWithMessages))
+                <x-public.alert type="info" :icon="false" class="mt-4">
+                    <h3 class="text-sm font-medium">{{ __('public.registration.priority_notice.title') }}</h3>
+                    <div class="mt-1 text-sm">
+                        <p>{{ __('public.registration.priority_notice.message') }}</p>
+                        <p class="mt-2">
+                            <strong>{{ __('public.registration.priority_notice.available_for') }}:</strong>
+                            {{ collect($availableCategories)->pluck('translations.'.app()->getLocale().'.label')->join(', ') }}
+                        </p>
+                    </div>
+                </x-public.alert>
+            @endif
         @endif
     </x-public.page-header>
 

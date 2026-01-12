@@ -32,9 +32,10 @@ return [
             'select_option' => 'Please select',
         ],
 
-        'flinta_notice' => [
-            'title' => 'FLINTA* Registration Open',
-            'message' => 'Currently only open for FLINTA* participants.',
+        'priority_notice' => [
+            'title' => 'Priority Registration Period',
+            'message' => 'Registration is currently open for select categories.',
+            'available_for' => 'Currently available for',
         ],
 
         'team_options' => [
@@ -68,6 +69,20 @@ return [
             'age_required' => 'Age is required.',
             'age_min' => 'You must be at least :min years old.',
             'team_full' => 'The selected team is already full.',
+        ],
+
+        'custom_questions' => [
+            'validation' => [
+                'required' => 'This field is required.',
+                'email' => 'Please enter a valid email address.',
+                'numeric' => 'Please enter a number.',
+                'date' => 'Please enter a valid date.',
+                'max' => [
+                    'string' => 'The input must not exceed :max characters.',
+                ],
+                'in' => 'The selected value is invalid.',
+                'array' => 'Please select valid options.',
+            ],
         ],
     ],
 
@@ -157,12 +172,6 @@ return [
         'click_to_send_email' => 'Click to send email',
         'email_subject' => 'Question about :event',
         'not_available' => 'Registration is not currently available.',
-    ],
-
-    'waitlist_closed' => [
-        'message' => 'Registration for :event is currently closed.',
-        'info' => 'Waitlist management is handled through personalized email notifications to registered participants.',
-        'email_instruction' => 'If you have received a waitlist invitation email, please use the link provided in that message.',
     ],
 
     'maintenance' => [
