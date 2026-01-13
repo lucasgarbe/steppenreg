@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Models\Registration;
 use App\Models\User;
 use App\Observers\RegistrationObserver;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -41,6 +43,11 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return true;
+        });
+
+        // Rate limit email sending
+        RateLimiter::for('emails', function ($job) {
+            return Limit::perMinute(config('mail.rate_limit_per_minute', 20));
         });
     }
 }
