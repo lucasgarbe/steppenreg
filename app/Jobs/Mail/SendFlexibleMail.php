@@ -9,16 +9,23 @@ use App\Services\MailVariableResolver;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SendFlexibleMail implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
+    public $tries = 10;
 
     public $backoff = [30, 120, 600]; // 30sec, 2min, 10min
+
+    public function middleware(): array
+    {
+        return [new RateLimited('emails')];
+    }
 
     public function __construct(
         public Registration $registration,
@@ -79,7 +86,7 @@ class SendFlexibleMail implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        \Log::error('Flexible email failed to send', [
+        Log::error('Flexible email failed to send', [
             'registration_id' => $this->registration->id,
             'email' => $this->registration->email,
             'subject' => $this->subject,

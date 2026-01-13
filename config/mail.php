@@ -115,4 +115,17 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mail Rate Limiting
+    |--------------------------------------------------------------------------
+    |
+    | Configure the maximum number of emails that can be sent per minute.
+    | This helps prevent overwhelming email service providers and ensures
+    | compliance with sending limits.
+    |
+    */
+
+    'rate_limit_per_minute' => env('MAIL_RATE_LIMIT_PER_MINUTE', 20),
+
 ];
