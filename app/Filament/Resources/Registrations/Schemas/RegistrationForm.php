@@ -70,6 +70,35 @@ class RegistrationForm
                             ->label('Team Selection')
                             ->options(function (Get $get) {
                                 $trackId = $get('track_id');
+                                $eventSettings = app(EventSettings::class);
+
+                                // When coupling is disabled, show all teams
+                                if (! $eventSettings->enforce_same_track_for_teams) {
+                                    return Team::notFull()
+                                        ->withCount('registrations')
+                                        ->get()
+                                        ->mapWithKeys(function ($team) use ($trackId) {
+                                            $label = $team->name;
+                                            $memberCount = $team->registrations_count;
+                                            $maxMembers = $team->max_members;
+                                            $available = $maxMembers - $memberCount;
+
+                                            $label .= " ({$memberCount}/{$maxMembers})";
+                                            if ($available <= 2) {
+                                                $label .= " - {$available} spots left";
+                                            }
+
+                                            if ($team->track_id) {
+                                                $trackName = $team->track_name ?? track_label()." {$team->track_id}";
+                                                $label .= " [{$trackName}]";
+                                            }
+
+                                            return [$team->id => $label];
+                                        })
+                                        ->toArray();
+                                }
+
+                                // When coupling is enabled, filter by track
                                 if (! $trackId) {
                                     return [];
                                 }
@@ -101,13 +130,22 @@ class RegistrationForm
                             })
                             ->searchable()
                             ->placeholder('Select a team (optional)')
-                            ->helperText('Only teams for your selected track are shown')
+                            ->helperText(function () {
+                                $eventSettings = app(EventSettings::class);
+                                return $eventSettings->enforce_same_track_for_teams
+                                    ? 'Only teams for your selected track are shown'
+                                    : 'All teams are available (teams can have members on different tracks)';
+                            })
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->maxLength(255)
                                     ->unique(Team::class, 'name', function ($rule, $get) {
-                                        return $rule->where('track_id', $get('../../track_id'));
+                                        $eventSettings = app(EventSettings::class);
+                                        if ($eventSettings->enforce_same_track_for_teams) {
+                                            return $rule->where('track_id', $get('../../track_id'));
+                                        }
+                                        return $rule;
                                     }),
                                 Forms\Components\TextInput::make('max_members')
                                     ->numeric()
@@ -116,10 +154,13 @@ class RegistrationForm
                                     ->maxValue(20),
                             ])
                             ->createOptionUsing(function (array $data, Get $get): int {
+                                $eventSettings = app(EventSettings::class);
                                 $team = Team::create([
                                     'name' => $data['name'],
                                     'max_members' => $data['max_members'] ?? 5,
-                                    'track_id' => $get('track_id'), // Set track from registration
+                                    'track_id' => $eventSettings->enforce_same_track_for_teams
+                                        ? $get('track_id')
+                                        : null,
                                 ]);
 
                                 return $team->id;

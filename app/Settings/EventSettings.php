@@ -23,6 +23,8 @@ class EventSettings extends Settings
 
     public array $tracks;
 
+    public bool $enforce_same_track_for_teams = true;
+
     public array $custom_questions = [];
 
     public array $gender_categories = [];

@@ -220,16 +220,17 @@ class PublicRegistrationController extends Controller
 
         // Handle team assignment if team name provided
         if ($request->filled('team_name')) {
-            // Normalize team name (trim, case-insensitive)
             $teamName = trim($request->team_name);
+            $enforceSameTrack = $eventSettings->enforce_same_track_for_teams;
 
-            // First, check if team name exists on ANY track
-            $existingTeam = Team::whereRaw('LOWER(name) = LOWER(?)', [$teamName])->first();
+            // Check if team name exists
+            $existingTeamQuery = Team::whereRaw('LOWER(name) = LOWER(?)', [$teamName]);
 
-            if ($existingTeam) {
-                // Team exists - check if it's on the same track (convert to int for proper comparison)
-                if ($existingTeam->track_id != (int) $request->track_id) {
-                    // Team exists but on different track - show error
+            // When enforcing same track, also check track_id match
+            if ($enforceSameTrack) {
+                $existingTeam = $existingTeamQuery->first();
+
+                if ($existingTeam && $existingTeam->track_id != (int) $request->track_id) {
                     $existingTrackName = $this->getTrackName($existingTeam->track_id);
                     $selectedTrackName = $this->getTrackName($request->track_id);
 
@@ -237,21 +238,36 @@ class PublicRegistrationController extends Controller
                         ->withErrors(['team_name' => "Team '{$teamName}' already exists on {$existingTrackName}, but you selected {$selectedTrackName}. Please choose a different team name or change your track selection."])
                         ->withInput();
                 }
-
-                // Team exists on same track - check if it's full
-                $currentMembers = $existingTeam->registrations()->count();
-                if ($currentMembers >= $existingTeam->max_members) {
-                    return back()
-                        ->withErrors(['team_name' => "Team '{$teamName}' is already full ({$existingTeam->max_members} members)."])
-                        ->withInput();
-                }
-
-                $teamId = $existingTeam->id;
             } else {
-                // Team doesn't exist - create new team
+                // When not enforcing, team name must be globally unique
+                $existingTeam = $existingTeamQuery->first();
+
+                if ($existingTeam) {
+                    // Team exists with this name - check if it's full
+                    $currentMembers = $existingTeam->registrations()->count();
+                    if ($currentMembers >= $existingTeam->max_members) {
+                        return back()
+                            ->withErrors(['team_name' => "Team '{$teamName}' is already full ({$existingTeam->max_members} members)."])
+                            ->withInput();
+                    }
+
+                    $teamId = $existingTeam->id;
+                } else {
+                    // Create new team without track_id
+                    $team = Team::create([
+                        'name' => $teamName,
+                        'max_members' => 5,
+                        'track_id' => null, // No track when coupling is disabled
+                    ]);
+                    $teamId = $team->id;
+                }
+            }
+
+            // Handle case when enforcing same track and team doesn't exist
+            if ($enforceSameTrack && ! isset($teamId)) {
                 $team = Team::create([
                     'name' => $teamName,
-                    'max_members' => 5, // Default team size controlled by admin
+                    'max_members' => 5,
                     'track_id' => $request->track_id,
                 ]);
                 $teamId = $team->id;

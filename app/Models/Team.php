@@ -12,6 +12,29 @@ class Team extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($team) {
+            $eventSettings = app(EventSettings::class);
+
+            // If not enforcing same track, ensure name is globally unique
+            if (! $eventSettings->enforce_same_track_for_teams && $team->isDirty('name')) {
+                $existing = static::where('name', $team->name)
+                    ->where('id', '!=', $team->id)
+                    ->exists();
+
+                if ($existing) {
+                    throw new \Illuminate\Validation\ValidationException(
+                        validator([], [], [])
+                            ->errors()->add('name', "Team name '{$team->name}' already exists.")
+                    );
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'name',
         'max_members',
@@ -59,6 +82,11 @@ class Team extends Model
 
     public function scopeForTrack($query, $trackId)
     {
+        // When coupling is disabled, return all teams
+        if (! app(EventSettings::class)->enforce_same_track_for_teams) {
+            return $query;
+        }
+
         return $query->where('track_id', $trackId)->orWhereNull('track_id');
     }
 
@@ -78,6 +106,11 @@ class Team extends Model
         return $this->track['name'] ?? null;
     }
 
+    private function shouldEnforceSameTrack(): bool
+    {
+        return app(EventSettings::class)->enforce_same_track_for_teams;
+    }
+
     public function canAcceptRegistration($registration): bool
     {
         // Check if team is full
@@ -85,9 +118,11 @@ class Team extends Model
             return false;
         }
 
-        // Check track consistency
-        if ($this->track_id && $this->track_id !== $registration->track_id) {
-            return false;
+        // Check track consistency (only if enforced)
+        if ($this->shouldEnforceSameTrack()) {
+            if ($this->track_id && $this->track_id !== $registration->track_id) {
+                return false;
+            }
         }
 
         return true;
@@ -99,8 +134,8 @@ class Team extends Model
             return false;
         }
 
-        // Set team track from first member if not set
-        if (! $this->track_id && $registration->track_id) {
+        // Set team track from first member if not set AND enforcement is enabled
+        if ($this->shouldEnforceSameTrack() && ! $this->track_id && $registration->track_id) {
             $this->track_id = $registration->track_id;
             $this->save();
         }

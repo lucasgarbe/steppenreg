@@ -17,10 +17,18 @@ class CustomQuestionMarkdownTest extends TestCase
         parent::setUp();
 
         // Set up event settings with custom questions
-        $settings = app(EventSettings::class);
-        $settings->application_state = 'open';
-        $settings->custom_questions = [];
-        $settings->save();
+        $settings = EventSettings::fake([
+            'application_state' => 'open',
+            'custom_questions' => [],
+            'enforce_same_track_for_teams' => true,
+            'tracks' => [],
+            'gender_categories' => [],
+            'theme_primary_color' => '#F9C458',
+            'theme_background_color' => '#fffdf8c2',
+            'theme_text_color' => '#1a1a1a',
+            'theme_accent_color' => '#7a58fc',
+        ]);
+        app()->instance(EventSettings::class, $settings);
     }
 
     public function test_custom_question_label_renders_markdown_link(): void

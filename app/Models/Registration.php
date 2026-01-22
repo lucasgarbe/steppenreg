@@ -17,9 +17,14 @@ class Registration extends Model
     {
         parent::boot();
 
-        // Auto-leave team if track changes to maintain consistency
+        // Auto-leave team if track changes to maintain consistency (only when enforced)
         static::updating(function ($registration) {
-            if ($registration->isDirty('track_id') && $registration->team_id) {
+            $eventSettings = app(EventSettings::class);
+
+            // Only auto-leave team if track changes AND coupling is enforced
+            if ($eventSettings->enforce_same_track_for_teams
+                && $registration->isDirty('track_id')
+                && $registration->team_id) {
                 $team = $registration->team;
                 if ($team && $team->track_id && $team->track_id !== $registration->track_id) {
                     $registration->team_id = null;

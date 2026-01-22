@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Teams\Schemas;
 
+use App\Models\Team;
 use App\Settings\EventSettings;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Utilities\Get;
 
 class TeamForm
 {
@@ -21,6 +23,16 @@ class TeamForm
                             ->required()
                             ->maxLength(255)
                             ->unique(ignorable: fn ($record) => $record)
+                            ->unique(Team::class, 'name', function ($rule, $get) {
+                                $eventSettings = app(EventSettings::class);
+                                if ($eventSettings->enforce_same_track_for_teams) {
+                                    $trackId = $get('track_id');
+                                    if ($trackId) {
+                                        return $rule->where('track_id', $trackId);
+                                    }
+                                }
+                                return $rule;
+                            })
                             ->placeholder('Enter team name'),
 
                         Forms\Components\Select::make('track_id')
@@ -39,8 +51,22 @@ class TeamForm
 
                                 return $options;
                             })
-                            ->placeholder('Select track for this team')
-                            ->helperText('All team members must be registered for this track'),
+                            ->placeholder(function () {
+                                $eventSettings = app(EventSettings::class);
+                                return $eventSettings->enforce_same_track_for_teams
+                                    ? 'Select track for this team'
+                                    : 'Optional - leave empty for mixed-track teams';
+                            })
+                            ->required(function (Get $get): bool {
+                                $eventSettings = app(EventSettings::class);
+                                return $eventSettings->enforce_same_track_for_teams;
+                            })
+                            ->helperText(function () {
+                                $eventSettings = app(EventSettings::class);
+                                return $eventSettings->enforce_same_track_for_teams
+                                    ? 'All team members must be registered for this track'
+                                    : 'Teams can have members on different tracks when this is empty';
+                            }),
 
                         Forms\Components\TextInput::make('max_members')
                             ->label('Maximum Members')

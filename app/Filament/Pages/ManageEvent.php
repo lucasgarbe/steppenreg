@@ -180,6 +180,16 @@ class ManageEvent extends SettingsPage
                     ->columns(2)
                     ->collapsible(),
 
+                Section::make('Team Settings')
+                    ->description('Configure team and track coupling rules')
+                    ->schema([
+                        Toggle::make('enforce_same_track_for_teams')
+                            ->label('Enforce Same Track for Teams')
+                            ->helperText('When enabled, all team members must register for the same track. When disabled, team members can be on different tracks.')
+                            ->reactive(),
+                    ])
+                    ->collapsible(),
+
                 Section::make('Tracks')
                     ->schema([
                         Repeater::make('tracks')
@@ -363,8 +373,24 @@ class ManageEvent extends SettingsPage
 
     protected function afterSave(): void
     {
-        // Validate category opening times
         $eventSettings = app(EventSettings::class);
+
+        // Check if enforce_same_track_for_teams was changed
+        if (isset($this->data['enforce_same_track_for_teams'])) {
+            $newValue = $this->data['enforce_same_track_for_teams'];
+            $oldValue = $eventSettings->enforce_same_track_for_teams ?? true;
+
+            if ($newValue !== $oldValue && \App\Models\Registration::whereNotNull('team_id')->exists()) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Team Track Coupling Changed')
+                    ->body('This setting has been changed while registrations with teams exist. Existing teams and registrations remain unchanged, but future registrations will follow the new rule.')
+                    ->warning()
+                    ->persistent()
+                    ->send();
+            }
+        }
+
+        // Validate category opening times
         $errors = $eventSettings->validateCategoryOpeningTimes();
 
         if (! empty($errors)) {
