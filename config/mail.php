@@ -120,12 +120,15 @@ return [
     | Mail Rate Limiting
     |--------------------------------------------------------------------------
     |
-    | Configure the maximum number of emails that can be sent per minute.
-    | This helps prevent overwhelming email service providers and ensures
-    | compliance with sending limits.
+    | Configure the maximum number of emails that can be sent per minute and
+    | per hour. This helps prevent overwhelming email service providers and
+    | ensures compliance with sending limits. Both limits are enforced
+    | simultaneously.
     |
     */
 
-    'rate_limit_per_minute' => env('MAIL_RATE_LIMIT_PER_MINUTE', 20),
+    'rate_limit_per_minute' => env('MAIL_RATE_LIMIT_PER_MINUTE', 5),
+    'rate_limit_per_hour' => env('MAIL_RATE_LIMIT_PER_HOUR', 30),
+    'rate_limit_release_delay' => env('MAIL_RATE_LIMIT_RELEASE_DELAY', 60),
 
 ];

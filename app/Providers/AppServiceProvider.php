@@ -45,9 +45,14 @@ class AppServiceProvider extends ServiceProvider
             return true;
         });
 
-        // Rate limit email sending
+        // Rate limit email sending with dual limits (per-minute and per-hour)
         RateLimiter::for('emails', function ($job) {
-            return Limit::perMinute(config('mail.rate_limit_per_minute', 20));
+            return [
+                Limit::perMinute(config('mail.rate_limit_per_minute', 5))
+                    ->by('minute:emails'),
+                Limit::perHour(config('mail.rate_limit_per_hour', 30))
+                    ->by('hour:emails'),
+            ];
         });
     }
 }

@@ -54,11 +54,16 @@ class MailLogResource extends Resource
 
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'sent' => 'success',
-                        'failed' => 'danger',
-                        'queued' => 'warning',
+                    ->color(fn (MailLog $record): string => match (true) {
+                        $record->status === 'sent' => 'success',
+                        $record->status === 'failed' => 'danger',
+                        $record->status === 'queued' && $record->isRateLimited() => 'warning',
+                        $record->status === 'queued' => 'info',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(fn (MailLog $record): string => match (true) {
+                        $record->status === 'queued' && $record->isRateLimited() => 'Rate Limited',
+                        default => ucfirst($record->status),
                     }),
 
                 TextColumn::make('registration.name')
@@ -75,6 +80,36 @@ class MailLogResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->placeholder('Not sent'),
+
+                TextColumn::make('attempt_count')
+                    ->label('Attempts')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (int $state): string => match (true) {
+                        $state === 0 => 'gray',
+                        $state === 1 => 'success',
+                        $state <= 5 => 'info',
+                        $state <= 10 => 'warning',
+                        default => 'danger',
+                    })
+                    ->formatStateUsing(fn (int $state): string => $state === 0 ? 'Not started' : (string) $state),
+
+                TextColumn::make('rate_limit_count')
+                    ->label('Rate Limited')
+                    ->sortable()
+                    ->badge()
+                    ->color('warning')
+                    ->default(0)
+                    ->formatStateUsing(fn (int $state): string => $state === 0 ? '-' : $state.'x')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('last_rate_limited_at')
+                    ->label('Last Rate Limited')
+                    ->dateTime()
+                    ->sortable()
+                    ->since()
+                    ->placeholder('Never')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('error_message')
                     ->label('Error')
@@ -107,6 +142,12 @@ class MailLogResource extends Resource
                     ->label('Recent (Last 24h)')
                     ->query(fn (Builder $query): Builder => $query->where('created_at', '>=', now()->subDay()))
                     ->default(),
+
+                Filter::make('rate_limited')
+                    ->label('Recently Rate Limited')
+                    ->query(fn (Builder $query): Builder => $query
+                        ->where('rate_limit_count', '>', 0)
+                        ->where('last_rate_limited_at', '>=', now()->subHour())),
             ])
             ->defaultSort('created_at', 'desc');
     }
