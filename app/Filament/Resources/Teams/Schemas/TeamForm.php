@@ -24,7 +24,7 @@ class TeamForm
                             ->placeholder('Enter team name'),
 
                         Forms\Components\Select::make('track_id')
-                            ->label('Team Track')
+                            ->label(track_label())
                             ->options(function () {
                                 $tracks = app(EventSettings::class)->tracks ?? [];
                                 $options = [];

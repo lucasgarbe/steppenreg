@@ -128,7 +128,7 @@ class RegistrationTimelineByGender extends ChartWidget
 
     public function getTrackFilters(): array
     {
-        $filters = ['all' => 'All Tracks'];
+        $filters = ['all' => __('admin.all_tracks')];
 
         $settings = app(EventSettings::class);
 
@@ -145,13 +145,13 @@ class RegistrationTimelineByGender extends ChartWidget
     {
         return [
             Actions\Action::make('trackFilter')
-                ->label($this->getTrackFilters()[$this->trackFilter] ?? 'All Tracks')
+                ->label($this->getTrackFilters()[$this->trackFilter] ?? __('admin.all_tracks'))
                 ->color('gray')
                 ->button()
                 ->outlined()
                 ->form([
                     Forms\Components\Select::make('trackFilter')
-                        ->label('Track')
+                        ->label(track_label())
                         ->options($this->getTrackFilters())
                         ->default($this->trackFilter),
                 ])

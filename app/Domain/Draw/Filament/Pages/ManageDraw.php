@@ -51,7 +51,7 @@ class ManageDraw extends Page implements HasSchemas
                     ->icon('heroicon-o-cog-6-tooth')
                     ->schema([
                         Select::make('track_id')
-                            ->label('Track Selection')
+                            ->label(track_label())
                             ->options(function () {
                                 $tracks = app(EventSettings::class)->tracks ?? [];
                                 $options = [];
