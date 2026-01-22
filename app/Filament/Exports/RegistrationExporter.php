@@ -52,8 +52,8 @@ class RegistrationExporter extends Exporter
                 }),
 
             ExportColumn::make('track_name')
-                ->label('Track')
-                ->state(fn (Registration $record): string => $record->track_name ?? 'No Track'),
+                ->label(track_label())
+                ->state(fn (Registration $record): string => $record->track_name ?? __('admin.no_track_selected')),
 
             ExportColumn::make('team.name')
                 ->label('Team')

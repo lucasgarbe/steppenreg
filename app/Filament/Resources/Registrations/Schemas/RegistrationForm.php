@@ -47,7 +47,7 @@ class RegistrationForm
                             ->placeholder('Select gender category'),
 
                         Forms\Components\Select::make('track_id')
-                            ->label('Track Selection')
+                            ->label(track_label())
                             ->options(function () {
                                 $tracks = app(EventSettings::class)->tracks ?? [];
                                 $options = [];
@@ -91,7 +91,7 @@ class RegistrationForm
 
                                         // Show track name if team has different track
                                         if ($team->track_id && $team->track_id !== $trackId) {
-                                            $trackName = $team->track_name ?? "Track {$team->track_id}";
+                                            $trackName = $team->track_name ?? track_label()." {$team->track_id}";
                                             $label .= " [{$trackName}]";
                                         }
 

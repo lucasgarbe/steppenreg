@@ -15,11 +15,17 @@ class MailLog extends Model
         'sent_at',
         'error_message',
         'template_variables',
+        'attempt_count',
+        'last_rate_limited_at',
+        'rate_limit_count',
+        'metadata',
     ];
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'last_rate_limited_at' => 'datetime',
         'template_variables' => 'array',
+        'metadata' => 'array',
     ];
 
     public function registration(): BelongsTo
@@ -38,6 +44,9 @@ class MailLog extends Model
             'status' => 'sent',
             'sent_at' => now(),
             'error_message' => null,
+            'metadata' => array_merge($this->metadata ?? [], [
+                'final_attempt_count' => $this->attempt_count,
+            ]),
         ]);
     }
 
@@ -46,7 +55,34 @@ class MailLog extends Model
         $this->update([
             'status' => 'failed',
             'error_message' => $errorMessage,
+            'metadata' => array_merge($this->metadata ?? [], [
+                'final_attempt_count' => $this->attempt_count,
+                'failed_at' => now()->toISOString(),
+            ]),
         ]);
+    }
+
+    public function markAsRateLimited(int $releaseDelay): void
+    {
+        $this->increment('rate_limit_count');
+        $this->update([
+            'last_rate_limited_at' => now(),
+            'metadata' => array_merge($this->metadata ?? [], [
+                'last_release_delay' => $releaseDelay,
+                'last_rate_limited_iso' => now()->toISOString(),
+            ]),
+        ]);
+    }
+
+    public function incrementAttempt(): void
+    {
+        $this->increment('attempt_count');
+    }
+
+    public function isRateLimited(): bool
+    {
+        return $this->last_rate_limited_at !== null
+            && $this->last_rate_limited_at->isAfter(now()->subMinutes(5));
     }
 
     public static function logEmail(

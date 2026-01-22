@@ -26,12 +26,21 @@ class MailTemplateService
 
         $variables = $this->variableResolver->resolve($registration);
 
-        $mailLog = MailLog::logEmail(
-            templateKey: $templateKey,
-            recipientEmail: $registration->email,
-            registrationId: $registration->id,
-            variables: $variables
-        );
+        // Find existing queued mail log or create new one (idempotent)
+        $mailLog = MailLog::where('registration_id', $registration->id)
+            ->where('template_key', $templateKey)
+            ->where('status', 'queued')
+            ->latest()
+            ->first();
+
+        if (! $mailLog) {
+            $mailLog = MailLog::logEmail(
+                templateKey: $templateKey,
+                recipientEmail: $registration->email,
+                registrationId: $registration->id,
+                variables: $variables
+            );
+        }
 
         try {
             $mailable = new TemplateBasedEmail($template, $registration, $variables);
@@ -40,6 +49,7 @@ class MailTemplateService
             $mailLog->markAsSent();
         } catch (\Exception $e) {
             $mailLog->markAsFailed($e->getMessage());
+            throw $e; // Re-throw to trigger job retry
         }
 
         return $mailLog;

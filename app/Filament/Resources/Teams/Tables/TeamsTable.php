@@ -23,8 +23,8 @@ class TeamsTable
                     ->sortable(),
 
                 TextColumn::make('track_id')
-                    ->label('Track ID')
-                    ->placeholder('No track')
+                    ->label(track_label())
+                    ->placeholder(__('admin.no_track_selected'))
                     ->sortable(),
 
                 TextColumn::make('registrations_count')
