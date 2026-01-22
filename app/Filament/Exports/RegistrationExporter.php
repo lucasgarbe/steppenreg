@@ -19,18 +19,6 @@ class RegistrationExporter extends Exporter
             ExportColumn::make('id')
                 ->label('ID'),
 
-            ExportColumn::make('starting_number')
-                ->label('Starting Number')
-                ->state(function (Registration $record) {
-                    if (! $record->starting_number) {
-                        return '---';
-                    }
-
-                    $service = app(\App\Domain\StartingNumber\Services\StartingNumberService::class);
-
-                    return $service->getNumberLabel($record);
-                }),
-
             ExportColumn::make('name')
                 ->label('Name'),
 

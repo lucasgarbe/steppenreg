@@ -28,11 +28,19 @@ class StartingNumberService
 
     public function getTrackRanges(int $trackId): array
     {
-        $ranges = $this->getBaseRanges($trackId);
+        $baseRanges = $this->getBaseRanges($trackId);
+        $ranges = $baseRanges;
 
         // Check if waitlist overflow exists
         $overflowCount = $this->getWaitlistOverflowCount($trackId);
         if ($overflowCount > 0) {
+            // Add waitlist range
+            $ranges['waitlist'] = [
+                'start' => $baseRanges['main']['end'] + 1,
+                'end' => $baseRanges['main']['end'] + $this->getWaitlistSize($baseRanges['main']['end'] - $baseRanges['main']['start'] + 1),
+            ];
+
+            // Add overflow range
             $ranges['waitlist_overflow'] = [
                 'start' => self::OVERFLOW_START + ($trackId * 100),
                 'end' => self::OVERFLOW_START + ($trackId * 100) + $overflowCount - 1,
@@ -174,15 +182,17 @@ class StartingNumberService
     {
         $track = $this->getTrackConfig($trackId);
         $baseStart = $this->calculateTrackBaseStart($trackId);
+        $maxParticipants = $track['max_participants'] ?? 100;
+        $waitlistSize = $this->getWaitlistSize($maxParticipants);
 
         $mainRange = [
             'start' => $baseStart,
-            'end' => $baseStart + $track['max_participants'] - 1,
+            'end' => $baseStart + $maxParticipants - 1,
         ];
 
         $waitlistRange = [
             'start' => $mainRange['end'] + 1,
-            'end' => $mainRange['end'] + $this->getWaitlistSize($track['max_participants']),
+            'end' => $mainRange['end'] + $waitlistSize,
         ];
 
         return [
@@ -214,9 +224,11 @@ class StartingNumberService
         return 1; // Fallback
     }
 
-    private function getWaitlistSize(int $maxParticipants): int
+    private function getWaitlistSize(?int $maxParticipants): int
     {
         // 30% of main capacity, minimum 10, maximum 100
+        $maxParticipants = $maxParticipants ?? 100;
+
         return max(10, min(100, (int) ceil($maxParticipants * 0.3)));
     }
 
@@ -225,18 +237,35 @@ class StartingNumberService
         $settings = app(EventSettings::class);
         $tracks = collect($settings->tracks);
 
-        return $tracks->firstWhere('id', $trackId) ?? ['max_participants' => 100];
+        $track = $tracks->firstWhere('id', $trackId);
+
+        if (! $track) {
+            return [
+                'id' => $trackId,
+                'name' => 'Track '.$trackId,
+                'max_participants' => 100,
+            ];
+        }
+
+        return [
+            ...$track,
+            'max_participants' => $track['max_participants'] ?? 100,
+        ];
     }
 
     private function findNextAvailableInRange(array $range, int $trackId): ?int
     {
+        // Handle both array and integer range representations
+        $start = is_array($range) ? $range['start'] : $range;
+        $end = is_array($range) ? $range['end'] : $range;
+
         $usedNumbers = Registration::withTrashed()->where('track_id', $trackId)
             ->whereNotNull('starting_number')
-            ->whereBetween('starting_number', [$range['start'], $range['end']])
+            ->whereBetween('starting_number', [$start, $end])
             ->pluck('starting_number')
             ->toArray();
 
-        for ($i = $range['start']; $i <= $range['end']; $i++) {
+        for ($i = $start; $i <= $end; $i++) {
             if (! in_array($i, $usedNumbers)) {
                 return $i;
             }
