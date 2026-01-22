@@ -59,7 +59,7 @@ class UpdateApplicationState extends Command
                 $this->info('Next Transition:');
                 $this->line("  Date: {$nextTransition['datetime']->format('Y-m-d H:i:s T')}");
                 $this->line("  Change: {$nextTransition['label']} -> <comment>{$nextTransition['state']}</comment>");
-                $this->line("  In: ".$nextTransition['datetime']->diffForHumans());
+                $this->line('  In: '.$nextTransition['datetime']->diffForHumans());
             } else {
                 $this->line('');
                 $this->info('No upcoming automatic transitions scheduled.');
@@ -111,7 +111,7 @@ class UpdateApplicationState extends Command
             $this->info('Next Transition:');
             $this->line("  Date: {$nextTransition['datetime']->format('Y-m-d H:i:s T')}");
             $this->line("  Change: {$nextTransition['label']} -> <comment>{$nextTransition['state']}</comment>");
-            $this->line("  In: ".$nextTransition['datetime']->diffForHumans());
+            $this->line('  In: '.$nextTransition['datetime']->diffForHumans());
         }
 
         return self::SUCCESS;

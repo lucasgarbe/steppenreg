@@ -12,7 +12,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class TrackStatsWidget extends BaseWidget
 {
-    protected static ?string $heading = 'Track Statistics';
+    public static function getHeading(): string
+    {
+        return track_label().' Statistics';
+    }
 
     protected int|string|array $columnSpan = 'full';
 
@@ -22,7 +25,7 @@ class TrackStatsWidget extends BaseWidget
             ->query($this->getTableQuery())
             ->columns([
                 Tables\Columns\TextColumn::make('track_name')
-                    ->label('Track')
+                    ->label(track_label())
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('distance')

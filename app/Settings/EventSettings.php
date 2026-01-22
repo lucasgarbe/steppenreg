@@ -54,6 +54,15 @@ class EventSettings extends Settings
 
     public string $theme_accent_color = '#7a58fc';
 
+    // Custom Track Labels
+    public string $track_label_singular_en = '';
+
+    public string $track_label_singular_de = '';
+
+    public string $track_label_plural_en = '';
+
+    public string $track_label_plural_de = '';
+
     public static function group(): string
     {
         return 'event';
@@ -481,8 +490,6 @@ class EventSettings extends Settings
             ->toArray();
     }
 
-
-
     /**
      * Get all gender category keys (for validation)
      */
@@ -491,5 +498,24 @@ class EventSettings extends Settings
         return collect($this->gender_categories)
             ->pluck('key')
             ->toArray();
+    }
+
+    /**
+     * Get custom track label or fall back to translation
+     */
+    public function getTrackLabel(bool $plural = false): string
+    {
+        $locale = app()->getLocale();
+        $key = $plural ? 'track_label_plural_' : 'track_label_singular_';
+        $customLabel = $this->{$key.$locale} ?? '';
+
+        if (! empty(trim($customLabel))) {
+            return $customLabel;
+        }
+
+        // Fallback to translations
+        return $plural
+            ? __('messages.tracks')
+            : __('messages.track');
     }
 }

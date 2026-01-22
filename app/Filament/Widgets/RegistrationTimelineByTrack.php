@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 class RegistrationTimelineByTrack extends ChartWidget
 {
-    protected ?string $heading = 'Registration Timeline By Track';
+    public function getHeading(): string
+    {
+        return __('admin.registration_timeline_by_track');
+    }
 
     protected int|string|array $columnSpan = 1;
 
@@ -132,7 +135,7 @@ class RegistrationTimelineByTrack extends ChartWidget
                 ],
                 'title' => [
                     'display' => true,
-                    'text' => 'Cumulative registrations over time by track',
+                    'text' => 'Cumulative registrations over time by '.strtolower(track_label()),
                 ],
             ],
             'scales' => [

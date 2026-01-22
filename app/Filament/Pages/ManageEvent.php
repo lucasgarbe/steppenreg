@@ -91,13 +91,13 @@ class ManageEvent extends SettingsPage
                         Toggle::make('manual_override_active')
                             ->label('Manual Override Active')
                             ->helperText('Temporarily override automatic transitions')
-                            ->visible(fn($get) => $get('automatic_state_transitions'))
+                            ->visible(fn ($get) => $get('automatic_state_transitions'))
                             ->reactive(),
 
                         Select::make('manual_override_state')
                             ->label('Override State')
                             ->options(EventSettings::getApplicationStates())
-                            ->visible(fn($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
+                            ->visible(fn ($get) => $get('automatic_state_transitions') && $get('manual_override_active'))
                             ->helperText('This state will be used instead of automatic transitions')
                             ->native(false),
                     ])
@@ -154,6 +154,32 @@ class ManageEvent extends SettingsPage
                     ->columns(2)
                     ->collapsible(),
 
+                Section::make('Custom Track Labels')
+                    ->description('Customize the term "Track" displayed throughout the site. Leave empty to use default translations (Track/Strecke).')
+                    ->schema([
+                        TextInput::make('track_label_singular_en')
+                            ->label('Track Label - Singular (English)')
+                            ->placeholder('Track')
+                            ->helperText('Custom label for singular form in English. Leave empty for default: "Track"'),
+
+                        TextInput::make('track_label_singular_de')
+                            ->label('Track Label - Singular (German)')
+                            ->placeholder('Strecke')
+                            ->helperText('Custom label for singular form in German. Leave empty for default: "Strecke"'),
+
+                        TextInput::make('track_label_plural_en')
+                            ->label('Track Label - Plural (English)')
+                            ->placeholder('Tracks')
+                            ->helperText('Custom label for plural form in English. Leave empty for default: "Tracks"'),
+
+                        TextInput::make('track_label_plural_de')
+                            ->label('Track Label - Plural (German)')
+                            ->placeholder('Strecken')
+                            ->helperText('Custom label for plural form in German. Leave empty for default: "Strecken"'),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
                 Section::make('Tracks')
                     ->schema([
                         Repeater::make('tracks')
@@ -176,10 +202,10 @@ class ManageEvent extends SettingsPage
                             ])
                             ->columns(2)
                             ->collapsible()
-                            ->itemLabel(fn(array $state): ?string => $state['name'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                             ->addActionLabel('Add Track')
                             ->deleteAction(
-                                fn($action) => $action->requiresConfirmation()
+                                fn ($action) => $action->requiresConfirmation()
                             ),
                     ]),
 
@@ -211,7 +237,7 @@ class ManageEvent extends SettingsPage
 
                                 DateTimePicker::make('registration_opens_at')
                                     ->label('Registration Opens')
-                                    ->required(fn(Get $get) => $get('../../automatic_state_transitions') ?? false)
+                                    ->required(fn (Get $get) => $get('../../automatic_state_transitions') ?? false)
                                     ->helperText(function (Get $get): string {
                                         $isPriority = $get('is_priority');
                                         $root = $get('../../');
@@ -293,10 +319,10 @@ class ManageEvent extends SettingsPage
                             ->collapsible()
                             ->reorderable()
                             ->reorderableWithButtons()
-                            ->itemLabel(fn(array $state): ?string => ($state['is_priority'] ?? false ? '[Priority] ' : '') . ($state['translations']['en']['label'] ?? $state['key'] ?? null))
+                            ->itemLabel(fn (array $state): ?string => ($state['is_priority'] ?? false ? '[Priority] ' : '').($state['translations']['en']['label'] ?? $state['key'] ?? null))
                             ->addActionLabel('Add Gender Category')
                             ->deleteAction(
-                                fn($action) => $action
+                                fn ($action) => $action
                                     ->requiresConfirmation()
                                     ->modalDescription('This may affect existing registrations with this category.')
                             )
