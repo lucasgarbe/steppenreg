@@ -21,11 +21,11 @@
                     $messageStyle = $category['message_style'] ?? 'info';
                     $categoryLabel = $category['translations'][$locale]['label'] ?? $category['key'];
                 @endphp
-                
+
                 @if($message)
-                    <x-public.alert 
-                        type="{{ $messageStyle }}" 
-                        :icon="false" 
+                    <x-public.alert
+                        type="{{ $messageStyle }}"
+                        :icon="false"
                         class="mt-4"
                     >
                         <h3 class="text-sm font-medium mb-2">{{ $categoryLabel }}</h3>
@@ -35,7 +35,7 @@
                     </x-public.alert>
                 @endif
             @endforeach
-            
+
             <!-- Default priority message if no custom messages -->
             @if(empty($categoriesWithMessages))
                 <x-public.alert type="info" :icon="false" class="mt-4">
@@ -107,7 +107,7 @@
                         type="number"
                         id="age"
                         name="age"
-                        min="16"
+                        min="1"
                         max="99"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-spw-yellow focus:border-spw-yellow"
                         placeholder="{{ __('public.registration.fields.age_placeholder') }}"
@@ -165,9 +165,6 @@
                         @foreach($tracks as $track)
                             <option value="{{ $track['id'] }}" {{ old('track_id') == $track['id'] ? 'selected' : '' }}>
                                 {{ $track['name'] }}
-                                @if(isset($track['distance']))
-                                    ({{ $track['distance'] }} km)
-                                @endif
                             </option>
                         @endforeach
                     </select>

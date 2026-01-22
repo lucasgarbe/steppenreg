@@ -38,7 +38,7 @@ class PublicRegistrationController extends Controller
 
         // Get categories with messages for display
         $categoriesWithMessages = collect($availableCategories)
-            ->filter(fn ($cat) => ! empty($cat['message'][app()->getLocale()]))
+            ->filter(fn($cat) => ! empty($cat['message'][app()->getLocale()]))
             ->values()
             ->toArray();
 
@@ -57,8 +57,10 @@ class PublicRegistrationController extends Controller
         $eventSettings = app(EventSettings::class);
 
         // Check if registration is allowed
-        if ($eventSettings->application_state === 'closed' ||
-            $eventSettings->isLiveEvent()) {
+        if (
+            $eventSettings->application_state === 'closed' ||
+            $eventSettings->isLiveEvent()
+        ) {
             return redirect()->route('registration.create')
                 ->withErrors(['general' => 'Registration is currently closed.']);
         }
@@ -72,8 +74,8 @@ class PublicRegistrationController extends Controller
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'age' => 'required|integer|min:1|max:120',
-            'gender' => 'required|string|in:'.implode(',', $availableGenderKeys),
+            'age' => 'required|integer|min:1|max:99',
+            'gender' => 'required|string|in:' . implode(',', $availableGenderKeys),
             'track_id' => 'required|integer',
             'team_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
