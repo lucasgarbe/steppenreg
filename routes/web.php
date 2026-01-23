@@ -10,7 +10,9 @@ Route::get('/', [PublicRegistrationController::class, 'create'])->name('registra
 Route::get('/register', function () {
     return redirect('/', 301);
 });
-Route::post('/register', [PublicRegistrationController::class, 'store'])->name('registration.store');
+Route::post('/register', [PublicRegistrationController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('registration.store');
 Route::get('/registration/success', [PublicRegistrationController::class, 'success'])->name('registration.success');
 
 // Email Preview Routes (for development)

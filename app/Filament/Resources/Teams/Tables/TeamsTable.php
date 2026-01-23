@@ -34,6 +34,7 @@ class TeamsTable
 
                 TextColumn::make('max_members')
                     ->label('Max Members')
+                    ->formatStateUsing(fn ($state) => $state === null ? '∞' : $state)
                     ->sortable(),
 
                 TextColumn::make('gender_ratio')

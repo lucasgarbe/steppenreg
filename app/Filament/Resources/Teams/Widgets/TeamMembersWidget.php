@@ -20,7 +20,12 @@ class TeamMembersWidget extends BaseWidget
     protected function getTableHeading(): string
     {
         $memberCount = $this->team?->registrations()->count() ?? 0;
-        $maxMembers = $this->team?->max_members ?? 0;
+        $maxMembers = $this->team?->max_members;
+
+        // Display format with unlimited support
+        if ($maxMembers === null) {
+            return "Team Members ({$memberCount})";
+        }
 
         return "Team Members ({$memberCount}/{$maxMembers})";
     }

@@ -138,6 +138,10 @@ return [
             'max_members' => 'Max. Mitglieder',
             'created_at' => 'Erstellt am',
         ],
+
+        'unlimited' => 'Unbegrenzt',
+        'unlimited_capacity' => 'Unbegrenzte Kapazität',
+        'infinity_symbol' => '∞',
     ],
 
     // Dashboard widgets

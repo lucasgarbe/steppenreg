@@ -77,15 +77,20 @@ class RegistrationForm
                                     return Team::notFull()
                                         ->withCount('registrations')
                                         ->get()
-                                        ->mapWithKeys(function ($team) use ($trackId) {
+                                        ->mapWithKeys(function ($team) {
                                             $label = $team->name;
                                             $memberCount = $team->registrations_count;
                                             $maxMembers = $team->max_members;
-                                            $available = $maxMembers - $memberCount;
 
-                                            $label .= " ({$memberCount}/{$maxMembers})";
-                                            if ($available <= 2) {
-                                                $label .= " - {$available} spots left";
+                                            // Display format with unlimited support
+                                            if ($maxMembers === null) {
+                                                $label .= " ({$memberCount}/∞)";
+                                            } else {
+                                                $available = $maxMembers - $memberCount;
+                                                $label .= " ({$memberCount}/{$maxMembers})";
+                                                if ($available <= 2) {
+                                                    $label .= " - {$available} spots left";
+                                                }
                                             }
 
                                             if ($team->track_id) {
@@ -111,11 +116,16 @@ class RegistrationForm
                                         $label = $team->name;
                                         $memberCount = $team->registrations_count;
                                         $maxMembers = $team->max_members;
-                                        $available = $maxMembers - $memberCount;
 
-                                        $label .= " ({$memberCount}/{$maxMembers})";
-                                        if ($available <= 2) {
-                                            $label .= " - {$available} spots left";
+                                        // Display format with unlimited support
+                                        if ($maxMembers === null) {
+                                            $label .= " ({$memberCount}/∞)";
+                                        } else {
+                                            $available = $maxMembers - $memberCount;
+                                            $label .= " ({$memberCount}/{$maxMembers})";
+                                            if ($available <= 2) {
+                                                $label .= " - {$available} spots left";
+                                            }
                                         }
 
                                         // Show track name if team has different track
@@ -132,6 +142,7 @@ class RegistrationForm
                             ->placeholder('Select a team (optional)')
                             ->helperText(function () {
                                 $eventSettings = app(EventSettings::class);
+
                                 return $eventSettings->enforce_same_track_for_teams
                                     ? 'Only teams for your selected track are shown'
                                     : 'All teams are available (teams can have members on different tracks)';
@@ -145,19 +156,22 @@ class RegistrationForm
                                         if ($eventSettings->enforce_same_track_for_teams) {
                                             return $rule->where('track_id', $get('../../track_id'));
                                         }
+
                                         return $rule;
                                     }),
                                 Forms\Components\TextInput::make('max_members')
                                     ->numeric()
-                                    ->default(5)
+                                    ->nullable()
+                                    ->default(fn () => app(EventSettings::class)->default_team_max_members)
                                     ->minValue(1)
-                                    ->maxValue(20),
+                                    ->maxValue(100)
+                                    ->placeholder('Unlimited'),
                             ])
                             ->createOptionUsing(function (array $data, Get $get): int {
                                 $eventSettings = app(EventSettings::class);
                                 $team = Team::create([
                                     'name' => $data['name'],
-                                    'max_members' => $data['max_members'] ?? 5,
+                                    'max_members' => $data['max_members'] ?? $eventSettings->default_team_max_members,
                                     'track_id' => $eventSettings->enforce_same_track_for_teams
                                         ? $get('track_id')
                                         : null,

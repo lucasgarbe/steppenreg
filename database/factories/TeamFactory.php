@@ -31,7 +31,7 @@ class TeamFactory extends Factory
 
         return [
             'name' => fake()->unique()->randomElement($teamNames).' '.fake()->numberBetween(1, 99),
-            'max_members' => fake()->numberBetween(4, 7), // Updated range around new default of 5
+            'max_members' => fake()->optional(0.7)->numberBetween(4, 7), // 30% chance of NULL (unlimited)
         ];
     }
 }

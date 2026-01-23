@@ -256,6 +256,38 @@
             // Trim whitespace
             this.value = this.value.trim();
         });
+
+        // Prevent double-submit
+        const form = document.getElementById('registration-form');
+        const submitBtn = document.getElementById('submit-btn');
+        let isSubmitting = false;
+
+        form.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+
+            isSubmitting = true;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+            
+            // Change button text to show loading state
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '{{ __("public.registration.submitting") }}';
+
+            // Re-enable if form validation fails (browser native validation)
+            setTimeout(function() {
+                if (!form.checkValidity()) {
+                    isSubmitting = false;
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.textContent = originalText;
+                }
+            }, 100);
+        });
     });
 </script>
 @endpush

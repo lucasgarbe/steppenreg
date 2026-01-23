@@ -187,6 +187,16 @@ class ManageEvent extends SettingsPage
                             ->label('Enforce Same Track for Teams')
                             ->helperText('When enabled, all team members must register for the same track. When disabled, team members can be on different tracks.')
                             ->reactive(),
+
+                        TextInput::make('default_team_max_members')
+                            ->label('Default Team Size Limit')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(100)
+                            ->nullable()
+                            ->placeholder('Unlimited')
+                            ->helperText('Default maximum members for new teams. Leave empty for unlimited capacity.')
+                            ->columnSpanFull(),
                     ])
                     ->collapsible(),
 

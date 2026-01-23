@@ -6,6 +6,7 @@ use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class PublicRegistrationController extends Controller
@@ -38,7 +39,7 @@ class PublicRegistrationController extends Controller
 
         // Get categories with messages for display
         $categoriesWithMessages = collect($availableCategories)
-            ->filter(fn($cat) => ! empty($cat['message'][app()->getLocale()]))
+            ->filter(fn ($cat) => ! empty($cat['message'][app()->getLocale()]))
             ->values()
             ->toArray();
 
@@ -75,7 +76,7 @@ class PublicRegistrationController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'age' => 'required|integer|min:1|max:99',
-            'gender' => 'required|string|in:' . implode(',', $availableGenderKeys),
+            'gender' => 'required|string|in:'.implode(',', $availableGenderKeys),
             'track_id' => 'required|integer',
             'team_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
@@ -218,6 +219,24 @@ class PublicRegistrationController extends Controller
 
         $validated = $request->validate($rules, $customMessages);
 
+        // Check for exact duplicate registration within 5-minute window
+        $fiveMinutesAgo = now()->subMinutes(5);
+
+        $existingRegistration = Registration::where('name', $validated['name'])
+            ->where('email', $validated['email'])
+            ->where('track_id', $validated['track_id'])
+            ->where('age', $validated['age'])
+            ->where('gender', $validated['gender'])
+            ->where('created_at', '>=', $fiveMinutesAgo)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($existingRegistration) {
+            // Idempotent behavior: redirect to success page as if registration just happened
+            return redirect()->route('registration.success')
+                ->with('success', 'Registration completed successfully!');
+        }
+
         $teamId = null;
 
         // Handle team assignment if team name provided
@@ -225,54 +244,55 @@ class PublicRegistrationController extends Controller
             $teamName = trim($request->team_name);
             $enforceSameTrack = $eventSettings->enforce_same_track_for_teams;
 
-            // Check if team name exists
-            $existingTeamQuery = Team::whereRaw('LOWER(name) = LOWER(?)', [$teamName]);
+            try {
+                // Use transaction with locking to prevent race conditions
+                $teamId = DB::transaction(function () use ($teamName, $enforceSameTrack, $request, $eventSettings) {
+                    $trackId = $enforceSameTrack ? (int) $request->track_id : null;
 
-            // When enforcing same track, also check track_id match
-            if ($enforceSameTrack) {
-                $existingTeam = $existingTeamQuery->first();
+                    // Lock-based check to prevent duplicate team creation
+                    $existingTeam = Team::withoutTrashed()
+                        ->whereRaw('LOWER(name) = LOWER(?)', [$teamName])
+                        ->where(function ($query) use ($trackId) {
+                            if ($trackId !== null) {
+                                $query->where('track_id', $trackId);
+                            } else {
+                                $query->whereNull('track_id');
+                            }
+                        })
+                        ->lockForUpdate()
+                        ->first();
 
-                if ($existingTeam && $existingTeam->track_id != (int) $request->track_id) {
-                    $existingTrackName = $this->getTrackName($existingTeam->track_id);
-                    $selectedTrackName = $this->getTrackName($request->track_id);
+                    if ($existingTeam) {
+                        // When enforcing same track, check if user selected different track
+                        if ($enforceSameTrack && $existingTeam->track_id != (int) $request->track_id) {
+                            $existingTrackName = $this->getTrackName($existingTeam->track_id);
+                            $selectedTrackName = $this->getTrackName($request->track_id);
 
-                    return back()
-                        ->withErrors(['team_name' => "Team '{$teamName}' already exists on {$existingTrackName}, but you selected {$selectedTrackName}. Please choose a different team name or change your track selection."])
-                        ->withInput();
-                }
-            } else {
-                // When not enforcing, team name must be globally unique
-                $existingTeam = $existingTeamQuery->first();
+                            throw new \Exception("Team '{$teamName}' already exists on {$existingTrackName}, but you selected {$selectedTrackName}. Please choose a different team name or change your track selection.");
+                        }
 
-                if ($existingTeam) {
-                    // Team exists with this name - check if it's full
-                    $currentMembers = $existingTeam->registrations()->count();
-                    if ($currentMembers >= $existingTeam->max_members) {
-                        return back()
-                            ->withErrors(['team_name' => "Team '{$teamName}' is already full ({$existingTeam->max_members} members)."])
-                            ->withInput();
+                        // Check if team is full (only if max_members is set)
+                        $currentMembers = $existingTeam->registrations()->count();
+                        if ($existingTeam->max_members !== null && $currentMembers >= $existingTeam->max_members) {
+                            throw new \Exception("Team '{$teamName}' is already full ({$existingTeam->max_members} members).");
+                        }
+
+                        return $existingTeam->id;
                     }
 
-                    $teamId = $existingTeam->id;
-                } else {
-                    // Create new team without track_id
+                    // Create new team (safe because we hold the lock)
                     $team = Team::create([
                         'name' => $teamName,
-                        'max_members' => 5,
-                        'track_id' => null, // No track when coupling is disabled
+                        'max_members' => $eventSettings->default_team_max_members,
+                        'track_id' => $trackId,
                     ]);
-                    $teamId = $team->id;
-                }
-            }
 
-            // Handle case when enforcing same track and team doesn't exist
-            if ($enforceSameTrack && ! isset($teamId)) {
-                $team = Team::create([
-                    'name' => $teamName,
-                    'max_members' => 5,
-                    'track_id' => $request->track_id,
-                ]);
-                $teamId = $team->id;
+                    return $team->id;
+                });
+            } catch (\Exception $e) {
+                return back()
+                    ->withErrors(['team_name' => $e->getMessage()])
+                    ->withInput();
             }
         }
 

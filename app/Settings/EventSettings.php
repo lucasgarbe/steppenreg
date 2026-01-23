@@ -25,6 +25,8 @@ class EventSettings extends Settings
 
     public bool $enforce_same_track_for_teams = true;
 
+    public ?int $default_team_max_members = null;
+
     public array $custom_questions = [];
 
     public array $gender_categories = [];
