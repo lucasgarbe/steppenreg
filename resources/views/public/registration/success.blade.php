@@ -17,14 +17,11 @@
 
         <!-- Next Steps -->
         <x-public.card type="info" :title="__('public.registration.success.what_next')" class="mb-6">
-            <ul class="text-sm space-y-1 list-disc text-left">
-                <li>{{ __('public.registration.success.wait_for_draw') }}</li>
-                <li>{{ __('public.registration.success.mail') }}
+                <p>{{ __('public.registration.success.mail') }}
                     <a href="#" id="contact-email" class="text-blue-600 hover:text-blue-800 underline" data-email="{{ base64_encode(app(\App\Settings\EventSettings::class)->contact_email) }}" data-event-name="{{ app(\App\Settings\EventSettings::class)->event_name }}" data-email-subject="{{ __('public.event_closed.email_subject', ['event' => app(\App\Settings\EventSettings::class)->event_name]) }}">
                         Loading...
                     </a>
-                </li>
-            </ul>
+                </p>
         </x-public.card>
 
         <a href="{{ app(\App\Settings\EventSettings::class)->event_website_url ?: app(\App\Settings\EventSettings::class)->organization_website }}" class="inline-flex items-center justify-center font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 bg-white hover:bg-gray-50 text-gray-900 border-gray-300 focus:ring-blue-500 px-4 py-2 text-sm">

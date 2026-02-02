@@ -53,9 +53,9 @@ return [
             'title' => 'Anmeldung erfolgreich!',
             'message' => 'Jawollo! Deine Anmeldung ist bei uns eingegangen.',
             'confirmation_sent' => 'Du erhältst in Kürze eine Bestätigung per Mail.',
-            'what_next' => 'Wie geht es weiter?',
+            'what_next' => 'Noch Fragen?',
             'wait_for_draw' => 'Warte auf die Auslosung - wir informieren dich per E-Mail über das Ergebnis.',
-            'mail' => 'Bei Fragen kannst du uns schreiben',
+            'mail' => 'Du kannst uns schreiben an:',
             'back_to_home' => 'Zur Hauptseite',
         ],
 
