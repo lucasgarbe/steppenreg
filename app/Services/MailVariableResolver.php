@@ -202,6 +202,10 @@ class MailVariableResolver
         }
 
         // Handle select/radio (single value with options)
+        if ($value === null) {
+            return '';
+        }
+
         return $this->getOptionLabel($value, $question, $locale);
     }
 

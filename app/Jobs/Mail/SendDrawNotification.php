@@ -40,7 +40,7 @@ class SendDrawNotification implements ShouldQueue
     {
         return [
             (new RateLimited('emails'))
-                ->releaseAfter(config('mail.rate_limit_release_delay', 60)),
+                ->releaseAfter((int) config('mail.rate_limit_release_delay', 60)),
         ];
     }
 
