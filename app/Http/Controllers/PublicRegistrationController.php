@@ -247,26 +247,22 @@ class PublicRegistrationController extends Controller
             try {
                 // Use transaction with locking to prevent race conditions
                 $teamId = DB::transaction(function () use ($teamName, $enforceSameTrack, $request, $eventSettings) {
-                    $trackId = $enforceSameTrack ? (int) $request->track_id : null;
+                    $selectedTrackId = (int) $request->track_id;
 
-                    // Lock-based check to prevent duplicate team creation
+                    // Lock-based check to prevent duplicate team creation.
+                    // When enforcing same track, scope lookup to the selected track only.
+                    // When not enforcing, match by name globally across all tracks.
                     $existingTeam = Team::withoutTrashed()
                         ->whereRaw('LOWER(name) = LOWER(?)', [$teamName])
-                        ->where(function ($query) use ($trackId) {
-                            if ($trackId !== null) {
-                                $query->where('track_id', $trackId);
-                            } else {
-                                $query->whereNull('track_id');
-                            }
-                        })
+                        ->when($enforceSameTrack, fn ($query) => $query->where('track_id', $selectedTrackId))
                         ->lockForUpdate()
                         ->first();
 
                     if ($existingTeam) {
                         // When enforcing same track, check if user selected different track
-                        if ($enforceSameTrack && $existingTeam->track_id != (int) $request->track_id) {
+                        if ($enforceSameTrack && $existingTeam->track_id != $selectedTrackId) {
                             $existingTrackName = $this->getTrackName($existingTeam->track_id);
-                            $selectedTrackName = $this->getTrackName($request->track_id);
+                            $selectedTrackName = $this->getTrackName($selectedTrackId);
 
                             throw new \Exception("Team '{$teamName}' already exists on {$existingTrackName}, but you selected {$selectedTrackName}. Please choose a different team name or change your track selection.");
                         }
@@ -280,16 +276,17 @@ class PublicRegistrationController extends Controller
                         return $existingTeam->id;
                     }
 
-                    // Create new team (safe because we hold the lock)
+                    // Create new team (safe because we hold the lock).
+                    // Always store the selected track_id so teams retain their track association.
                     $team = Team::create([
                         'name' => $teamName,
                         'max_members' => $eventSettings->default_team_max_members,
-                        'track_id' => $trackId,
+                        'track_id' => $selectedTrackId,
                     ]);
 
                     return $team->id;
                 });
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 return back()
                     ->withErrors(['team_name' => $e->getMessage()])
                     ->withInput();

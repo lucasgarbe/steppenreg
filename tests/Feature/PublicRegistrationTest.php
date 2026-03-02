@@ -307,7 +307,8 @@ class PublicRegistrationTest extends TestCase
         $this->assertDatabaseCount('teams', 1);
 
         $team = Team::where('name', 'Multi Track Team')->first();
-        $this->assertNull($team->track_id); // No track when not enforcing
+        // Team retains the track_id from the first member who created it
+        $this->assertEquals(1, $team->track_id);
     }
 
     public function test_full_team_prevents_new_members(): void
@@ -636,7 +637,8 @@ class PublicRegistrationTest extends TestCase
 
         $team = Team::where('name', 'Global Team')->first();
         $this->assertNotNull($team);
-        $this->assertNull($team->track_id); // No track when not enforcing
+        // Team retains the track_id from the member who created it
+        $this->assertEquals(1, $team->track_id);
 
         // Soft delete the team
         $team->delete();

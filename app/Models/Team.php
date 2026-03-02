@@ -27,10 +27,9 @@ class Team extends Model
                     ->exists();
 
                 if ($existing) {
-                    throw new \Illuminate\Validation\ValidationException(
-                        validator([], [], [])
-                            ->errors()->add('name', "Team name '{$team->name}' already exists.")
-                    );
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'name' => ["Team name '{$team->name}' already exists."],
+                    ]);
                 }
             }
         });
