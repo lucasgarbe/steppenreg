@@ -245,7 +245,7 @@ class Registration extends Model
             'drawn' => static::drawn()->count(),
             'not_drawn' => static::notDrawn()->count(),
             'payed' => static::payed()->count(),
-            'unpayed' => static::unpayed()->count(),
+            'unpayed' => static::unpayed()->drawn()->count(),
             'starting' => static::starting()->count(),
             'finished' => static::finished()->count(),
         ];

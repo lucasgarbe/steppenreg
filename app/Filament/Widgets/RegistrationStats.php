@@ -45,9 +45,10 @@ class RegistrationStats extends StatsOverviewWidget
         array_push(
             $statCards,
             Stat::make('Paid Registrations', $stats['payed'])
-                ->description($stats['unpayed'].' unpaid')
+                ->description($stats['unpayed'].' unpaid but drawn')
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('success')
+                ->url('/admin/registrations?filters[payed][value]=unpaid&filters[draw_status][value]=drawn')
         );
 
         if (app(EventSettings::class)->application_state == 'live_event') {
