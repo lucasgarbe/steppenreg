@@ -4,14 +4,19 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.1.12",
+        "@vitest/coverage-v8": "^4.0.18",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
         "tailwindcss": "^4.1.12",
-        "vite": "^7.0.4"
+        "vite": "^7.0.4",
+        "vitest": "^4.0.18"
     }
 }

@@ -5,6 +5,7 @@ return [
     App\Providers\Filament\AdminPanelProvider::class,
 
     // Domain Service Providers
+    App\Domain\BankImport\BankImportServiceProvider::class,
     App\Domain\Payment\PaymentServiceProvider::class,
     App\Domain\StartingNumber\StartingNumberServiceProvider::class,
     App\Domain\Mail\MailServiceProvider::class,
