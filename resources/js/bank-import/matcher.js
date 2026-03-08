@@ -4,9 +4,12 @@
  *
  * Matching rules:
  * - Only rows where Verwendungszweck contains the event prefix (case-insensitive) are processed
- * - The registrant name is extracted from the part after the first " - " separator
+ * - Primary path: name is extracted from the part after the first " - " separator
+ * - Fallback path: if the separator is absent but the reference starts with the prefix,
+ *   the name is extracted by stripping the prefix from the start of the reference
  * - Matching is exact (case-insensitive, trimmed) — no fuzzy matching
  * - Rows that pass the filter but have no exact match are returned as unmatched
+ * - Each result item carries a matchType: 'exact' | 'fallback' field
  *
  * @param {Array<Object>} rows - Parsed CSV rows from csv-parser
  * @param {string} eventPrefix - The event name prefix to filter on (e.g. "Steppenreg 2025")
@@ -23,34 +26,47 @@ export function filterAndMatch(rows, eventPrefix, registrations) {
 
     for (const row of rows) {
         const reference = row['Verwendungszweck'] ?? '';
-
-        // Step 1: filter by prefix (case-insensitive) AND require the " - " separator.
-        // A row must match "Prefix - Name" format to be considered a registration transfer.
-        // Rows that merely mention the event name in another context are filtered out.
         const referenceLower = reference.toLowerCase();
         const separatorIndex = reference.indexOf(separator);
-        const prefixBeforeSeparator = separatorIndex !== -1
-            ? referenceLower.slice(0, separatorIndex)
-            : referenceLower;
 
-        if (!prefixBeforeSeparator.includes(prefix) || separatorIndex === -1) {
-            filtered.push(row);
-            continue;
+        let extractedName;
+        let matchType;
+
+        if (separatorIndex !== -1) {
+            // Primary path: " - " separator is present.
+            // The prefix must appear in the text before the separator.
+            const prefixBeforeSeparator = referenceLower.slice(0, separatorIndex);
+
+            if (!prefixBeforeSeparator.includes(prefix)) {
+                filtered.push(row);
+                continue;
+            }
+
+            extractedName = reference.slice(separatorIndex + separator.length).trim();
+            matchType = 'exact';
+        } else {
+            // Fallback path: no separator. Qualify only if the reference starts with the prefix.
+            // Requiring a leading position mirrors the "prefix before separator" rule and keeps
+            // rows like "Spende allgemein Steppenreg e.V." in filtered.
+            if (!referenceLower.startsWith(prefix)) {
+                filtered.push(row);
+                continue;
+            }
+
+            extractedName = reference.slice(prefix.length).trim();
+            matchType = 'fallback';
         }
 
-        // Step 2: extract name — everything after the first " - "
-        const extractedName = reference.slice(separatorIndex + separator.length).trim();
-
-        // Step 3: exact match (case-insensitive, trimmed)
+        // Exact match (case-insensitive, trimmed)
         const normalised = extractedName.toLowerCase();
         const registration = registrations.find(
             r => r.name.toLowerCase().trim() === normalised
         ) ?? null;
 
         if (registration) {
-            matched.push({ row, extractedName, registration });
+            matched.push({ row, extractedName, registration, matchType });
         } else {
-            unmatched.push({ row, extractedName, registration: null });
+            unmatched.push({ row, extractedName, registration: null, matchType });
         }
     }
 

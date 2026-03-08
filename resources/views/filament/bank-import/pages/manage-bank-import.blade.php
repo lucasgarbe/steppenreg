@@ -149,7 +149,12 @@
                                     />
                                 </td>
                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs truncate" x-text="item.row['Verwendungszweck']"></td>
-                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white" x-text="item.extractedName"></td>
+                                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                     <span x-text="item.extractedName"></span>
+                                     <template x-if="item.matchType === 'fallback'">
+                                         <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300" title="Matched without the expected ' - ' delimiter">no delimiter</span>
+                                     </template>
+                                 </td>
                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300" x-text="item.registration.name"></td>
                                 <td class="px-4 py-3 text-right font-mono text-gray-900 dark:text-white" x-text="item.row['Betrag'] + ' ' + item.row['Waehrung']"></td>
                                 <td class="px-4 py-3 text-gray-500 dark:text-gray-400" x-text="item.row['Buchungstag']"></td>

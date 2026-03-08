@@ -125,4 +125,72 @@ describe('filterAndMatch', () => {
 
         expect(filtered).toHaveLength(1);
     });
+
+    it('sets matchType to "exact" for rows matched via the " - " separator', () => {
+        const rows = [makeRow('Steppenreg 2025 - Maria Muster')];
+        const { matched } = filterAndMatch(rows, 'Steppenreg 2025', registrations);
+
+        expect(matched).toHaveLength(1);
+        expect(matched[0].matchType).toBe('exact');
+    });
+});
+
+describe('fallback matching (no separator)', () => {
+    it('matches a row where prefix and name are written without the " - " separator', () => {
+        const rows = [makeRow('Steppenreg 2025 Maria Muster')];
+        const { matched, unmatched, filtered } = filterAndMatch(rows, 'Steppenreg 2025', registrations);
+
+        expect(filtered).toHaveLength(0);
+        expect(unmatched).toHaveLength(0);
+        expect(matched).toHaveLength(1);
+        expect(matched[0].extractedName).toBe('Maria Muster');
+        expect(matched[0].registration.id).toBe(1);
+        expect(matched[0].matchType).toBe('fallback');
+    });
+
+    it('is case-insensitive for both prefix and name in fallback path', () => {
+        const rows = [makeRow('steppenreg 2025 maria muster')];
+        const { matched } = filterAndMatch(rows, 'Steppenreg 2025', registrations);
+
+        expect(matched).toHaveLength(1);
+        expect(matched[0].registration.id).toBe(1);
+        expect(matched[0].matchType).toBe('fallback');
+    });
+
+    it('returns unmatched when the fallback name is not in the registration list', () => {
+        const rows = [makeRow('Steppenreg 2025 Unknown Person')];
+        const { matched, unmatched } = filterAndMatch(rows, 'Steppenreg 2025', registrations);
+
+        expect(matched).toHaveLength(0);
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].extractedName).toBe('Unknown Person');
+        expect(unmatched[0].matchType).toBe('fallback');
+    });
+
+    it('returns unmatched when the reference is only the prefix with no name after it', () => {
+        const rows = [makeRow('Steppenreg 2025')];
+        const { matched, unmatched } = filterAndMatch(rows, 'Steppenreg 2025', registrations);
+
+        expect(matched).toHaveLength(0);
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].extractedName).toBe('');
+    });
+
+    it('still filters rows where the prefix is not at the start (no separator case)', () => {
+        // "Spende allgemein Steppenreg e.V." — prefix present but not at the start
+        const rows = [makeRow('Spende allgemein Steppenreg e.V.')];
+        const { filtered, matched, unmatched } = filterAndMatch(rows, 'Steppenreg', registrations);
+
+        expect(filtered).toHaveLength(1);
+        expect(matched).toHaveLength(0);
+        expect(unmatched).toHaveLength(0);
+    });
+
+    it('attaches the original row data to fallback-matched results', () => {
+        const rows = [makeRow('Steppenreg 2025 Klaus Weber')];
+        const { matched } = filterAndMatch(rows, 'Steppenreg 2025', registrations);
+
+        expect(matched[0].row['Betrag']).toBe('50,00');
+        expect(matched[0].row['Buchungstag']).toBe('01.03.2025');
+    });
 });
