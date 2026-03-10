@@ -34,7 +34,7 @@ class ManageDraw extends Page implements HasSchemas
 
     protected static ?string $navigationLabel = 'Manage Draw';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 50;
 
     protected static ?string $title = 'Auslosung';
 

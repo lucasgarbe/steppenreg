@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Domain\Draw\Models\Draw;
+use App\Domain\StartingNumber\Models\StartingNumber;
 use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Registration extends Model
@@ -45,7 +47,6 @@ class Registration extends Model
         'starting',
         'draw_status',
         'drawn_at',
-        'starting_number',
         'finish_time',
         'notes',
         'custom_answers',
@@ -68,6 +69,11 @@ class Registration extends Model
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
+    }
+
+    public function startingNumber(): HasOne
+    {
+        return $this->hasOne(StartingNumber::class);
     }
 
     // Scopes

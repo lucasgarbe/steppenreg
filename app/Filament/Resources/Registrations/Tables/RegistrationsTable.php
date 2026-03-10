@@ -28,11 +28,9 @@ class RegistrationsTable
     {
         return $table
             ->columns([
-                TextColumn::make('starting_number')
+                TextColumn::make('startingNumber.number')
                     ->label(__('admin.registrations.columns.start_number'))
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->whereNotNull('starting_number')->orderBy('starting_number', $direction);
-                    })
+                    ->sortable()
                     ->placeholder('---')
                     ->badge()
                     ->formatStateUsing(function ($record) {
@@ -45,6 +43,7 @@ class RegistrationsTable
 
                         return match ($service->getNumberType($record)) {
                             'main' => 'success',
+                            'overflow' => 'warning',
                             default => 'gray',
                         };
                     })
@@ -451,28 +450,35 @@ class RegistrationsTable
                         ->color('warning')
                         ->visible(
                             fn ($record) => config('steppenreg.features.starting_numbers', true) &&
-                                $record?->draw_status === 'drawn' &&
-                                ! $record?->starting_number
+                                $record?->startingNumber === null
                         )
                         ->requiresConfirmation()
                         ->modalHeading('Assign Starting Number')
                         ->modalDescription(fn ($record) => "Assign starting number to {$record->name}?")
                         ->action(function ($record) {
                             $service = app(\App\Domain\StartingNumber\Services\StartingNumberService::class);
-                            $number = $service->assignNumber($record);
 
-                            if ($number) {
-                                $record->update(['starting_number' => $number]);
+                            try {
+                                $startingNumber = $service->assignAndSave($record);
+
+                                if ($startingNumber) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Starting number assigned')
+                                        ->body('Assigned starting number '.$service->formatNumber($startingNumber->number)." to {$record->name}")
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Assignment failed')
+                                        ->body('No range configured for this track.')
+                                        ->warning()
+                                        ->send();
+                                }
+                            } catch (\App\Domain\StartingNumber\Exceptions\NoAvailableNumberException $e) {
                                 \Filament\Notifications\Notification::make()
-                                    ->title('Starting number assigned')
-                                    ->body('Assigned starting number '.$service->formatNumber($number)." to {$record->name}")
-                                    ->success()
-                                    ->send();
-                            } else {
-                                \Filament\Notifications\Notification::make()
-                                    ->title('Assignment failed')
-                                    ->body("Could not assign starting number to {$record->name}")
-                                    ->warning()
+                                    ->title('Range exhausted')
+                                    ->body('Both main and overflow ranges are full for this track.')
+                                    ->danger()
                                     ->send();
                             }
                         }),
@@ -525,11 +531,20 @@ class RegistrationsTable
 
                             $assigned = count($results['assigned'] ?? []);
                             $failed = count($results['failed'] ?? []);
+                            $skipped = count($results['skipped'] ?? []);
+
+                            $body = "Assigned: {$assigned}";
+                            if ($skipped > 0) {
+                                $body .= ", Skipped (already assigned): {$skipped}";
+                            }
+                            if ($failed > 0) {
+                                $body .= ", Failed (range full or no range): {$failed}";
+                            }
 
                             \Filament\Notifications\Notification::make()
-                                ->title('Starting numbers assigned')
-                                ->body("Assigned: {$assigned}, Failed: {$failed}")
-                                ->success()
+                                ->title('Starting numbers processed')
+                                ->body($body)
+                                ->when($failed > 0, fn ($n) => $n->warning(), fn ($n) => $n->success())
                                 ->send();
                         })
                         ->requiresConfirmation()

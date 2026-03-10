@@ -19,10 +19,10 @@ class RegistrationExporter extends Exporter
             ExportColumn::make('id')
                 ->label('ID'),
 
-            ExportColumn::make('starting_number')
+            ExportColumn::make('startingNumber.number')
                 ->label('Starting Number')
                 ->state(function (Registration $record) {
-                    if (! $record->starting_number) {
+                    if (! $record->startingNumber) {
                         return '---';
                     }
 
@@ -146,7 +146,7 @@ class RegistrationExporter extends Exporter
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with('team');
+        return $query->with(['team', 'startingNumber']);
     }
 
     public function getFormats(): array
