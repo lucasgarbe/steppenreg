@@ -49,7 +49,8 @@ class ExportStartingListAction
                 $trackName = collect(app(EventSettings::class)->tracks ?? [])
                     ->firstWhere('id', $trackId);
                 $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $trackName['name'] ?? "track_{$trackId}");
-                $filename = "starting_list_{$safeName}.csv";
+                $timestamp = now()->format('Y-m-d_His');
+                $filename = "starting_list_{$safeName}_{$timestamp}.csv";
 
                 return response()->streamDownload(function () use ($registrations): void {
                     $handle = fopen('php://output', 'w');
