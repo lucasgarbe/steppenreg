@@ -2,6 +2,7 @@
 
 namespace App\Domain\StartingNumber;
 
+use App\Domain\StartingNumber\Filament\Resources\StartingNumberResource;
 use App\Domain\StartingNumber\Filament\Resources\TrackStartingNumberRangeResource;
 use App\Domain\StartingNumber\Services\StartingNumberService;
 use Filament\Panel;
@@ -19,6 +20,7 @@ class StartingNumberServiceProvider extends ServiceProvider
             }
 
             $panel->resources([
+                StartingNumberResource::class,
                 TrackStartingNumberRangeResource::class,
             ]);
         });

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Registrations\Pages;
 
+use App\Domain\StartingNumber\Filament\Actions\ExportStartingListAction;
 use App\Filament\Exports\RegistrationExporter;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Settings\EventSettings;
@@ -18,6 +19,7 @@ class ListRegistrations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            ExportStartingListAction::make(),
             ExportAction::make()
                 ->exporter(RegistrationExporter::class)
                 ->color('primary')

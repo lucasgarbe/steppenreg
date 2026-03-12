@@ -11,11 +11,13 @@ class StartingNumber extends Model
     protected $fillable = [
         'registration_id',
         'number',
+        'tag_id',
     ];
 
     protected $casts = [
         'registration_id' => 'integer',
         'number' => 'integer',
+        'tag_id' => 'string',
     ];
 
     public function registration(): BelongsTo
