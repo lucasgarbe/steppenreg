@@ -36,7 +36,7 @@ class ExportStartingListAction
                     ->default(false),
             ])
             ->modalHeading('Export Starting List')
-            ->modalDescription('Export a CSV file with bib number, tag ID, and name for participants on the selected track.')
+            ->modalDescription('Export a CSV file with tag ID, bib number, and name for participants on the selected track.')
             ->modalSubmitActionLabel('Download CSV')
             ->action(function (array $data): StreamedResponse {
                 $trackId = (int) $data['track_id'];
@@ -67,12 +67,12 @@ class ExportStartingListAction
                 return response()->streamDownload(function () use ($registrations): void {
                     $handle = fopen('php://output', 'w');
 
-                    fputcsv($handle, ['bib', 'tag_id', 'name']);
+                    fputcsv($handle, ['tag_id', 'bib', 'name']);
 
                     foreach ($registrations as $registration) {
                         fputcsv($handle, [
-                            $registration->startingNumber?->number ?? '',
                             $registration->startingNumber?->bib?->tag_id ?? '',
+                            $registration->startingNumber?->number ?? '',
                             $registration->name,
                         ]);
                     }
