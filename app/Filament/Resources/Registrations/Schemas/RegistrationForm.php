@@ -2,14 +2,12 @@
 
 namespace App\Filament\Resources\Registrations\Schemas;
 
-use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Validation\Rule;
 
 class RegistrationForm
 {
@@ -219,11 +217,7 @@ class RegistrationForm
                             ->minValue(1)
                             ->integer()
                             ->placeholder('Leave empty to remove / not assign')
-                            ->helperText('Manually assign a starting number. Must be unique across all registrations.')
-                            ->rules(fn (?Registration $record): array => [
-                                Rule::unique('starting_numbers', 'number')
-                                    ->ignore($record?->startingNumber?->id),
-                            ])
+                            ->helperText('Manually assign a starting number. Multiple participants can share the same number.')
                             ->dehydrated(false),
                     ])
                     ->visible(fn () => config('steppenreg.features.starting_numbers', true))

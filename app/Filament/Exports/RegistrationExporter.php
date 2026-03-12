@@ -146,7 +146,7 @@ class RegistrationExporter extends Exporter
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['team', 'startingNumber']);
+        return $query->with(['team', 'startingNumber.bib']);
     }
 
     public function getFormats(): array

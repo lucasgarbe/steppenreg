@@ -5,6 +5,7 @@ namespace App\Domain\StartingNumber\Services;
 use App\Domain\StartingNumber\Events\StartingNumberAssigned;
 use App\Domain\StartingNumber\Events\StartingNumberCleared;
 use App\Domain\StartingNumber\Exceptions\NoAvailableNumberException;
+use App\Domain\StartingNumber\Models\Bib;
 use App\Domain\StartingNumber\Models\StartingNumber;
 use App\Domain\StartingNumber\Models\TrackStartingNumberRange;
 use App\Models\Registration;
@@ -51,7 +52,10 @@ class StartingNumberService
     }
 
     /**
-     * Assign a number, persist it to the starting_numbers table, and dispatch the event.
+     * Assign a number, persist it (creating or reusing the Bib record), and dispatch the event.
+     *
+     * If a Bib already exists for this (number, track_id) — e.g. a previous participant
+     * used the same bib — we reuse it so the tag_id is preserved.
      */
     public function assignAndSave(Registration $registration): ?StartingNumber
     {
@@ -61,9 +65,13 @@ class StartingNumberService
             return null;
         }
 
+        $bib = Bib::firstOrCreate(
+            ['number' => $number]
+        );
+
         $startingNumber = StartingNumber::create([
             'registration_id' => $registration->id,
-            'number' => $number,
+            'bib_id' => $bib->id,
         ]);
 
         event(new StartingNumberAssigned($registration, $number));
@@ -72,7 +80,10 @@ class StartingNumberService
     }
 
     /**
-     * Clear a registration's starting number.
+     * Clear a registration's starting number assignment.
+     *
+     * The Bib record is intentionally kept — it may have a tag_id assigned,
+     * and the physical bib will be reused by future participants.
      */
     public function clearNumber(Registration $registration): void
     {
@@ -82,7 +93,7 @@ class StartingNumberService
             return;
         }
 
-        $previousNumber = $startingNumber->number;
+        $previousNumber = $startingNumber->bib?->number;
         $startingNumber->delete();
 
         event(new StartingNumberCleared($registration, $previousNumber));
@@ -225,29 +236,24 @@ class StartingNumberService
     /**
      * Find the next available integer in [start, end] for the given track.
      *
-     * Queries starting_numbers joined to registrations (including soft-deleted rows
-     * via withTrashed on the join subquery) so that numbers for soft-deleted
-     * registrations are permanently retired and never reassigned.
+     * A bib is "taken" only when it has at least one starting_numbers assignment row
+     * (including those linked to soft-deleted registrations, since their row persists
+     * until the registration is hard-deleted). Bibs with no assignment rows are free
+     * to be reused from the bottom of the range — this ensures that after a full
+     * assignment reset the numbering starts from the beginning again.
      */
     private function findNextAvailableInRange(int $start, int $end, int $trackId): ?int
     {
-        // We join against the registrations table without the soft-delete scope
-        // by using a raw join. StartingNumber records are only hard-deleted when
-        // their registration is hard-deleted (cascade), so soft-deleted registrations
-        // still have their starting_numbers row intact — those numbers are retired.
-        $usedNumbers = StartingNumber::join(
-            \Illuminate\Support\Facades\DB::raw('(SELECT id, track_id FROM registrations) AS reg'),
-            'starting_numbers.registration_id',
-            '=',
-            'reg.id'
-        )
-            ->where('reg.track_id', $trackId)
-            ->whereBetween('starting_numbers.number', [$start, $end])
-            ->pluck('starting_numbers.number')
+        // Find numbers already assigned to registrations in this track
+        $takenNumbers = StartingNumber::join('bibs', 'starting_numbers.bib_id', '=', 'bibs.id')
+            ->join('registrations', 'starting_numbers.registration_id', '=', 'registrations.id')
+            ->where('registrations.track_id', $trackId)
+            ->whereBetween('bibs.number', [$start, $end])
+            ->pluck('bibs.number')
             ->toArray();
 
         for ($i = $start; $i <= $end; $i++) {
-            if (! in_array($i, $usedNumbers)) {
+            if (! in_array($i, $takenNumbers)) {
                 return $i;
             }
         }
@@ -261,10 +267,11 @@ class StartingNumberService
      */
     private function countUsedInRange(int $start, int $end, int $trackId): int
     {
-        return StartingNumber::join('registrations', 'starting_numbers.registration_id', '=', 'registrations.id')
+        return StartingNumber::join('bibs', 'starting_numbers.bib_id', '=', 'bibs.id')
+            ->join('registrations', 'starting_numbers.registration_id', '=', 'registrations.id')
             ->whereNull('registrations.deleted_at')
             ->where('registrations.track_id', $trackId)
-            ->whereBetween('starting_numbers.number', [$start, $end])
+            ->whereBetween('bibs.number', [$start, $end])
             ->count();
     }
 }

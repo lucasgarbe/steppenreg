@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Registrations\Pages;
 
 use App\Domain\StartingNumber\Events\StartingNumberAssigned;
+use App\Domain\StartingNumber\Models\Bib;
 use App\Domain\StartingNumber\Models\StartingNumber;
 use App\Domain\StartingNumber\Services\StartingNumberService;
 use App\Filament\Resources\Registrations\RegistrationResource;
@@ -37,28 +38,38 @@ class EditRegistration extends EditRecord
             return;
         }
 
-        $newNumber = $this->data['starting_number_manual'] ?? null;
         $registration = $this->getRecord();
         $service = app(StartingNumberService::class);
 
+        $existing = $registration->startingNumber;
+        $newNumber = $this->data['starting_number_manual'] ?? null;
+
         if (blank($newNumber)) {
-            $service->clearNumber($registration);
+            if ($existing) {
+                $service->clearNumber($registration);
+            }
 
             return;
         }
 
         $newNumber = (int) $newNumber;
-        $existing = $registration->startingNumber;
 
         if ($existing) {
             if ($existing->number !== $newNumber) {
-                $existing->update(['number' => $newNumber]);
+                // Point the assignment at a different bib (create if needed)
+                $bib = Bib::firstOrCreate(
+                    ['number' => $newNumber]
+                );
+                $existing->update(['bib_id' => $bib->id]);
                 event(new StartingNumberAssigned($registration, $newNumber));
             }
         } else {
+            $bib = Bib::firstOrCreate(
+                ['number' => $newNumber]
+            );
             StartingNumber::create([
                 'registration_id' => $registration->id,
-                'number' => $newNumber,
+                'bib_id' => $bib->id,
             ]);
             event(new StartingNumberAssigned($registration, $newNumber));
         }

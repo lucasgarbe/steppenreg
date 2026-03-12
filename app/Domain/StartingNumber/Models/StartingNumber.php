@@ -10,18 +10,37 @@ class StartingNumber extends Model
 {
     protected $fillable = [
         'registration_id',
-        'number',
-        'tag_id',
+        'bib_id',
     ];
 
     protected $casts = [
         'registration_id' => 'integer',
-        'number' => 'integer',
-        'tag_id' => 'string',
+        'bib_id' => 'integer',
     ];
 
     public function registration(): BelongsTo
     {
         return $this->belongsTo(Registration::class);
+    }
+
+    public function bib(): BelongsTo
+    {
+        return $this->belongsTo(Bib::class);
+    }
+
+    /**
+     * Convenience accessor: the bib number for this assignment.
+     */
+    public function getNumberAttribute(): ?int
+    {
+        return $this->bib?->number;
+    }
+
+    /**
+     * Convenience accessor: the tag_id of the physical bib.
+     */
+    public function getTagIdAttribute(): ?string
+    {
+        return $this->bib?->tag_id;
     }
 }
