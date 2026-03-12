@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Registrations\Schemas;
 
+use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rule;
 
 class RegistrationForm
 {
@@ -207,6 +209,25 @@ class RegistrationForm
                             ->helperText('Record finish time when participant completes the event')
                             ->seconds(false),
                     ])->columns(2),
+
+                Section::make('Starting Number')
+                    ->description('Manually assign a starting number to this registration')
+                    ->schema([
+                        Forms\Components\TextInput::make('starting_number_manual')
+                            ->label('Starting Number')
+                            ->numeric()
+                            ->minValue(1)
+                            ->integer()
+                            ->placeholder('Leave empty to remove / not assign')
+                            ->helperText('Manually assign a starting number. Must be unique across all registrations.')
+                            ->rules(fn (?Registration $record): array => [
+                                Rule::unique('starting_numbers', 'number')
+                                    ->ignore($record?->startingNumber?->id),
+                            ])
+                            ->dehydrated(false),
+                    ])
+                    ->visible(fn () => config('steppenreg.features.starting_numbers', true))
+                    ->visibleOn('edit'),
 
                 Section::make('Additional Information')
                     ->description('Notes and additional details')
