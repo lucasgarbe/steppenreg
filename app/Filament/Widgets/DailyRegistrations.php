@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Registration;
+use App\Settings\EventSettings;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,11 @@ class DailyRegistrations extends ChartWidget
     protected int|string|array $columnSpan = 1;
 
     protected static ?int $sort = 4;
+
+    public static function canView(): bool
+    {
+        return ! app(EventSettings::class)->isLiveEvent();
+    }
 
     public ?string $filter = '7days';
 

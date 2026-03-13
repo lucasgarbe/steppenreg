@@ -51,21 +51,13 @@ class RegistrationStats extends StatsOverviewWidget
                 ->url('/admin/registrations?filters[payed][value]=unpaid&filters[draw_status][value]=drawn')
         );
 
-        if (app(EventSettings::class)->application_state == 'live_event') {
+        if (app(EventSettings::class)->isLiveEvent()) {
             array_push(
                 $statCards,
                 Stat::make('Starting Participants', $stats['starting'])
                     ->description('Confirmed to start')
                     ->descriptionIcon('heroicon-m-play-circle')
                     ->color('info')
-            );
-
-            array_push(
-                $statCards,
-                Stat::make('Finished Participants', $stats['finished'])
-                    ->description('Completed the event')
-                    ->descriptionIcon('heroicon-m-flag')
-                    ->color('warning'),
             );
         }
 

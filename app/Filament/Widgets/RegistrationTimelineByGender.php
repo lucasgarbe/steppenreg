@@ -18,6 +18,11 @@ class RegistrationTimelineByGender extends ChartWidget
 
     protected static ?int $sort = 4;
 
+    public static function canView(): bool
+    {
+        return ! app(EventSettings::class)->isLiveEvent();
+    }
+
     public ?string $filter = '7days';
 
     public ?string $trackFilter = 'all';

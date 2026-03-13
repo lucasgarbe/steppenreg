@@ -3,12 +3,18 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Team;
+use App\Settings\EventSettings;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TeamStats extends StatsOverviewWidget
 {
     protected static ?int $sort = 3;
+
+    public static function canView(): bool
+    {
+        return ! app(EventSettings::class)->isLiveEvent();
+    }
 
     protected function getStats(): array
     {
