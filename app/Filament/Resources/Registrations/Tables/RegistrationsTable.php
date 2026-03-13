@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Registrations\Tables;
 
 use App\Filament\Exports\RegistrationExporter;
 use App\Models\Registration;
+use App\Settings\EventSettings;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
@@ -47,7 +48,8 @@ class RegistrationsTable
                             default => 'gray',
                         };
                     })
-                    ->visible(fn () => config('steppenreg.features.starting_numbers', true)),
+                    ->visible(fn () => config('steppenreg.features.starting_numbers', true))
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('name')
                     ->label(__('admin.registrations.columns.name'))
@@ -74,7 +76,7 @@ class RegistrationsTable
                         $state > 50 => 'primary',
                         default => 'gray'
                     })
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    ->toggleable(isToggledHiddenByDefault: app(EventSettings::class)->isLiveEvent()),
 
                 TextColumn::make('gender_label')
                     ->label(__('admin.registrations.columns.gender'))
@@ -118,12 +120,18 @@ class RegistrationsTable
                             default => $record?->draw_status ?? '',
                         };
                     })
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: app(EventSettings::class)->isLiveEvent()),
 
                 ToggleColumn::make('payed')
-                    ->label(__('Bezahlt'))
+                    ->label(__('admin.registrations.columns.paid'))
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: ! app(EventSettings::class)->isLiveEvent()),
+
+                ToggleColumn::make('starting')
+                    ->label(__('admin.registrations.columns.starting'))
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: ! app(EventSettings::class)->isLiveEvent()),
 
                 TextColumn::make('finish_time')
                     ->label(__('admin.registrations.columns.finish_time'))
@@ -135,7 +143,7 @@ class RegistrationsTable
                 TextColumn::make('status')
                     ->label(__('admin.registrations.columns.status'))
                     ->badge()
-                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->toggleable(isToggledHiddenByDefault: app(EventSettings::class)->isLiveEvent())
                     ->formatStateUsing(function ($record): string {
                         return match ($record?->status) {
                             'Finished' => __('admin.registrations.status.finished'),
@@ -322,12 +330,14 @@ class RegistrationsTable
                     ->label('Angekommen')
                     ->color('success')
                     ->button()
+                    ->visible(fn () => ! app(EventSettings::class)->isLiveEvent())
                     ->action(fn ($record) => $record->update(['finish_time' => now()])),
 
                 Action::make('DNF')
                     ->label('DNF')
                     ->color('danger')
                     ->button()
+                    ->visible(fn () => ! app(EventSettings::class)->isLiveEvent())
                     ->action(fn ($record) => $record->update(['finish_time' => '00:00'])),
 
                 ActionGroup::make([
@@ -730,7 +740,7 @@ class RegistrationsTable
                 ->label($key)
                 ->headerTooltip($fullLabel)
                 ->searchable()
-                ->toggleable(isToggledHiddenByDefault: false)
+                ->toggleable(isToggledHiddenByDefault: true)
                 ->formatStateUsing(function ($state) use ($question) {
                     if ($question['type'] === 'checkbox' && is_array($state)) {
                         return implode(', ', $state);

@@ -30,6 +30,8 @@ return [
             'track' => 'Strecke',
             'team' => 'Team',
             'draw_status' => 'Auslosungsstatus',
+            'paid' => 'Bezahlt',
+            'starting' => 'Am Start',
             'finish_time' => 'Zielzeit',
             'status' => 'Status',
             'notes' => 'Notizen',

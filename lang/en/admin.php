@@ -30,6 +30,8 @@ return [
             'track' => 'Track',
             'team' => 'Team',
             'draw_status' => 'Draw Status',
+            'paid' => 'Paid',
+            'starting' => 'Starting',
             'finish_time' => 'Finish Time',
             'status' => 'Status',
             'notes' => 'Notes',
