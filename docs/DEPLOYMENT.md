@@ -472,3 +472,75 @@ Run via cron:
 0 2 * * * /path/to/steppenreg/backup.sh >> /var/log/steppenreg-backup.log 2>&1
 ```
 
+---
+
+## Scheduler Setup
+
+Steppenreg uses Laravel's task scheduler to automatically update registration phases based on configured datetime transitions in gender categories.
+
+**The scheduler MUST be running for automatic state transitions to work.**
+
+### Option 1: System Cron (Recommended)
+
+Add this to your server's crontab (`crontab -e`):
+
+```cron
+* * * * * cd /path/to/steppenreg && ./vendor/bin/sail artisan schedule:run >> /dev/null 2>&1
+```
+
+Or if not using Sail in production:
+
+```cron
+* * * * * cd /path/to/steppenreg && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Option 2: Systemd Service
+
+Create `/etc/systemd/system/steppenreg-scheduler.service`:
+
+```ini
+[Unit]
+Description=Steppenreg Scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/path/to/steppenreg
+ExecStart=/usr/bin/php /path/to/steppenreg/artisan schedule:work
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable steppenreg-scheduler
+sudo systemctl start steppenreg-scheduler
+sudo systemctl status steppenreg-scheduler
+```
+
+### Verification
+
+```bash
+# View scheduled tasks
+php artisan schedule:list
+
+# Check logs for state transitions
+tail -f storage/logs/laravel.log | grep "Application state"
+
+# Test state update manually
+php artisan event:update-state --dry-run
+```
+
+### Development
+
+Start the scheduler daemon in a separate terminal:
+
+```bash
+./vendor/bin/sail artisan schedule:work
+```
+
