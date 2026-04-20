@@ -24,3 +24,7 @@ Homestead.yaml
 Thumbs.db
 *.iml
 /package-lock.json
+*.dump
+pi@*
+*.bak
+tui.json
