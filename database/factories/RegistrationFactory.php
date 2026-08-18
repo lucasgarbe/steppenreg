@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Domain\Draw\Models\DrawStatus;
+use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -11,26 +13,21 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class RegistrationFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected bool $createDrawnStatus = false;
+
     public function definition(): array
     {
         $name = fake()->name();
         $email = str_replace([' ', '.'], '', strtolower($name)).'@'.fake()->safeEmailDomain();
-        $finished = fake()->boolean(30); // 30% chance of being finished
-        $starting = $finished || fake()->boolean(60); // If finished, definitely starting. Otherwise 60% chance
-        $payed = $starting || fake()->boolean(90); // If starting, likely paid. Otherwise 80% chance
+        $finished = fake()->boolean(30);
+        $starting = $finished || fake()->boolean(60);
+        $payed = $starting || fake()->boolean(90);
 
         $teamId = null;
-        // 60% chance of being assigned to a team if there are available teams
         if (fake()->boolean(60) && Team::notFull()->exists()) {
             $teamId = Team::notFull()->inRandomOrder()->first()?->id;
         }
 
-        // Get available track IDs from EventSettings
         $settings = app(EventSettings::class);
         $trackIds = collect($settings->tracks)->pluck('id')->toArray();
         $trackId = ! empty($trackIds) ? fake()->randomElement($trackIds) : 1;
@@ -49,6 +46,19 @@ class RegistrationFactory extends Factory
         ];
     }
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Registration $registration) {
+            if ($this->createDrawnStatus) {
+                DrawStatus::create([
+                    'registration_id' => $registration->id,
+                    'status' => 'drawn',
+                    'drawn_at' => fake()->dateTimeBetween('-30 days', 'now'),
+                ]);
+            }
+        });
+    }
+
     public function payed(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -60,7 +70,7 @@ class RegistrationFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'starting' => true,
-            'payed' => true, // Must be paid to start
+            'payed' => true,
         ]);
     }
 
@@ -75,18 +85,10 @@ class RegistrationFactory extends Factory
 
     public function drawn(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'draw_status' => 'drawn',
-            'drawn_at' => fake()->dateTimeBetween('-30 days', 'now'),
-            'payed' => true,
-        ]);
-    }
+        $this->createDrawnStatus = true;
 
-    public function waitlisted(): static
-    {
         return $this->state(fn (array $attributes) => [
-            'draw_status' => 'waitlist',
-            'drawn_at' => null,
+            'payed' => true,
         ]);
     }
 }

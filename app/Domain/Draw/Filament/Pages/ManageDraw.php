@@ -2,7 +2,6 @@
 
 namespace App\Domain\Draw\Filament\Pages;
 
-use App\Domain\Draw\Exceptions\DrawAlreadyExecutedException;
 use App\Domain\Draw\Exceptions\InsufficientRegistrationsException;
 use App\Domain\Draw\Filament\Widgets\DrawStatsWidget;
 use App\Domain\Draw\Filament\Widgets\TrackStatsWidget;
@@ -128,15 +127,21 @@ class ManageDraw extends Page implements HasSchemas
         $registrations = Registration::where('track_id', $trackId);
 
         $total = $registrations->count();
-        $drawn = $registrations->where('draw_status', 'drawn')->count();
-        $notDrawn = $registrations->where('draw_status', 'not_drawn')->count();
+        $drawn = $registrations->drawn()->count();
+        $notDrawn = $registrations->notDrawn()->count();
 
-        $individuals = $registrations->whereNull('team_id')->where('draw_status', 'not_drawn')->count();
-        $teamMembers = $registrations->whereNotNull('team_id')->where('draw_status', 'not_drawn')->count();
+        $individuals = Registration::where('track_id', $trackId)
+            ->whereNull('team_id')
+            ->notDrawn()
+            ->count();
+        $teamMembers = Registration::where('track_id', $trackId)
+            ->whereNotNull('team_id')
+            ->notDrawn()
+            ->count();
 
         $teams = Team::where('track_id', $trackId)
             ->whereHas('registrations', function ($query) {
-                $query->where('draw_status', 'not_drawn');
+                $query->notDrawn();
             })
             ->count();
 
@@ -160,37 +165,23 @@ class ManageDraw extends Page implements HasSchemas
         try {
             $drawService = app(DrawService::class);
 
-            $draw = $drawService->executeDraw(
+            $result = $drawService->executeDraw(
                 trackId: $trackId,
                 availableSpots: $participantsToDraw,
                 executedByUserId: Auth::id()
             );
 
-            // Get track info for notification
             $tracks = app(EventSettings::class)->tracks ?? [];
             $trackInfo = collect($tracks)->firstWhere('id', $trackId);
             $trackName = $trackInfo['name'] ?? "Track {$trackId}";
 
             Notification::make()
                 ->title('Draw Completed Successfully!')
-                ->body("Drew {$draw->total_drawn} participants out of {$draw->total_registrations} for {$trackName}. Draw notifications are being sent via queue.")
+                ->body("Drew {$result['total_drawn']} participants out of {$result['total_registrations']} for {$trackName}. Draw notifications are being sent via queue.")
                 ->success()
                 ->send();
 
-            Log::info('Draw completed', [
-                'draw_id' => $draw->id,
-                'total_drawn' => $draw->total_drawn,
-                'total_not_drawn' => $draw->total_not_drawn,
-            ]);
-
-        } catch (DrawAlreadyExecutedException $e) {
-            Notification::make()
-                ->title('Draw Already Executed')
-                ->body('A draw has already been executed for this track. Each track can only have one draw.')
-                ->danger()
-                ->send();
-
-            Log::warning('Draw already executed for track', ['track_id' => $trackId]);
+            Log::info('Draw completed', $result);
 
         } catch (InsufficientRegistrationsException $e) {
             Notification::make()

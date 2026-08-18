@@ -59,17 +59,21 @@ class RegistrationExporter extends Exporter
                 ->label('Team')
                 ->formatStateUsing(fn (?string $state): string => $state ?? 'Individual'),
 
-            ExportColumn::make('draw_status')
+            ExportColumn::make('draw_status_value')
                 ->label('Draw Status')
-                ->formatStateUsing(fn (?string $state): string => match ($state) {
-                    'drawn' => 'Drawn',
-                    'not_drawn' => 'Not Drawn',
-                    default => '---',
+                ->state(function (Registration $record): string {
+                    return match ($record->draw_status_value) {
+                        'drawn' => 'Drawn',
+                        'not_drawn' => 'Not Drawn',
+                        default => '---',
+                    };
                 }),
 
-            ExportColumn::make('drawn_at')
+            ExportColumn::make('drawn_at_value')
                 ->label('Drawn At')
-                ->formatStateUsing(fn ($state): string => $state ? $state->format('Y-m-d H:i:s') : '---'),
+                ->state(function (Registration $record): string {
+                    return $record->drawn_at_value ? $record->drawn_at_value->format('Y-m-d H:i:s') : '---';
+                }),
 
             ExportColumn::make('payed')
                 ->label('Paid')

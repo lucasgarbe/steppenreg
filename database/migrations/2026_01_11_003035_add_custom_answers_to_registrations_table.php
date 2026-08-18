@@ -16,8 +16,9 @@ return new class extends Migration
             $table->jsonb('custom_answers')->nullable()->after('notes');
         });
 
-        // Add GIN index for better JSON query performance on PostgreSQL
-        DB::statement('CREATE INDEX IF NOT EXISTS registrations_custom_answers_gin_idx ON registrations USING GIN (custom_answers)');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('CREATE INDEX IF NOT EXISTS registrations_custom_answers_gin_idx ON registrations USING GIN (custom_answers)');
+        }
     }
 
     /**
@@ -25,7 +26,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('DROP INDEX IF EXISTS registrations_custom_answers_gin_idx');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('DROP INDEX IF EXISTS registrations_custom_answers_gin_idx');
+        }
 
         Schema::table('registrations', function (Blueprint $table) {
             $table->dropColumn('custom_answers');

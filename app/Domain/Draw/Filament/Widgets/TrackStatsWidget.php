@@ -129,15 +129,17 @@ class TrackStatsWidget extends BaseWidget
         $registrations = Registration::where('track_id', $trackId);
 
         $total = $registrations->count();
-        $drawn = $registrations->where('draw_status', 'drawn')->count();
-        $waitlist = $registrations->where('draw_status', 'waitlist')->count();
-        $notDrawn = $registrations->where('draw_status', 'not_drawn')->count();
+        $drawn = $registrations->drawn()->count();
+        $notDrawn = $registrations->notDrawn()->count();
 
-        $individuals = $registrations->whereNull('team_id')->where('draw_status', 'not_drawn')->count();
+        $individuals = Registration::where('track_id', $trackId)
+            ->whereNull('team_id')
+            ->notDrawn()
+            ->count();
 
         $teams = Team::where('track_id', $trackId)
             ->whereHas('registrations', function ($query) {
-                $query->where('draw_status', 'not_drawn');
+                $query->notDrawn();
             })
             ->count();
 
@@ -146,7 +148,7 @@ class TrackStatsWidget extends BaseWidget
         return [
             'total' => $total,
             'drawn' => $drawn,
-            'waitlist' => $waitlist,
+            'waitlist' => 0,
             'not_drawn' => $notDrawn,
             'drawing_units' => $drawingUnits,
         ];

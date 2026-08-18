@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Registrations\Tables;
 
+use App\Domain\Draw\Services\DrawService;
 use App\Filament\Exports\RegistrationExporter;
 use App\Models\Registration;
 use Filament\Actions\Action;
@@ -104,22 +105,26 @@ class RegistrationsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('draw_status')
+                TextColumn::make('drawStatus.status')
                     ->label(__('admin.registrations.columns.draw_status'))
                     ->badge()
-                    ->color(fn ($record): string => match ($record?->draw_status) {
+                    ->color(fn ($record): string => match ($record?->draw_status_value) {
                         'drawn' => 'success',
                         'not_drawn' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(function ($record): string {
-                        return match ($record?->draw_status) {
+                        return match ($record?->draw_status_value) {
                             'drawn' => __('admin.registrations.draw_status.drawn'),
                             'not_drawn' => __('admin.registrations.draw_status.not_drawn'),
-                            default => $record?->draw_status ?? '',
+                            default => $record?->draw_status_value ?? '',
                         };
                     })
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->leftJoin('draw_statuses', 'registrations.id', '=', 'draw_statuses.registration_id')
+                            ->orderBy('draw_statuses.status', $direction)
+                            ->select('registrations.*');
+                    }),
 
                 ToggleColumn::make('payed')
                     ->label(__('Bezahlt'))
@@ -265,7 +270,15 @@ class RegistrationsTable
                         'drawn' => 'Drawn',
                         'not_drawn' => 'Not Drawn',
                     ])
-                    ->placeholder('All statuses'),
+                    ->placeholder('All statuses')
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'drawn' => $query->whereHas('drawStatus', fn ($q) => $q->where('status', 'drawn')),
+                            'not_drawn' => $query->where(fn ($q) => $q->whereDoesntHave('drawStatus')
+                                ->orWhereHas('drawStatus', fn ($q2) => $q2->where('status', 'not_drawn'))),
+                            default => $query,
+                        };
+                    }),
                 /**/
                 Filter::make('gender')
                     ->label('Gender')
@@ -338,15 +351,12 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_drawn'))
                         ->icon('heroicon-o-star')
                         ->color('success')
-                        ->visible(fn ($record) => $record?->draw_status !== 'drawn')
+                        ->visible(fn ($record) => $record?->draw_status_value !== 'drawn')
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_drawn'))
                         ->modalDescription(fn ($record) => "Mark {$record->name} as drawn?")
                         ->action(function ($record) {
-                            $record->update([
-                                'draw_status' => 'drawn',
-                                'drawn_at' => now(),
-                            ]);
+                            app(DrawService::class)->markDrawn($record);
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Draw status updated')
@@ -359,15 +369,12 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
-                        ->visible(fn ($record) => $record?->draw_status !== 'not_drawn')
+                        ->visible(fn ($record) => $record?->draw_status_value !== 'not_drawn')
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->modalDescription(fn ($record) => "Mark {$record->name} as not drawn?")
                         ->action(function ($record) {
-                            $record->update([
-                                'draw_status' => 'not_drawn',
-                                'drawn_at' => null,
-                            ]);
+                            app(DrawService::class)->markNotDrawn($record);
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Draw status updated')
@@ -397,7 +404,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.send_draw_results'))
                         ->icon('heroicon-o-envelope')
                         ->color('primary')
-                        ->visible(fn ($record) => in_array($record?->draw_status, ['drawn', 'not_drawn']))
+                        ->visible(fn ($record) => in_array($record?->draw_status_value, ['drawn', 'not_drawn']))
                         ->action(function ($record) {
                             // Send draw notification email
                             \App\Jobs\Mail\SendDrawNotification::dispatch($record);
@@ -451,7 +458,7 @@ class RegistrationsTable
                         ->color('warning')
                         ->visible(
                             fn ($record) => config('steppenreg.features.starting_numbers', true) &&
-                                $record?->draw_status === 'drawn' &&
+                                $record?->draw_status_value === 'drawn' &&
                                 ! $record?->starting_number
                         )
                         ->requiresConfirmation()
@@ -498,20 +505,20 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_drawn'))
                         ->icon('heroicon-o-star')
                         ->color('success')
-                        ->action(fn (Collection $records) => $records->each->update([
-                            'draw_status' => 'drawn',
-                            'drawn_at' => now(),
-                        ]))
+                        ->action(function (Collection $records) {
+                            $drawService = app(\App\Domain\Draw\Services\DrawService::class);
+                            $records->each(fn ($record) => $drawService->markDrawn($record));
+                        })
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_not_drawn')
                         ->label(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
-                        ->action(fn (Collection $records) => $records->each->update([
-                            'draw_status' => 'not_drawn',
-                            'drawn_at' => null,
-                        ]))
+                        ->action(function (Collection $records) {
+                            $drawService = app(\App\Domain\Draw\Services\DrawService::class);
+                            $records->each(fn ($record) => $drawService->markNotDrawn($record));
+                        })
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('assign_starting_numbers')
@@ -564,8 +571,7 @@ class RegistrationsTable
                         ->action(function (Collection $records) {
                             $sent = 0;
                             foreach ($records as $record) {
-                                // Only send to registrations that have been processed in the draw
-                                if (in_array($record->draw_status, ['drawn', 'not_drawn'])) {
+                                if (in_array($record->draw_status_value, ['drawn', 'not_drawn'])) {
                                     \App\Jobs\Mail\SendDrawNotification::dispatch($record);
                                     $sent++;
                                 }

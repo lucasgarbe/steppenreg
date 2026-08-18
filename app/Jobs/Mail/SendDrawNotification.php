@@ -52,7 +52,7 @@ class SendDrawNotification implements ShouldQueue
 
     public function handle(MailTemplateService $mailService): void
     {
-        $templateKey = $this->registration->draw_status === 'drawn'
+        $templateKey = $this->registration->draw_status_value === 'drawn'
             ? 'draw_success'
             : 'draw_rejection';
 
@@ -73,14 +73,14 @@ class SendDrawNotification implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        $templateKey = $this->registration->draw_status === 'drawn'
+        $templateKey = $this->registration->draw_status_value === 'drawn'
             ? 'draw_success'
             : 'draw_rejection';
 
         Log::error('Draw notification email failed', [
             'registration_id' => $this->registration->id,
             'email' => $this->registration->email,
-            'draw_status' => $this->registration->draw_status,
+            'draw_status' => $this->registration->draw_status_value,
             'template_key' => $templateKey,
             'error' => $exception->getMessage(),
         ]);

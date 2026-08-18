@@ -258,10 +258,6 @@ class PublicRegistrationController extends Controller
             }
         }
 
-        // All public registrations start as not_drawn (waitlist is managed separately via email)
-        $drawStatus = 'not_drawn';
-
-        // Create registration
         Registration::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -271,7 +267,6 @@ class PublicRegistrationController extends Controller
             'team_id' => $teamId,
             'notes' => $validated['notes'] ?? null,
             'custom_answers' => $validated['custom_answers'] ?? null,
-            'draw_status' => $drawStatus,
             'payed' => false,
             'starting' => false,
         ]);

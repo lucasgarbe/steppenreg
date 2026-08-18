@@ -17,7 +17,7 @@ class StartingNumberService
             return null;
         }
 
-        if ($registration->draw_status !== 'drawn') {
+        if (! $registration->is_drawn) {
             return null;
         }
 
@@ -141,7 +141,7 @@ class StartingNumberService
     {
         $ranges = $this->getTrackRanges($trackId);
         $used = Registration::where('track_id', $trackId)
-            ->where('draw_status', 'drawn')
+            ->drawn()
             ->whereBetween('starting_number', [$ranges['waitlist']['start'], $ranges['waitlist']['end']])
             ->count();
 
@@ -150,7 +150,7 @@ class StartingNumberService
 
         $overflowUsed = isset($ranges['waitlist_overflow'])
             ? Registration::where('track_id', $trackId)
-                ->where('draw_status', 'drawn')
+                ->drawn()
                 ->whereBetween('starting_number', [$ranges['waitlist_overflow']['start'], $ranges['waitlist_overflow']['end']])
                 ->count()
             : 0;
@@ -251,7 +251,7 @@ class StartingNumberService
         $waitlistCapacity = $baseRanges['waitlist']['end'] - $baseRanges['waitlist']['start'] + 1;
 
         $waitlistCount = Registration::withTrashed()->where('track_id', $trackId)
-            ->where('draw_status', 'drawn')
+            ->drawn()
             ->whereNotNull('starting_number')
             ->whereBetween('starting_number', [$baseRanges['waitlist']['start'], $baseRanges['waitlist']['end']])
             ->count();

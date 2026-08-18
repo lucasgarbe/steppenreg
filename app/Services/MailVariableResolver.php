@@ -21,7 +21,7 @@ class MailVariableResolver
             'track_distance' => $trackInfo['distance'] ?? '',
             'event_name' => $eventSettings->event_name ?? 'Event',
             'registration_date' => $registration->created_at->format('d.m.Y'),
-            'draw_status' => $this->formatDrawStatus($registration->draw_status),
+            'draw_status' => $this->formatDrawStatus($registration->draw_status_value),
             'team_name' => $registration->team?->name ?? '',
             'contact_email_link' => $this->getContactEmailLink(),
             'team_members_list' => $this->getTeamMembersList($registration),

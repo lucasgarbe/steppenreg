@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use App\Domain\Draw\Models\Draw;
+use App\Domain\Draw\Models\DrawStatus;
 use App\Settings\EventSettings;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Registration extends Model
@@ -33,13 +35,10 @@ class Registration extends Model
         'email',
         'track_id',
         'team_id',
-        'draw_id',
         'age',
         'gender',
         'payed',
         'starting',
-        'draw_status',
-        'drawn_at',
         'starting_number',
         'finish_time',
         'notes',
@@ -49,7 +48,6 @@ class Registration extends Model
     protected $casts = [
         'payed' => 'boolean',
         'starting' => 'boolean',
-        'drawn_at' => 'datetime',
         'finish_time' => 'datetime:H:i',
         'custom_answers' => 'array',
     ];
@@ -60,9 +58,9 @@ class Registration extends Model
         return $this->belongsTo(Team::class);
     }
 
-    public function draw(): BelongsTo
+    public function drawStatus(): HasOne
     {
-        return $this->belongsTo(Draw::class);
+        return $this->hasOne(DrawStatus::class);
     }
 
     // Scopes
@@ -96,14 +94,20 @@ class Registration extends Model
         return $query->whereNull('finish_time');
     }
 
-    public function scopeDrawn($query)
+    public function scopeDrawn(Builder $query): Builder
     {
-        return $query->where('draw_status', 'drawn');
+        return $query->whereHas('drawStatus', fn (Builder $q) => $q->where('status', 'drawn'));
     }
 
-    public function scopeNotDrawn($query)
+    public function scopeNotDrawn(Builder $query): Builder
     {
-        return $query->where('draw_status', 'not_drawn');
+        return $query->whereDoesntHave('drawStatus')
+            ->orWhereHas('drawStatus', fn (Builder $q) => $q->where('status', 'not_drawn'));
+    }
+
+    public function scopeWithoutDrawStatus(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('drawStatus');
     }
 
     // Accessors
@@ -124,7 +128,17 @@ class Registration extends Model
 
     public function getIsDrawnAttribute(): bool
     {
-        return $this->draw_status === 'drawn';
+        return $this->getRelationValue('drawStatus')?->status === 'drawn';
+    }
+
+    public function getDrawStatusValueAttribute(): ?string
+    {
+        return $this->getRelationValue('drawStatus')?->status;
+    }
+
+    public function getDrawnAtValueAttribute(): ?\Carbon\Carbon
+    {
+        return $this->getRelationValue('drawStatus')?->drawn_at;
     }
 
     public function getTrackAttribute(): ?array
