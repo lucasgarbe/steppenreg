@@ -5,31 +5,17 @@ namespace App\Providers;
 use App\Models\Registration;
 use App\Models\User;
 use App\Observers\RegistrationObserver;
-use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        $this->app->singleton(\App\Services\MailVariableResolver::class);
-        $this->app->singleton(\App\Services\MailTemplateService::class);
-        // NOTE: StartingNumberService is now registered in StartingNumberServiceProvider
-    }
+    public function register(): void {}
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Registration::observe(RegistrationObserver::class);
 
-        // Configure supported locales
         config([
             'app.supported_locales' => [
                 'de' => ['name' => 'Deutsch', 'flag' => 'DE'],
@@ -43,16 +29,6 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return true;
-        });
-
-        // Rate limit email sending with dual limits (per-minute and per-hour)
-        RateLimiter::for('emails', function ($job) {
-            return [
-                Limit::perMinute(config('mail.rate_limit_per_minute', 5))
-                    ->by('minute:emails'),
-                Limit::perHour(config('mail.rate_limit_per_hour', 30))
-                    ->by('hour:emails'),
-            ];
         });
     }
 }

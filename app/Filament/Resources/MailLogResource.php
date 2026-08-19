@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\Models\MailLog;
+use App\Domain\Mail\Models\MailLog;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;

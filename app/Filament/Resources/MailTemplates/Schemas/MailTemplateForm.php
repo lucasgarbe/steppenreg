@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\MailTemplates\Schemas;
 
-use App\Models\MailTemplate;
+use App\Domain\Mail\Models\MailTemplate;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;

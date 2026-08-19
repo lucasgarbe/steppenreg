@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\MailTemplates;
 
+use App\Domain\Mail\Models\MailTemplate;
 use App\Filament\Resources\MailTemplates\Pages\CreateMailTemplate;
 use App\Filament\Resources\MailTemplates\Pages\EditMailTemplate;
 use App\Filament\Resources\MailTemplates\Pages\ListMailTemplates;
 use App\Filament\Resources\MailTemplates\Schemas\MailTemplateForm;
 use App\Filament\Resources\MailTemplates\Tables\MailTemplatesTable;
-use App\Models\MailTemplate;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Jobs\Mail\SendRegistrationConfirmation;
+use App\Domain\Mail\Jobs\SendRegistrationConfirmation;
 use App\Models\Registration;
 
 class RegistrationObserver

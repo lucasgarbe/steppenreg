@@ -391,7 +391,7 @@ class RegistrationsTable
                         ->modalHeading('Send Registration Confirmation')
                         ->modalDescription(fn ($record) => "Send registration confirmation email to {$record->name} ({$record->email})?")
                         ->action(function ($record) {
-                            \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
+                            \App\Domain\Mail\Jobs\SendRegistrationConfirmation::dispatch($record);
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Registration confirmation sent')
@@ -407,7 +407,7 @@ class RegistrationsTable
                         ->visible(fn ($record) => in_array($record?->draw_status_value, ['drawn', 'not_drawn']))
                         ->action(function ($record) {
                             // Send draw notification email
-                            \App\Jobs\Mail\SendDrawNotification::dispatch($record);
+                            \App\Domain\Mail\Jobs\SendDrawNotification::dispatch($record);
 
                             \Filament\Notifications\Notification::make()
                                 ->title(__('admin.registrations.notifications.draw_results_sent'))
@@ -549,7 +549,7 @@ class RegistrationsTable
                         ->action(function (Collection $records) {
                             $sent = 0;
                             foreach ($records as $record) {
-                                \App\Jobs\Mail\SendRegistrationConfirmation::dispatch($record);
+                                \App\Domain\Mail\Jobs\SendRegistrationConfirmation::dispatch($record);
                                 $sent++;
                             }
 
@@ -572,7 +572,7 @@ class RegistrationsTable
                             $sent = 0;
                             foreach ($records as $record) {
                                 if (in_array($record->draw_status_value, ['drawn', 'not_drawn'])) {
-                                    \App\Jobs\Mail\SendDrawNotification::dispatch($record);
+                                    \App\Domain\Mail\Jobs\SendDrawNotification::dispatch($record);
                                     $sent++;
                                 }
                             }
@@ -627,7 +627,7 @@ class RegistrationsTable
                             \Filament\Forms\Components\Placeholder::make('variables_help')
                                 ->label('Available Template Variables')
                                 ->content(function () {
-                                    $variablesGrouped = \App\Models\MailTemplate::getAvailableVariablesGrouped();
+                                    $variablesGrouped = \App\Domain\Mail\Models\MailTemplate::getAvailableVariablesGrouped();
                                     $help = "Use these variables in your subject and message to personalize emails:\n\n";
 
                                     foreach ($variablesGrouped as $groupName => $variables) {
@@ -646,7 +646,7 @@ class RegistrationsTable
                                         $help .= "Use locale suffixes for bilingual emails:\n";
                                         $help .= "• No suffix for raw values (e.g., `{{custom.shirt_size}}`)\n";
 
-                                        if (\App\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                        if (\App\Domain\Mail\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
                                             $help .= "• `.en` suffix for English labels (e.g., `{{custom.shirt_size.en}}`)\n";
                                             $help .= "• `.de` suffix for German labels (e.g., `{{custom.shirt_size.de}}`)\n\n";
                                         }
@@ -655,7 +655,7 @@ class RegistrationsTable
                                     $help .= "**Example:**\n";
                                     $help .= '"Dear {{name}}, you are registered for {{track_name}}!"';
 
-                                    if (\App\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                                    if (\App\Domain\Mail\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
                                         $help .= "\n\n**Bilingual Example:**\n";
                                         $help .= '"Shirt Size / Hemdgröße: {{custom.shirt_size.en}} / {{custom.shirt_size.de}}"';
                                     }
@@ -667,7 +667,7 @@ class RegistrationsTable
                         ->action(function (Collection $records, array $data) {
                             $sent = 0;
                             foreach ($records as $record) {
-                                \App\Jobs\Mail\SendFlexibleMail::dispatch(
+                                \App\Domain\Mail\Jobs\SendFlexibleMail::dispatch(
                                     $record,
                                     $data['subject'],
                                     $data['message']

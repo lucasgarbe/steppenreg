@@ -9,9 +9,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $template->name }}</title>
+    <title>{{ $variables['event_name'] ?? 'Email' }}</title>
     <style>
-        /* Email-safe CSS */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
@@ -135,7 +134,6 @@
             background-color: #fadbd8;
         }
 
-        /* Table styles */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -192,7 +190,6 @@
                 margin: 15px 0;
             }
 
-            /* Responsive table styles */
             table {
                 font-size: 12px;
             }
@@ -205,42 +202,7 @@
 </head>
 <body>
     <div class="email-container">
-        @php
-            $body = $template->body;
-
-            // Replace variables in body before processing Markdown
-            foreach ($variables as $key => $value) {
-                $placeholder = '{{' . $key . '}}';
-                $body = str_replace($placeholder, $value, $body);
-            }
-
-            // Replace Mustache-style conditionals with simple logic
-            $body = preg_replace('/\{\{#([^}]+)\}\}/', '<!-- START: $1 -->', $body);
-            $body = preg_replace('/\{\{\/([^}]+)\}\}/', '<!-- END: $1 -->', $body);
-
-            // Handle team name conditional
-            if (!empty($variables['team_name'])) {
-                $body = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '$1', $body);
-            } else {
-                $body = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '', $body);
-            }
-
-            // Convert Markdown to HTML with table support
-            $config = [
-                'html_input' => 'allow',
-                'allow_unsafe_links' => false,
-            ];
-
-            $environment = new \League\CommonMark\Environment\Environment($config);
-            $environment->addExtension(new \League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension());
-            $environment->addExtension(new \League\CommonMark\Extension\Table\TableExtension());
-
-            $converter = new \League\CommonMark\MarkdownConverter($environment);
-
-            $htmlContent = $converter->convert($body)->getContent();
-
-            echo $htmlContent;
-        @endphp
+        {!! $renderedHtmlBody !!}
     </div>
 
     <div class="footer">

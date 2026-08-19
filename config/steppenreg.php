@@ -18,5 +18,7 @@ return [
          * starting number assignment.
          */
         'starting_numbers' => env('STEPPENREG_STARTING_NUMBERS_ENABLED', true),
+
+        'mail' => env('STEPPENREG_MAIL_ENABLED', true),
     ],
 ];

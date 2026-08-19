@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\MailTemplate;
+use App\Domain\Mail\Models\MailTemplate;
 use Illuminate\Database\Seeder;
 
 class MailTemplateSeeder extends Seeder

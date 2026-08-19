@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Mail;
+namespace App\Domain\Mail\Mail;
 
 use App\Models\Registration;
 use Illuminate\Bus\Queueable;
@@ -9,50 +9,39 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class FlexibleMail extends Mailable
+class TemplateBasedEmail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(
-        public string $mailSubject,
-        public string $messageContent,
-        public Registration $registration
-    ) {
-        //
-    }
+        public string $renderedSubject,
+        public string $renderedHtmlBody,
+        public string $renderedTextBody,
+        public Registration $registration,
+        public array $variables = []
+    ) {}
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->mailSubject,
+            subject: $this->renderedSubject,
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            html: 'mail.flexible',
+            view: 'emails.template-based',
+            text: 'emails.template-based-text',
             with: [
-                'messageContent' => $this->messageContent,
+                'renderedHtmlBody' => $this->renderedHtmlBody,
+                'renderedTextBody' => $this->renderedTextBody,
                 'registration' => $this->registration,
+                'variables' => $this->variables,
             ],
         );
     }
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
     public function attachments(): array
     {
         return [];

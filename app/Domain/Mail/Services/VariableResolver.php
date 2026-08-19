@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace App\Domain\Mail\Services;
 
 use App\Models\Registration;
 use App\Settings\EventSettings;
 use Carbon\Carbon;
 
-class MailVariableResolver
+class VariableResolver
 {
     public function resolve(Registration $registration): array
     {

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Notifications;
+namespace App\Domain\Mail\Notifications;
 
-use App\Models\MailFailureBatch;
+use App\Domain\Mail\Models\MailFailureBatch;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;

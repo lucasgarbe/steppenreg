@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Mail;
+namespace App\Domain\Mail\Mail;
 
-use App\Models\MailTemplate;
 use App\Models\Registration;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -10,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class TemplateBasedEmail extends Mailable
+class FlexibleMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -18,26 +17,20 @@ class TemplateBasedEmail extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-        public MailTemplate $template,
-        public Registration $registration,
-        public array $variables = []
-    ) {}
+        public string $mailSubject,
+        public string $messageContent,
+        public Registration $registration
+    ) {
+        //
+    }
 
     /**
      * Get the message envelope.
      */
     public function envelope(): Envelope
     {
-        $subject = $this->template->subject;
-
-        // Replace variables in subject
-        foreach ($this->variables as $key => $value) {
-            $placeholder = '{{'.$key.'}}';
-            $subject = str_replace($placeholder, $value, $subject);
-        }
-
         return new Envelope(
-            subject: $subject,
+            subject: $this->mailSubject,
         );
     }
 
@@ -47,12 +40,10 @@ class TemplateBasedEmail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.template-based',
-            text: 'emails.template-based-text',
+            html: 'mail.flexible',
             with: [
-                'template' => $this->template,
+                'messageContent' => $this->messageContent,
                 'registration' => $this->registration,
-                'variables' => $this->variables,
             ],
         );
     }

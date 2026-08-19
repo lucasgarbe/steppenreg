@@ -1,6 +1,6 @@
 <?php
 
-use App\Jobs\SendBatchedMailFailureNotifications;
+use App\Domain\Mail\Jobs\SendBatchedMailFailureNotifications;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;

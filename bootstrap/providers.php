@@ -6,4 +6,5 @@ return [
 
     // Domain Service Providers
     App\Domain\StartingNumber\StartingNumberServiceProvider::class,
+    App\Domain\Mail\MailServiceProvider::class,
 ];

@@ -1,12 +1,21 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Mail\Models;
 
+use App\Models\Registration;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MailLog extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory()
+    {
+        return \Database\Factories\MailLogFactory::new();
+    }
+
     protected $fillable = [
         'registration_id',
         'template_key',

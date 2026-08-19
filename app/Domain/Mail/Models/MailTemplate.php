@@ -1,12 +1,20 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\Mail\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MailTemplate extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory()
+    {
+        return \Database\Factories\MailTemplateFactory::new();
+    }
+
     protected $fillable = [
         'key',
         'name',

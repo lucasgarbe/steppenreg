@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Jobs;
+namespace App\Domain\Mail\Jobs;
 
-use App\Models\MailFailureBatch;
+use App\Domain\Mail\Models\MailFailureBatch;
+use App\Domain\Mail\Notifications\BatchMailFailureNotification;
 use App\Models\User;
-use App\Notifications\BatchMailFailureNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Notification;

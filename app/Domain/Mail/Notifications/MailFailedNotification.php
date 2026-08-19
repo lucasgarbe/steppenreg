@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Notifications;
+namespace App\Domain\Mail\Notifications;
 
-use App\Models\MailLog;
+use App\Domain\Mail\Models\MailLog;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
