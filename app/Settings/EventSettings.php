@@ -55,13 +55,13 @@ class EventSettings extends Settings
     public string $theme_accent_color = '#7a58fc';
 
     // Custom Track Labels
-    public string $track_label_singular_en = '';
+    public ?string $track_label_singular_en = null;
 
-    public string $track_label_singular_de = '';
+    public ?string $track_label_singular_de = null;
 
-    public string $track_label_plural_en = '';
+    public ?string $track_label_plural_en = null;
 
-    public string $track_label_plural_de = '';
+    public ?string $track_label_plural_de = null;
 
     public static function group(): string
     {
