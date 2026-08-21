@@ -248,14 +248,16 @@ class StartingNumberService
     private function getWaitlistOverflowCount(int $trackId): int
     {
         $baseRanges = $this->getBaseRanges($trackId);
+        $mainCapacity = $baseRanges['main']['end'] - $baseRanges['main']['start'] + 1;
         $waitlistCapacity = $baseRanges['waitlist']['end'] - $baseRanges['waitlist']['start'] + 1;
 
-        $waitlistCount = Registration::withTrashed()->where('track_id', $trackId)
+        $totalDrawn = Registration::withTrashed()->where('track_id', $trackId)
             ->drawn()
             ->whereNotNull('starting_number')
-            ->whereBetween('starting_number', [$baseRanges['waitlist']['start'], $baseRanges['waitlist']['end']])
             ->count();
 
-        return max(0, $waitlistCount - $waitlistCapacity);
+        $beyondMain = max(0, $totalDrawn - $mainCapacity);
+
+        return max(0, $beyondMain - $waitlistCapacity);
     }
 }
