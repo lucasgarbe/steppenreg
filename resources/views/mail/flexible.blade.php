@@ -136,6 +136,11 @@
             background-color: #fadbd8;
         }
 
+        .panel.note {
+            border-left-color: #3498db;
+            background-color: #eaf2f8;
+        }
+
         /* Table styles */
         table {
             width: 100%;

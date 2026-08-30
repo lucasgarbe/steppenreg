@@ -51,11 +51,20 @@ abstract class MailJob implements ShouldQueue
 
     protected function findQueuedMailLog(): ?MailLog
     {
-        return MailLog::where('registration_id', $this->registration->id)
+        $mailLog = MailLog::where('registration_id', $this->registration->id)
             ->where('template_key', $this->templateKey())
             ->where('status', 'queued')
             ->latest()
             ->first();
+
+        Log::info('[Mail Trail] findQueuedMailLog', [
+            'registration_id' => $this->registration->id,
+            'template_key' => $this->templateKey(),
+            'found' => $mailLog !== null,
+            'mail_log_id' => $mailLog?->id,
+        ]);
+
+        return $mailLog;
     }
 
     protected function incrementAttempt(): void
@@ -64,6 +73,15 @@ abstract class MailJob implements ShouldQueue
 
         if ($mailLog) {
             $mailLog->incrementAttempt();
+            Log::info('[Mail Trail] incrementAttempt', [
+                'mail_log_id' => $mailLog->id,
+                'new_attempt_count' => $mailLog->fresh()->attempt_count,
+            ]);
+        } else {
+            Log::warning('[Mail Trail] incrementAttempt: no queued mail log found', [
+                'registration_id' => $this->registration->id,
+                'template_key' => $this->templateKey(),
+            ]);
         }
     }
 
@@ -73,14 +91,23 @@ abstract class MailJob implements ShouldQueue
         $context['registration_id'] = $this->registration->id;
         $context['email'] = $this->registration->email;
         $context['error'] = $exception->getMessage();
+        $context['exception_class'] = get_class($exception);
+        $context['trace'] = $exception->getTraceAsString();
 
-        Log::error($this->failureLogMessage(), $context);
+        Log::error('[Mail Trail] '.$this->failureLogMessage(), $context);
 
         $mailLog = $this->findQueuedMailLog();
 
         if ($mailLog) {
             $mailLog->markAsFailed($exception->getMessage());
             MailFailureBatch::recordFailure($mailLog);
+            Log::info('[Mail Trail] handleFailure: mail log marked as failed', [
+                'mail_log_id' => $mailLog->id,
+            ]);
+        } else {
+            Log::warning('[Mail Trail] handleFailure: no queued mail log found to mark as failed', [
+                'registration_id' => $this->registration->id,
+            ]);
         }
     }
 

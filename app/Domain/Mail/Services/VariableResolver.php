@@ -5,11 +5,16 @@ namespace App\Domain\Mail\Services;
 use App\Models\Registration;
 use App\Settings\EventSettings;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class VariableResolver
 {
     public function resolve(Registration $registration): array
     {
+        Log::info('[Mail Trail] VariableResolver::resolve started', [
+            'registration_id' => $registration->id,
+        ]);
+
         $eventSettings = app(EventSettings::class);
 
         $trackInfo = $this->getTrackInfo($registration->track_id, $eventSettings);
@@ -53,6 +58,11 @@ class VariableResolver
                 }
             }
         }
+
+        Log::info('[Mail Trail] VariableResolver::resolve completed', [
+            'registration_id' => $registration->id,
+            'variable_count' => count($variables),
+        ]);
 
         return $variables;
     }

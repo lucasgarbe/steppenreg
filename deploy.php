@@ -6,7 +6,7 @@ require 'recipe/laravel.php';
 
 // Config
 
-set('repository', 'git@github.com:your-org/steppenreg.git');
+set('repository', 'git@github.com:lucasgarbe/steppenreg.git');
 
 add('shared_files', []);
 add('shared_dirs', []);
@@ -14,9 +14,11 @@ add('writable_dirs', []);
 
 // Hosts
 
-host('your-server.com')
+host('bab.steppenwolf-berlin.de')
     ->set('remote_user', 'deployer')
-    ->set('deploy_path', '~/your-app');
+    ->set('deploy_path', '~/steppenreg')
+    ->set('branch', 'v2')
+    ->set('shell', 'bash -ls');
 
 // Hooks
 
@@ -24,11 +26,11 @@ after('deploy:failed', 'deploy:unlock');
 
 // Define pnpm tasks
 task('pnpm:install', function () {
-    run('cd {{release_path}} && pnpm install');
+    run('cd {{release_path}} && /home/deployer/.local/share/pnpm/pnpm install');
 })->desc('Install pnpm dependencies');
 
 task('pnpm:build', function () {
-    run('cd {{release_path}} && pnpm run build');
+    run('cd {{release_path}} && /home/deployer/.local/share/pnpm/pnpm run build');
 })->desc('Build assets with pnpm');
 
 // Add the tasks to the deployment flow

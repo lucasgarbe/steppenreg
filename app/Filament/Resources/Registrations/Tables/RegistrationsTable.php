@@ -22,6 +22,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
 
 class RegistrationsTable
 {
@@ -392,6 +393,7 @@ class RegistrationsTable
                         ->modalDescription(fn ($record) => "Send registration confirmation email to {$record->name} ({$record->email})?")
                         ->action(function ($record) {
                             \App\Domain\Mail\Jobs\SendRegistrationConfirmation::dispatch($record);
+                            Log::info('Registration Confirmation sent manually', ['id' => $record->id]);
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Registration confirmation sent')

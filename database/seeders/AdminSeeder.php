@@ -13,6 +13,11 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
+        $admin = User::where('email', 'admin@bab.spw')->first();
+        if ($admin) {
+            return;
+        }
+
         User::factory()->create([
             'name' => 'admin',
             'email' => 'admin@bab.spw',

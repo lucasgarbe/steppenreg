@@ -7,6 +7,7 @@ use App\Domain\Mail\Mail\TemplateBasedEmail;
 use App\Domain\Mail\Models\MailLog;
 use App\Domain\Mail\Models\MailTemplate;
 use App\Models\Registration;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -24,21 +25,57 @@ class MailTemplateService
      */
     public function sendEmail(string $templateKey, Registration $registration): ?MailLog
     {
+        Log::info('[Mail Trail] MailTemplateService::sendEmail started', [
+            'template_key' => $templateKey,
+            'registration_id' => $registration->id,
+            'email' => $registration->email,
+        ]);
+
         $template = MailTemplate::where('key', $templateKey)
             ->where('is_active', true)
             ->first();
 
         if (! $template) {
+            Log::warning('[Mail Trail] Template not found or inactive', [
+                'template_key' => $templateKey,
+            ]);
+
             return null;
         }
 
+        Log::info('[Mail Trail] Template found', [
+            'template_key' => $templateKey,
+            'template_id' => $template->id,
+            'subject' => $template->subject,
+        ]);
+
         $variables = $this->variableResolver->resolve($registration);
+
+        Log::info('[Mail Trail] Variables resolved', [
+            'template_key' => $templateKey,
+            'registration_id' => $registration->id,
+            'variable_count' => count($variables),
+            'variables' => $variables,
+        ]);
 
         $renderedSubject = $this->replaceVariables($template->subject, $variables);
         $renderedHtmlBody = $this->renderMarkdownBody($template->body, $variables);
         $renderedTextBody = $this->renderPlainTextBody($template->body, $variables);
 
+        Log::info('[Mail Trail] Content rendered', [
+            'template_key' => $templateKey,
+            'rendered_subject' => $renderedSubject,
+            'html_body_length' => strlen($renderedHtmlBody),
+            'text_body_length' => strlen($renderedTextBody),
+        ]);
+
         $mailLog = $this->findOrCreateQueuedMailLog($templateKey, $registration, $variables);
+
+        Log::info('[Mail Trail] Mail log ready', [
+            'mail_log_id' => $mailLog->id,
+            'status' => $mailLog->status,
+            'attempt_count' => $mailLog->attempt_count,
+        ]);
 
         try {
             $mailable = new TemplateBasedEmail(
@@ -48,10 +85,34 @@ class MailTemplateService
                 $registration,
                 $variables
             );
+
+            Log::info('[Mail Trail] About to call Mail::to()->send()', [
+                'mail_log_id' => $mailLog->id,
+                'to_email' => $registration->email,
+                'to_name' => $registration->name,
+                'mailer' => config('mail.default'),
+                'from_address' => config('mail.from.address'),
+            ]);
+
             Mail::to($registration->email, $registration->name)->send($mailable);
 
+            Log::info('[Mail Trail] Mail::send() returned without exception', [
+                'mail_log_id' => $mailLog->id,
+            ]);
+
             $mailLog->markAsSent();
+
+            Log::info('[Mail Trail] Mail log marked as sent', [
+                'mail_log_id' => $mailLog->id,
+            ]);
         } catch (\Exception $e) {
+            Log::error('[Mail Trail] Exception during Mail::send()', [
+                'mail_log_id' => $mailLog->id,
+                'exception_class' => get_class($e),
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+            ]);
+
             $mailLog->markAsFailed($e->getMessage());
             throw $e;
         }
@@ -136,12 +197,26 @@ class MailTemplateService
             ->first();
 
         if (! $mailLog) {
+            Log::info('[Mail Trail] No queued mail log found, creating new one', [
+                'template_key' => $templateKey,
+                'registration_id' => $registration->id,
+            ]);
+
             $mailLog = MailLog::logEmail(
                 templateKey: $templateKey,
                 recipientEmail: $registration->email,
                 registrationId: $registration->id,
                 variables: $variables
             );
+
+            Log::info('[Mail Trail] New mail log created', [
+                'mail_log_id' => $mailLog->id,
+            ]);
+        } else {
+            Log::info('[Mail Trail] Existing queued mail log found', [
+                'mail_log_id' => $mailLog->id,
+                'attempt_count' => $mailLog->attempt_count,
+            ]);
         }
 
         return $mailLog;
@@ -161,18 +236,25 @@ class MailTemplateService
     }
 
     /**
-     * Process Mustache-style {{#key}}...{{/key}} conditionals.
+     * Process Mustache-style conditionals: {{#key}}...{{/key}} and {{^key}}...{{/key}}.
      */
     public function processConditionals(string $content, array $variables): string
     {
         $content = preg_replace('/\{\{#([^}]+)\}\}/', '<!-- START: $1 -->', $content);
+        $content = preg_replace('/\{\{\^([^}]+)\}\}/', '<!-- UNLESS: $1 -->', $content);
         $content = preg_replace('/\{\{\/([^}]+)\}\}/', '<!-- END: $1 -->', $content);
 
-        if (! empty($variables['team_name'])) {
-            $content = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '$1', $content);
-        } else {
-            $content = preg_replace('/<!-- START: team_name -->(.*?)<!-- END: team_name -->/s', '', $content);
-        }
+        $content = preg_replace_callback(
+            '/<!-- START: ([^>]+) -->(.*?)<!-- END: \1 -->/s',
+            fn ($matches) => ! empty($variables[$matches[1]]) ? $matches[2] : '',
+            $content
+        );
+
+        $content = preg_replace_callback(
+            '/<!-- UNLESS: ([^>]+) -->(.*?)<!-- END: \1 -->/s',
+            fn ($matches) => empty($variables[$matches[1]]) ? $matches[2] : '',
+            $content
+        );
 
         return $content;
     }
@@ -196,7 +278,9 @@ class MailTemplateService
 
         $converter = new MarkdownConverter($environment);
 
-        return $converter->convert($body)->getContent();
+        $html = $converter->convert($body)->getContent();
+
+        return $this->convertPanelBlockquotes($html);
     }
 
     /**
@@ -206,9 +290,35 @@ class MailTemplateService
     {
         $body = $this->replaceVariables($body, $variables);
         $body = $this->processConditionals($body, $variables);
+        $body = preg_replace('/\[\!(success|warning|danger|note|)\]/i', '', $body);
         $body = strip_tags($body);
         $body = preg_replace('/\n\s*\n\s*\n/', "\n\n", $body);
 
         return trim($body);
+    }
+
+    /**
+     * Convert blockquotes with [!type] markers to styled panel divs.
+     */
+    private function convertPanelBlockquotes(string $html): string
+    {
+        $html = preg_replace_callback(
+            '/<blockquote>(.*?)<\/blockquote>/s',
+            function ($matches) {
+                $content = $matches[1];
+
+                if (preg_match('/^\s*<p>\[\!(success|warning|danger|note)?\]\s*\n?/s', $content, $typeMatch)) {
+                    $type = ! empty($typeMatch[1]) ? ' '.$typeMatch[1] : '';
+                    $content = preg_replace('/^\s*<p>\[\!(success|warning|danger|note)?\]\s*\n?/s', '<p>', $content);
+
+                    return '<div class="panel'.$type.'">'.$content.'</div>';
+                }
+
+                return '<blockquote>'.$content.'</blockquote>';
+            },
+            $html
+        );
+
+        return $html;
     }
 }

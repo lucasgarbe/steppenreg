@@ -6,6 +6,7 @@ use App\Models\Registration;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
 
 class MailLog extends Model
 {
@@ -49,6 +50,13 @@ class MailLog extends Model
 
     public function markAsSent(): void
     {
+        Log::info('[Mail Trail] MailLog::markAsSent called', [
+            'mail_log_id' => $this->id,
+            'registration_id' => $this->registration_id,
+            'template_key' => $this->template_key,
+            'recipient_email' => $this->recipient_email,
+        ]);
+
         $this->update([
             'status' => 'sent',
             'sent_at' => now(),
@@ -61,6 +69,14 @@ class MailLog extends Model
 
     public function markAsFailed(string $errorMessage): void
     {
+        Log::error('[Mail Trail] MailLog::markAsFailed called', [
+            'mail_log_id' => $this->id,
+            'registration_id' => $this->registration_id,
+            'template_key' => $this->template_key,
+            'recipient_email' => $this->recipient_email,
+            'error_message' => $errorMessage,
+        ]);
+
         $this->update([
             'status' => 'failed',
             'error_message' => $errorMessage,
@@ -100,12 +116,25 @@ class MailLog extends Model
         ?int $registrationId = null,
         array $variables = []
     ): self {
-        return self::create([
+        Log::info('[Mail Trail] MailLog::logEmail creating new entry', [
+            'template_key' => $templateKey,
+            'recipient_email' => $recipientEmail,
+            'registration_id' => $registrationId,
+        ]);
+
+        $mailLog = self::create([
             'registration_id' => $registrationId,
             'template_key' => $templateKey,
             'recipient_email' => $recipientEmail,
             'template_variables' => $variables,
             'status' => 'queued',
         ]);
+
+        Log::info('[Mail Trail] MailLog entry created', [
+            'mail_log_id' => $mailLog->id,
+            'template_key' => $templateKey,
+        ]);
+
+        return $mailLog;
     }
 }
