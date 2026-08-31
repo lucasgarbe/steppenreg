@@ -26,7 +26,7 @@ return [
             'team_option' => 'Team Option',
             'team' => 'Team (Optional)',
             'team_placeholder' => 'Enter team name (leave empty to register individually)',
-            'team_help' => 'Enter a team name to join an existing team or create a new one. Your teammates should enter the exact same team name.',
+            'team_help' => 'Enter a team name to join an existing team or create a new one. Your teammates should enter the exact same team name (check spelling and spaces etc.).',
             'notes' => 'Notes',
             'notes_placeholder' => 'Additional information or notes (optional)',
             'select_option' => 'Please select',

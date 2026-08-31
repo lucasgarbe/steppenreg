@@ -26,7 +26,7 @@ return [
             'team_option' => 'Team-Option',
             'team' => 'Team (Optional)',
             'team_placeholder' => 'Teamnamen eingeben (leer lassen für Einzelanmeldung)',
-            'team_help' => 'Gib einen Teamnamen ein, um einem bestehenden Team beizutreten oder ein neues zu erstellen. Achtet bitte darauf, dass alle im Team den gleichen Name eingeben',
+            'team_help' => 'Gib einen Teamnamen ein, um einem bestehenden Team beizutreten oder ein neues zu erstellen. Achtet bitte darauf, dass alle im Team den gleichen Name eingeben (inkl. Schreibweise, Leerzeichen oä)',
             'notes' => 'Anmerkungen',
             'notes_placeholder' => 'Zusätzliche Informationen oder Anmerkungen (optional)',
             'select_option' => 'Bitte auswählen',
