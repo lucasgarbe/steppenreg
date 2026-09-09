@@ -6,6 +6,7 @@ use App\Domain\Draw\Exceptions\InsufficientRegistrationsException;
 use App\Domain\Draw\Filament\Widgets\DrawStatsWidget;
 use App\Domain\Draw\Filament\Widgets\TrackStatsWidget;
 use App\Domain\Draw\Services\DrawService;
+use App\Domain\Mail\Jobs\SendDrawNotification;
 use App\Models\Registration;
 use App\Models\Team;
 use App\Settings\EventSettings;
@@ -158,7 +159,33 @@ class ManageDraw extends Page implements HasSchemas
         ];
     }
 
+    /**
+     * Queue draw result emails for every registration that has a draw status.
+     */
+    public function sendAllDrawNotifications(): void
+    {
+        $rows = Registration::whereHas('drawStatus')->get();
+
+        $queued = 0;
+
+        foreach ($rows as $row) {
+            if (in_array($row->draw_status_value, ['drawn', 'not_drawn'])) {
+                SendDrawNotification::dispatch($row);
+                $queued++;
+            }
+        }
+
+        Notification::make()
+            ->title('Draw notification emails queued')
+            ->body("Queued {$queued} draw result emails for processing.")
+            ->success()
+            ->send();
+
+        Log::info('Draw result emails queued from Manage Draw page', ['queued' => $queued]);
+    }
+
     public function executeDraw(int $trackId, int $participantsToDraw)
+
     {
         Log::info('executeDraw', ['track_id' => $trackId, 'participants_to_draw' => $participantsToDraw]);
 

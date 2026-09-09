@@ -49,6 +49,7 @@ return [
             'mark_as_drawn' => 'Mark as Drawn',
             'mark_as_waitlist' => 'Mark as Waitlist',
             'mark_as_not_drawn' => 'Mark as Not Drawn',
+            'reset_to_pool' => 'Reset to Draw Pool',
             'assign_starting_numbers' => 'Assign Starting Numbers',
             'generate_waitlist_tokens' => 'Generate Waitlist Links',
             'generate_withdraw_tokens' => 'Generate Withdraw Links',

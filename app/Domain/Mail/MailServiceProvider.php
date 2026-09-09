@@ -24,9 +24,9 @@ class MailServiceProvider extends ServiceProvider
 
         RateLimiter::for('emails', function ($job) {
             return [
-                Limit::perMinute(config('mail.rate_limit_per_minute', 5))
+                Limit::perMinute((int) config('mail.rate_limit_per_minute', 5))
                     ->by('minute:emails'),
-                Limit::perHour(config('mail.rate_limit_per_hour', 30))
+                Limit::perHour((int) config('mail.rate_limit_per_hour', 30))
                     ->by('hour:emails'),
             ];
         });

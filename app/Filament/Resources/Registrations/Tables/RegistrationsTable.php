@@ -384,6 +384,24 @@ class RegistrationsTable
                                 ->send();
                         }),
 
+                    Action::make('reset_to_pool')
+                        ->label(__('admin.registrations.actions.reset_to_pool'))
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('warning')
+                        ->visible(fn ($record) => $record?->draw_status_value === 'not_drawn')
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.reset_to_pool'))
+                        ->modalDescription(fn ($record) => "Remove the draw status of {$record->name} so they re-enter the next draw? For team members, the whole team is reset.")
+                        ->action(function ($record) {
+                            $resetCount = app(DrawService::class)->resetToPool($record);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Returned to draw pool')
+                                ->body("{$resetCount} registration(s) including {$record->name} re-entered the draw pool.")
+                                ->success()
+                                ->send();
+                        }),
+
                     Action::make('send_registration_confirmation')
                         ->label('Send Registration Confirmation')
                         ->icon('heroicon-o-envelope')
@@ -588,6 +606,30 @@ class RegistrationsTable
                         ->requiresConfirmation()
                         ->modalHeading('Send Draw Result Emails')
                         ->modalDescription('This will send draw result emails to all selected participants (drawn and not drawn).')
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('reset_to_pool')
+                        ->label(__('admin.registrations.actions.reset_to_pool'))
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('warning')
+                        ->action(function (Collection $records) {
+                            $resetTotal = 0;
+
+                            foreach ($records as $record) {
+                                if ($record->draw_status_value === 'not_drawn') {
+                                    $resetTotal += app(DrawService::class)->resetToPool($record);
+                                }
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Returned to draw pool')
+                                ->body("{$resetTotal} registration(s) re-entered the draw pool and are eligible for the next draw.")
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.reset_to_pool'))
+                        ->modalDescription('Remove the draw status of the selected participants so they re-enter the next draw? For team members, the whole team is reset. Teams with a drawn member are not touched.')
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('send_custom_email')

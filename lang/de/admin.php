@@ -49,6 +49,7 @@ return [
             'mark_as_drawn' => 'Als gelost markieren',
             'mark_as_waitlist' => 'Als Warteliste markieren',
             'mark_as_not_drawn' => 'Als nicht gelost markieren',
+            'reset_to_pool' => 'Zurück in Auslosungspool',
             'assign_starting_numbers' => 'Startnummern zuweisen',
             'generate_waitlist_tokens' => 'Wartelisten-Links erstellen',
             'generate_withdraw_tokens' => 'Rückzugs-Links erstellen',

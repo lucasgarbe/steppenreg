@@ -110,6 +110,38 @@ class DrawService
         return $result;
     }
 
+    /**
+     * Return a registration (and its team members) to the undecided pool by
+     * removing its draw status, making it eligible for the next draw.
+     */
+    public function resetToPool(Registration $registration): int
+    {
+        return DB::transaction(function () use ($registration) {
+            $registrations = $this->getAffectedRegistrations($registration);
+
+            $deleted = DrawStatus::whereIn(
+                'registration_id',
+                $registrations->pluck('id')
+            )->delete();
+
+            Activity::event('registration_reset_to_pool')
+                ->performedOn($registration)
+                ->withProperties([
+                    'registration_id' => $registration->id,
+                    'affected_count' => $registrations->count(),
+                ])
+                ->log('Registration reset to draw pool');
+
+            Log::info('DrawService: resetToPool', [
+                'registration_id' => $registration->id,
+                'affected_count' => $registrations->count(),
+                'removed_statuses' => $deleted,
+            ]);
+
+            return $deleted;
+        });
+    }
+
     protected function setDrawStatus(Registration $registration, string $status): void
     {
         DB::transaction(function () use ($registration, $status) {
