@@ -4,6 +4,7 @@ namespace App\Domain\BankImport\Filament\Pages;
 
 use App\Domain\BankImport\Actions\ConfirmPaymentsAction;
 use App\Domain\BankImport\Exceptions\InvalidRegistrationIdsException;
+use App\Domain\BankImport\Models\BankTransferConfirmation;
 use App\Models\Registration;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -31,46 +32,61 @@ class ManageBankImport extends Page
     /**
      * All active registrations exposed to the client-side Alpine component.
      *
-     * @var array<int, array{id: int, name: string, payed: bool, draw_status: string, track_name: string}>
+     * @var array<int, array{id: int, name: string, paid: bool, draw_status: string, track_name: string}>
      */
     public array $registrations = [];
 
     /**
-     * Search results for Phase 2 manual resolution.
+     * Fingerprints of transfers confirmed before, keyed by registration id.
+     * Loaded once per mount so the client can pre-check already-handled transfers.
      *
-     * @var array<int, array{id: int, name: string, payed: bool, draw_status: string, track_name: string}>
+     * @var array<int, string>
+     */
+    public array $confirmedFingerprints = [];
+
+    /**
+     * Search results for Phase 2 manual resolution, filled by searchRegistrations().
+     *
+     * @var array<int, array{id: int, name: string, paid: bool, draw_status: string, track_name: string}>
      */
     public array $searchResults = [];
 
     public function mount(): void
     {
         $this->registrations = Registration::query()
-            ->select(['id', 'name', 'payed', 'draw_status', 'track_id'])
+            ->select(['id', 'name', 'track_id'])
+            ->with('paymentStatus')
             ->get()
             ->map(fn (Registration $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
-                'payed' => (bool) $r->payed,
+                'paid' => (bool) $r->is_paid,
                 'draw_status' => $r->draw_status,
                 'track_name' => $r->track_name,
             ])
             ->values()
             ->all();
+
+        $this->confirmedFingerprints = BankTransferConfirmation::query()
+            ->pluck('fingerprint', 'registration_id')
+            ->all();
     }
 
     /**
-     * Called from the Alpine component via Livewire.dispatch to mark registrations as payed.
+     * Called from the Alpine component to mark registrations as paid and
+     * record the confirmed transfer fingerprints in the ledger.
      *
      * @param  array<int>  $ids
+     * @param  array<int, string>  $fingerprintsByRegistrationId
      */
-    public function confirmPayments(array $ids): void
+    public function confirmPayments(array $ids, array $fingerprintsByRegistrationId = []): void
     {
         try {
-            $result = app(ConfirmPaymentsAction::class)->execute($ids);
+            $result = app(ConfirmPaymentsAction::class)->execute($ids, $fingerprintsByRegistrationId);
 
             $body = "{$result->newly_confirmed} payment(s) confirmed.";
-            if ($result->already_payed > 0) {
-                $body .= " {$result->already_payed} were already marked as paid.";
+            if ($result->already_paid > 0) {
+                $body .= " {$result->already_paid} were already marked as paid.";
             }
 
             Notification::make()
@@ -97,29 +113,33 @@ class ManageBankImport extends Page
 
     /**
      * Search registrations by name for Phase 2 manual resolution.
-     * Results are stored in $searchResults for the view to consume.
+     * Returns the matching registrations (also stored in $searchResults)
+     * so the client-side Alpine component can await the result.
      */
-    public function searchRegistrations(string $query): void
+    public function searchRegistrations(string $query): array
     {
         if (trim($query) === '') {
             $this->searchResults = [];
 
-            return;
+            return [];
         }
 
         $this->searchResults = Registration::query()
-            ->select(['id', 'name', 'payed', 'draw_status', 'track_id'])
+            ->select(['id', 'name', 'track_id'])
+            ->with('paymentStatus')
             ->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($query).'%'])
             ->orderBy('name')
             ->get()
             ->map(fn (Registration $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
-                'payed' => (bool) $r->payed,
+                'paid' => (bool) $r->is_paid,
                 'draw_status' => $r->draw_status,
                 'track_name' => $r->track_name,
             ])
             ->values()
             ->all();
+
+        return $this->searchResults;
     }
 }

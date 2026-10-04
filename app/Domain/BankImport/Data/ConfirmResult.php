@@ -9,6 +9,6 @@ readonly class ConfirmResult
 {
     public function __construct(
         public int $newly_confirmed,
-        public int $already_payed,
+        public int $already_paid,
     ) {}
 }

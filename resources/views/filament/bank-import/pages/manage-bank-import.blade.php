@@ -154,10 +154,10 @@
                                 <td class="px-4 py-3 text-right font-mono text-gray-900 dark:text-white" x-text="item.row['Betrag'] + ' ' + item.row['Waehrung']"></td>
                                 <td class="px-4 py-3 text-gray-500 dark:text-gray-400" x-text="item.row['Buchungstag']"></td>
                                 <td class="px-4 py-3">
-                                    <template x-if="item.registration.payed || item.alreadyConfirmedByHash">
+                                    <template x-if="item.registration.paid || item.alreadyConfirmedByHash">
                                         <span class="inline-flex items-center rounded-full bg-success-100 dark:bg-success-900 px-2 py-0.5 text-xs font-medium text-success-700 dark:text-success-300">Paid</span>
                                     </template>
-                                    <template x-if="!item.registration.payed && !item.alreadyConfirmedByHash">
+                                    <template x-if="!item.registration.paid && !item.alreadyConfirmedByHash">
                                         <span class="inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900 px-2 py-0.5 text-xs font-medium text-warning-700 dark:text-warning-300">Unpaid</span>
                                     </template>
                                 </td>
@@ -227,10 +227,10 @@
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="reg.name"></p>
                                                     <p class="text-xs text-gray-500 dark:text-gray-400" x-text="reg.track_name + ' \u00b7 ' + reg.draw_status"></p>
                                                 </div>
-                                                <template x-if="reg.payed">
+                                                <template x-if="reg.paid">
                                                     <span class="text-xs px-2 py-0.5 rounded-full bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300">Paid</span>
                                                 </template>
-                                                <template x-if="!reg.payed">
+                                                <template x-if="!reg.paid">
                                                     <span class="text-xs px-2 py-0.5 rounded-full bg-warning-100 dark:bg-warning-900 text-warning-700 dark:text-warning-300">Unpaid</span>
                                                 </template>
                                             </div>

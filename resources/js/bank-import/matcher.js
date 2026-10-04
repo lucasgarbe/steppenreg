@@ -10,7 +10,7 @@
  *
  * @param {Array<Object>} rows - Parsed CSV rows from csv-parser
  * @param {string} eventPrefix - The event name prefix to filter on (e.g. "Steppenreg 2025")
- * @param {Array<{id: number, name: string, payed: boolean, draw_status: string, track_name: string}>} registrations
+ * @param {Array<{id: number, name: string, paid: boolean, draw_status: string, track_name: string}>} registrations
  * @returns {{ matched: Array, unmatched: Array, filtered: Array }}
  */
 export function filterAndMatch(rows, eventPrefix, registrations) {

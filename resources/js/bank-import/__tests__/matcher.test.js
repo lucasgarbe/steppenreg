@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { filterAndMatch } from '../matcher.js';
 
 const registrations = [
-    { id: 1, name: 'Maria Muster', payed: false, draw_status: 'drawn', track_name: 'Track A' },
-    { id: 2, name: 'Klaus Weber', payed: true, draw_status: 'drawn', track_name: 'Track B' },
-    { id: 3, name: 'Anna Schmidt', payed: false, draw_status: 'not_drawn', track_name: 'Track A' },
+    { id: 1, name: 'Maria Muster', paid: false, draw_status: 'drawn', track_name: 'Track A' },
+    { id: 2, name: 'Klaus Weber', paid: true, draw_status: 'drawn', track_name: 'Track B' },
+    { id: 3, name: 'Anna Schmidt', paid: false, draw_status: 'not_drawn', track_name: 'Track A' },
 ];
 
 const makeRow = (verwendungszweck, overrides = {}) => ({
@@ -80,7 +80,7 @@ describe('filterAndMatch', () => {
         expect(matched[0].registration).toMatchObject({
             id: 2,
             name: 'Klaus Weber',
-            payed: true,
+            paid: true,
         });
     });
 

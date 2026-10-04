@@ -36,9 +36,9 @@ class ManageBankImportPageTest extends TestCase
 
     public function test_mount_populates_registrations_with_all_non_deleted_registrations(): void
     {
-        $active1 = Registration::factory()->create(['payed' => false, 'draw_status' => 'not_drawn']);
-        $active2 = Registration::factory()->create(['payed' => true, 'draw_status' => 'drawn']);
-        $deleted = Registration::factory()->create(['payed' => false]);
+        $active1 = Registration::factory()->create();
+        $active2 = Registration::factory()->paid()->create();
+        $deleted = Registration::factory()->create();
         $deleted->delete();
 
         $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
@@ -53,7 +53,7 @@ class ManageBankImportPageTest extends TestCase
 
     public function test_registrations_property_contains_required_fields(): void
     {
-        Registration::factory()->create(['payed' => false, 'draw_status' => 'not_drawn']);
+        Registration::factory()->create();
 
         $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
 
@@ -63,20 +63,20 @@ class ManageBankImportPageTest extends TestCase
         $first = $registrations[0];
         $this->assertArrayHasKey('id', $first);
         $this->assertArrayHasKey('name', $first);
-        $this->assertArrayHasKey('payed', $first);
+        $this->assertArrayHasKey('paid', $first);
         $this->assertArrayHasKey('draw_status', $first);
         $this->assertArrayHasKey('track_name', $first);
     }
 
-    public function test_confirm_payments_marks_registrations_as_payed(): void
+    public function test_confirm_payments_marks_registrations_as_paid(): void
     {
-        $reg = Registration::factory()->create(['payed' => false]);
+        $reg = Registration::factory()->create();
 
         Livewire::actingAs($this->admin)
             ->test(ManageBankImport::class)
             ->call('confirmPayments', [$reg->id]);
 
-        $this->assertDatabaseHas('registrations', ['id' => $reg->id, 'payed' => true]);
+        $this->assertDatabaseHas('payment_statuses', ['registration_id' => $reg->id, 'paid' => true]);
     }
 
     public function test_confirm_payments_with_empty_array_does_nothing_gracefully(): void
@@ -95,9 +95,9 @@ class ManageBankImportPageTest extends TestCase
             ->assertNotified();
     }
 
-    public function test_confirm_payments_already_payed_sends_success_notification_with_correct_counts(): void
+    public function test_confirm_payments_already_paid_sends_success_notification_with_correct_counts(): void
     {
-        $reg = Registration::factory()->create(['payed' => true]);
+        $reg = Registration::factory()->paid()->create();
 
         Livewire::actingAs($this->admin)
             ->test(ManageBankImport::class)
@@ -107,8 +107,8 @@ class ManageBankImportPageTest extends TestCase
 
     public function test_search_registrations_returns_matching_names(): void
     {
-        Registration::factory()->create(['name' => 'Maria Muster', 'payed' => false]);
-        Registration::factory()->create(['name' => 'Klaus Weber', 'payed' => false]);
+        Registration::factory()->create(['name' => 'Maria Muster']);
+        Registration::factory()->create(['name' => 'Klaus Weber']);
 
         $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
         $component->call('searchRegistrations', 'Maria');
@@ -123,7 +123,7 @@ class ManageBankImportPageTest extends TestCase
 
     public function test_search_registrations_is_case_insensitive(): void
     {
-        Registration::factory()->create(['name' => 'Maria Muster', 'payed' => false]);
+        Registration::factory()->create(['name' => 'Maria Muster']);
 
         $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
         $component->call('searchRegistrations', 'maria');
@@ -135,7 +135,7 @@ class ManageBankImportPageTest extends TestCase
 
     public function test_search_registrations_returns_empty_for_no_match(): void
     {
-        Registration::factory()->create(['name' => 'Maria Muster', 'payed' => false]);
+        Registration::factory()->create(['name' => 'Maria Muster']);
 
         $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
         $component->call('searchRegistrations', 'zzznomatch');

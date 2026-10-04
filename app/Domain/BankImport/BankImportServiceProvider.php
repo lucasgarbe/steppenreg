@@ -16,6 +16,10 @@ class BankImportServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ConfirmPaymentsAction::class);
 
+        if (! config('steppenreg.features.bank_import', true)) {
+            return;
+        }
+
         Panel::configureUsing(function (Panel $panel): void {
             if ($panel->getId() !== 'admin') {
                 return;
@@ -29,6 +33,10 @@ class BankImportServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (! config('steppenreg.features.bank_import', true)) {
+            return;
+        }
+
         FilamentAsset::register([
             Js::make('bank-import', Vite::asset('resources/js/bank-import/index.js'))->module(),
         ]);

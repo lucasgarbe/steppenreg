@@ -3,14 +3,16 @@ import { hashRow } from './row-hasher.js';
 import { filterAndMatch } from './matcher.js';
 import { downloadUnresolvedCsv } from './exporter.js';
 
-const STORAGE_KEY = 'bankimport_confirmed_hashes';
-
 /**
  * Alpine.js component for the 3-phase bank transfer CSV import workflow.
  *
  * Registered as window.bankImport() so the Blade view can call x-data="bankImport(...)".
  *
- * @param {Array<{id: number, name: string, payed: boolean, draw_status: string, track_name: string}>} registrations
+ * The raw bank CSV never leaves the browser: only registration IDs and
+ * opaque transfer fingerprints are sent to the server. The server keeps the
+ * confirmation ledger (ADR-0003); no state is persisted locally.
+ *
+ * @param {Array<{id: number, name: string, paid: boolean, draw_status: string, track_name: string}>} registrations
  */
 function bankImport(registrations) {
     return {
@@ -36,8 +38,8 @@ function bankImport(registrations) {
         /** Parse error message */
         parseError: null,
 
-        /** Set of SHA-256 hashes for rows confirmed in previous sessions */
-        confirmedHashes: new Set(),
+        /** Map of transfer hashes already recorded in the server-side ledger, by fingerprint */
+        confirmedFingerprints: new Set(),
 
         // ------------------------------------------------------------------
         // Computed helpers
@@ -59,41 +61,31 @@ function bankImport(registrations) {
         // ------------------------------------------------------------------
 
         init() {
-            this.loadConfirmedHashes();
-        },
-
-        // ------------------------------------------------------------------
-        // localStorage helpers
-        // ------------------------------------------------------------------
-
-        loadConfirmedHashes() {
-            try {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) {
-                    this.confirmedHashes = new Set(JSON.parse(stored));
+            // Carried over from the server-side ledger (ADR-0003), replaces localStorage
+            const setFrom = value => {
+                if (Array.isArray(value)) {
+                    this.confirmedFingerprints = new Set(value);
+                } else if (value && typeof value === 'object') {
+                    this.confirmedFingerprints = new Set(Object.values(value));
                 }
-            } catch {
-                this.confirmedHashes = new Set();
+            };
+
+            const fingerprints = this.$wire.confirmedFingerprints;
+            if (fingerprints && typeof fingerprints.then === 'function') {
+                fingerprints.then(setFrom);
+            } else {
+                setFrom(fingerprints);
             }
-        },
-
-        persistConfirmedHashes() {
-            localStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify(Array.from(this.confirmedHashes))
-            );
-        },
-
-        async addConfirmedHash(row) {
-            const hash = await hashRow(row);
-            this.confirmedHashes.add(hash);
-            this.persistConfirmedHashes();
-            return hash;
         },
 
         async isAlreadyConfirmed(row) {
             const hash = await hashRow(row);
-            return this.confirmedHashes.has(hash);
+            return this.confirmedFingerprints.has(hash);
+        },
+
+        async recordConfirmed(row) {
+            const hash = await hashRow(row);
+            this.confirmedFingerprints.add(hash);
         },
 
         // ------------------------------------------------------------------
@@ -135,7 +127,7 @@ function bankImport(registrations) {
                 registrations
             );
 
-            // Annotate matched rows with confirmed state
+            // Annotate matched rows with confirmed state from the server ledger
             const annotatedMatched = await Promise.all(
                 matched.map(async item => ({
                     ...item,
@@ -190,14 +182,25 @@ function bankImport(registrations) {
                 return;
             }
 
-            const ids = toConfirm.map(item => item.registration.id);
+            // Send registration IDs and fingerprints keyed by registration id;
+            // the server records the ledger and marks payments (ADR-0003).
+            const confirmations = await Promise.all(
+                toConfirm.map(async item => ({
+                    id: item.registration.id,
+                    fingerprint: await hashRow(item.row),
+                }))
+            );
 
-            // Dispatch to Livewire
-            await this.$wire.call('confirmPayments', ids);
+            const ids = confirmations.map(confirmation => confirmation.id);
+            const fingerprintsByRegistrationId = Object.fromEntries(
+                confirmations.map(confirmation => [String(confirmation.id), confirmation.fingerprint])
+            );
 
-            // Persist hashes locally so re-upload detects them
+            await this.$wire.call('confirmPayments', ids, fingerprintsByRegistrationId);
+
+            // Reflect the ledger locally so the UI marks these as handled
             for (const item of toConfirm) {
-                await this.addConfirmedHash(item.row);
+                await this.recordConfirmed(item.row);
                 item.alreadyConfirmedByHash = true;
             }
 
@@ -210,7 +213,7 @@ function bankImport(registrations) {
                         registrations[idx] = reg;
                     }
                 });
-                // Re-annotate matched list with fresh payed state
+                // Re-annotate matched list with fresh paid state
                 this.matched.forEach(item => {
                     const fresh = registrations.find(r => r.id === item.registration.id);
                     if (fresh) item.registration = fresh;
@@ -228,11 +231,10 @@ function bankImport(registrations) {
                 return;
             }
 
-            // Search client-side against the registrations array
-            const q = query.toLowerCase().trim();
-            item.searchResults = registrations
-                .filter(r => r.name.toLowerCase().includes(q))
-                .slice(0, 10);
+            // Server-side search behind the marking seam (ADR-0003):
+            // searching a registration is part of the confirmation decision,
+            // so both live behind the same server interface.
+            item.searchResults = await this.$wire.call('searchRegistrations', query) ?? [];
         },
 
         selectManualMatch(item, registration) {
@@ -245,8 +247,13 @@ function bankImport(registrations) {
                 return;
             }
 
-            await this.$wire.call('confirmPayments', [item.manualMatch.id]);
-            await this.addConfirmedHash(item.row);
+            const fingerprint = await hashRow(item.row);
+
+            await this.$wire.call('confirmPayments', [item.manualMatch.id], {
+                [String(item.manualMatch.id)]: fingerprint,
+            });
+
+            await this.recordConfirmed(item.row);
             item.manualConfirmed = true;
             item.manualMatch = null;
         },
