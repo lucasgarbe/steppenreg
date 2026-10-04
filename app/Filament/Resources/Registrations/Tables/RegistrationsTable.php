@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Registrations\Tables;
 
 use App\Domain\Draw\Services\DrawService;
+use App\Domain\Payment\Services\PaymentService;
 use App\Filament\Exports\RegistrationExporter;
 use App\Models\Registration;
 use Filament\Actions\Action;
@@ -15,7 +16,6 @@ use Filament\Actions\ExportBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -127,10 +127,16 @@ class RegistrationsTable
                             ->select('registrations.*');
                     }),
 
-                ToggleColumn::make('payed')
-                    ->label(__('Bezahlt'))
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('paymentStatus.paid')
+                    ->label(__('admin.registrations.columns.payment'))
+                    ->badge()
+                    ->visible(fn () => config('steppenreg.features.payment', true))
+                    ->formatStateUsing(fn ($state) => $state ? __('admin.registrations.status.paid') : __('admin.registrations.status.unpaid'))
+                    ->color(fn ($state): string => match ((bool) $state) {
+                        true => 'success',
+                        false => 'gray',
+                    })
+                    ->sortable(),
 
                 TextColumn::make('finish_time')
                     ->label(__('admin.registrations.columns.finish_time'))
@@ -205,8 +211,9 @@ class RegistrationsTable
                         return $query->when($data['track_id'], fn ($query, $trackId) => $query->where('track_id', $trackId));
                     }),
 
-                SelectFilter::make('payed')
+                SelectFilter::make('payment')
                     ->label('Payment Status')
+                    ->visible(fn () => config('steppenreg.features.payment', true))
                     ->options([
                         'paid' => 'Paid',
                         'unpaid' => 'Unpaid',
@@ -214,8 +221,11 @@ class RegistrationsTable
                     ->placeholder('All')
                     ->query(function (Builder $query, array $data): Builder {
                         return match ($data['value'] ?? null) {
-                            'paid' => $query->whereRaw('payed = true'),
-                            'unpaid' => $query->whereRaw('payed = false'),
+                            'paid' => $query->whereHas('paymentStatus', fn ($q) => $q->where('paid', true)),
+                            'unpaid' => $query->where(function ($q) {
+                                $q->whereDoesntHave('paymentStatus')
+                                    ->orWhereHas('paymentStatus', fn ($ps) => $ps->where('paid', false));
+                            }),
                             default => $query,
                         };
                     }),
@@ -440,12 +450,12 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_paid'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn ($record) => ! $record?->payed)
+                        ->visible(fn ($record) => ! $record?->is_paid && config('steppenreg.features.payment', true))
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_paid'))
                         ->modalDescription(fn ($record) => "Mark {$record->name} as paid?")
                         ->action(function ($record) {
-                            $record->update(['payed' => true]);
+                            app(PaymentService::class)->markPaid($record);
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Payment status updated')
@@ -458,7 +468,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_starting'))
                         ->icon('heroicon-o-play-circle')
                         ->color('info')
-                        ->visible(fn ($record) => ! $record?->starting && $record?->payed)
+                        ->visible(fn ($record) => ! $record?->starting && $record?->is_paid && config('steppenreg.features.payment', true))
                         ->requiresConfirmation()
                         ->modalHeading(__('admin.registrations.actions.mark_as_starting'))
                         ->modalDescription(fn ($record) => "Mark {$record->name} as starting?")
@@ -511,7 +521,8 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_paid'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->action(fn (Collection $records) => $records->each->update(['payed' => true]))
+                        ->visible(fn () => config('steppenreg.features.payment', true))
+                        ->action(fn (Collection $records) => $records->each(fn ($record) => app(PaymentService::class)->markPaid($record)))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_starting')

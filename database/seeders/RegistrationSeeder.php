@@ -18,7 +18,7 @@ class RegistrationSeeder extends Seeder
 
         // Create various types of registrations
         Registration::factory(50)->create();
-        Registration::factory(5)->payed()->create();
+        Registration::factory(5)->paid()->create();
         Registration::factory(8)->starting()->create();
         Registration::factory(3)->finished()->create();
 
@@ -27,7 +27,7 @@ class RegistrationSeeder extends Seeder
             ['Status', 'Count'],
             [
                 ['Total', Registration::count()],
-                ['Paid', Registration::payed()->count()],
+                ['Paid', Registration::paid()->count()],
                 ['Starting', Registration::starting()->count()],
                 ['Finished', Registration::finished()->count()],
             ]

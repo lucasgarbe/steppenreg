@@ -127,12 +127,8 @@ class RegistrationForm
                     ])->columns(2),
 
                 Section::make('Registration Status')
-                    ->description('Payment and participation status')
+                    ->description('Participation status')
                     ->schema([
-                        Forms\Components\Toggle::make('payed')
-                            ->label('Payment Received')
-                            ->helperText('Mark as paid when payment is confirmed'),
-
                         Forms\Components\Toggle::make('starting')
                             ->label('Confirmed Starting')
                             ->helperText('Participant confirmed to start the event'),

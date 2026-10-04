@@ -75,9 +75,9 @@ class RegistrationExporter extends Exporter
                     return $record->drawn_at_value ? $record->drawn_at_value->format('Y-m-d H:i:s') : '---';
                 }),
 
-            ExportColumn::make('payed')
+            ExportColumn::make('is_paid')
                 ->label('Paid')
-                ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No'),
+                ->formatStateUsing(fn (Registration $record): string => $record->is_paid ? 'Yes' : 'No'),
 
             ExportColumn::make('starting')
                 ->label('Starting')

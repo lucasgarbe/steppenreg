@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Draw\Models\DrawStatus;
+use App\Domain\Payment\Models\PaymentStatus;
 use App\Settings\EventSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -37,7 +38,6 @@ class Registration extends Model
         'team_id',
         'age',
         'gender',
-        'payed',
         'starting',
         'starting_number',
         'finish_time',
@@ -46,7 +46,6 @@ class Registration extends Model
     ];
 
     protected $casts = [
-        'payed' => 'boolean',
         'starting' => 'boolean',
         'finish_time' => 'datetime:H:i',
         'custom_answers' => 'array',
@@ -63,15 +62,23 @@ class Registration extends Model
         return $this->hasOne(DrawStatus::class);
     }
 
-    // Scopes
-    public function scopePayed($query)
+    public function paymentStatus(): HasOne
     {
-        return $query->where('payed', true);
+        return $this->hasOne(PaymentStatus::class);
     }
 
-    public function scopeUnpayed($query)
+    // Scopes
+    public function scopePaid($query)
     {
-        return $query->where('payed', false);
+        return $query->whereHas('paymentStatus', fn ($q) => $q->where('paid', true));
+    }
+
+    public function scopeUnpaid($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereDoesntHave('paymentStatus')
+                ->orWhereHas('paymentStatus', fn ($ps) => $ps->where('paid', false));
+        });
     }
 
     public function scopeStarting($query)
@@ -111,9 +118,9 @@ class Registration extends Model
     }
 
     // Accessors
-    public function getIsPayedAttribute(): bool
+    public function getIsPaidAttribute(): bool
     {
-        return $this->payed;
+        return (bool) ($this->getRelationValue('paymentStatus')?->paid);
     }
 
     public function getIsStartingAttribute(): bool
@@ -227,7 +234,7 @@ class Registration extends Model
             return __('messages.starting');
         }
 
-        if ($this->is_payed) {
+        if ($this->is_paid) {
             return __('messages.paid');
         }
 
@@ -258,8 +265,8 @@ class Registration extends Model
             'total' => static::count(),
             'drawn' => static::drawn()->count(),
             'not_drawn' => static::notDrawn()->count(),
-            'payed' => static::payed()->count(),
-            'unpayed' => static::unpayed()->drawn()->count(),
+            'paid' => static::paid()->count(),
+            'unpaid' => static::unpaid()->drawn()->count(),
             'starting' => static::starting()->count(),
             'finished' => static::finished()->count(),
         ];

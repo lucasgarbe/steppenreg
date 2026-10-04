@@ -60,14 +60,15 @@ class DrawRehearsalSeeder extends Seeder
 
     protected function createRegistration(int $trackId, ?int $teamId, int $index): void
     {
-        Registration::create([
+        $registration = Registration::create([
             'name' => 'Rehearsal Participant '.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
             'email' => 'rehearsal-'.($index + 1).'@example.com',
             'track_id' => $trackId,
             'team_id' => $teamId,
             'age' => random_int(16, 70),
             'gender' => ['flinta', 'all_gender'][random_int(0, 1)],
-            'payed' => true,
         ]);
+
+        app(PaymentService::class)->markPaid($registration, 'seed');
     }
 }

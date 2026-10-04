@@ -185,7 +185,6 @@ class ManageDraw extends Page implements HasSchemas
     }
 
     public function executeDraw(int $trackId, int $participantsToDraw)
-
     {
         Log::info('executeDraw', ['track_id' => $trackId, 'participants_to_draw' => $participantsToDraw]);
 

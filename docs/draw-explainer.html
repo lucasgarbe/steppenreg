@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Draw — How It Works</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --card: #161b23;
+    --card-edge: #232a35;
+    --ink: #e6ebf2;
+    --muted: #8b96a5;
+    --accent: #f5b445;
+    --accent-dim: #f5b44533;
+    --green: #4ade80;
+    --green-dim: #4ade8022;
+    --red: #f87171;
+    --red-dim: #f8717122;
+    --blue: #60a5fa;
+    --blue-dim: #60a5fa22;
+    --purple: #c084fc;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding: 0 0 5rem;
+  }
+  .wrap { max-width: 74rem; margin: 0 auto; padding: 0 1.25rem; }
+  code, .mono { font-family: var(--mono); font-size: 0.82em; background: #1d242f; border: 1px solid var(--card-edge); border-radius: 4px; padding: 1px 5px; color: var(--accent); }
+
+  /* ---- hero ---- */
+  header { padding: 3.5rem 0 2rem; text-align: center; }
+  .kicker { font-family: var(--mono); font-size: .75rem; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; margin: .4rem 0 .6rem; }
+  .sub { color: var(--muted); max-width: 46rem; margin: 0 auto; font-size: 1.05rem; }
+  .pillars { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; margin-top: 1.6rem; }
+  .pillar { font-family: var(--mono); font-size: .74rem; border: 1px solid var(--card-edge); background: var(--card); border-radius: 999px; padding: .3rem .8rem; color: var(--muted); }
+  .pillar b { color: var(--ink); font-weight: 600; }
+
+  /* ---- sections ---- */
+  section { margin-top: 3rem; }
+  .sec-head { display: flex; align-items: baseline; gap: .8rem; margin-bottom: .4rem; }
+  .num { font-family: var(--mono); color: var(--accent); font-size: .85rem; font-weight: 700; }
+  h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+  .q { color: var(--muted); margin-bottom: 1.2rem; max-width: 52rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 14px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+  svg { display: block; height: auto; max-width: 100%; }
+  .svg-label { font-family: var(--mono); font-size: 11px; }
+
+  /* ---- chips / callouts ---- */
+  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1.2rem; }
+  .note { border-radius: 12px; padding: 1rem 1.1rem; font-size: .92rem; line-height: 1.5; }
+  .note b { display: block; margin-bottom: .25rem; font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; font-family: var(--mono); }
+  .note.warn  { background: var(--red-dim);  border: 1px solid #f8717144; color: #fecaca; }
+  .note.warn b  { color: var(--red); }
+  .note.info  { background: var(--blue-dim); border: 1px solid #60a5fa44; color: #bfdbfe; }
+  .note.info b  { color: var(--blue); }
+  .note.ok    { background: var(--green-dim); border: 1px solid #4ade8044; color: #bbf7d0; }
+  .note.ok b    { color: var(--green); }
+  .note.gold  { background: var(--accent-dim); border: 1px solid #f5b44544; color: #fde9c0; }
+  .note.gold b  { color: var(--accent); }
+  .note code { background: #0e1116; }
+
+  /* ---- auto / manual split ---- */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem; }
+  @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+  .lane { border-radius: 12px; border: 1px solid var(--card-edge); padding: 1.1rem 1.2rem; }
+  .lane h3 { font-size: .8rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .7rem; }
+  .lane ul { padding-left: 1.1rem; color: var(--muted); font-size: .93rem; }
+  .lane li { margin: .3rem 0; }
+  .lane.auto  { background: var(--green-dim); border-color: #4ade8033; }
+  .lane.auto h3 { color: var(--green); }
+  .lane.manual { background: var(--blue-dim); border-color: #60a5fa33; }
+  .lane.manual h3 { color: var(--blue); }
+
+  /* ---- tables ---- */
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th { text-align: left; font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: .6rem .8rem; border-bottom: 1px solid var(--card-edge); }
+  td { padding: .65rem .8rem; border-bottom: 1px solid #1d242f; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .checkbox { color: var(--accent); font-family: var(--mono); }
+
+  footer { text-align: center; color: #566; font-size: .78rem; margin-top: 3.5rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Steppenreg &middot; Pre-event briefing</div>
+  <h1>The Draw</h1>
+  <p class="sub">Not a raffle &mdash; a lottery of <em>entries</em>. When registrations for a track exceed capacity, the draw decides who gets in. Here are the moving parts, verified against the current code.</p>
+  <div class="pillars">
+    <span class="pillar"><b>33</b> draw tests passing</span>
+    <span class="pillar"><b>3</b> statuses: none / drawn / not_drawn</span>
+    <span class="pillar"><b>1</b> admin page that runs everything</span>
+    <span class="pillar">emails = <b>manual</b> step</span>
+  </div>
+</header>
+
+<!-- ================= 1. END-TO-END ================= -->
+<section>
+  <div class="sec-head"><span class="num">01</span><h2>The journey of one click</h2></div>
+  <p class="q">What actually happens between you pressing the button in the admin panel and the database being committed?</p>
+  <div class="card">
+    <svg viewBox="0 0 980 560" role="img" aria-label="Draw flow diagram">
+      <!-- stage bands -->
+      <rect x="10"  y="16" width="230" height="528" rx="12" fill="none" stroke="#f5b44533" stroke-dasharray="4 5"/>
+      <rect x="756" y="16" width="214" height="528" rx="12" fill="none" stroke="#4ade8033" stroke-dasharray="4 5"/>
+      <text x="18"  y="40" class="svg-label" fill="#f5b445">YOU &amp; THE ADMIN PAGE</text>
+      <text x="764" y="40" class="svg-label" fill="#4ade80">AFTERMATH</text>
+
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#8b96a5"/>
+        </marker>
+        <marker id="arrAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#f5b445"/>
+        </marker>
+      </defs>
+
+      <!-- step rows -->
+      <!-- 1. admin form -->
+      <rect x="40" y="70" width="170" height="66" rx="10" fill="#f5b4451a" stroke="#f5b445" stroke-width="1.4"/>
+      <text x="125" y="96" text-anchor="middle" fill="#e6ebf2" font-weight="600" font-size="13">Manage Draw page</text>
+      <text x="125" y="114" text-anchor="middle" class="svg-label" fill="#8b96a5">pick track + spots</text>
+      <text x="125" y="128" text-anchor="middle" class="svg-label" fill="#8b96a5">(default is 50!)</text>
+
+      <!-- 2. submit -->
+      <rect x="40" y="180" width="170" height="56" rx="10" fill="#161b23" stroke="#232a35"/>
+      <text x="125" y="204" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">submitDraw()</text>
+      <text x="125" y="220" text-anchor="middle" class="svg-label" fill="#8b96a5">ManageDraw.php</text>
+
+      <!-- 3. service -->
+      <rect x="40" y="282" width="170" height="72" rx="10" fill="#161b23" stroke="#232a35"/>
+      <text x="125" y="308" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">DrawService::</text>
+      <text x="125" y="324" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">executeDraw()</text>
+      <text x="125" y="342" text-anchor="middle" class="svg-label" fill="#8b96a5">runs synchronously,</text>
+      <text x="125" y="349" text-anchor="middle" class="svg-label" fill="#8b96a5">in the web request</text>
+
+      <!-- 4. pool -->
+      <rect x="290" y="180" width="200" height="84" rx="10" fill="#60a5fa1a" stroke="#60a5fa" stroke-width="1.4"/>
+      <text x="390" y="206" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">Load the pool</text>
+      <text x="390" y="224" text-anchor="middle" class="svg-label" fill="#bfdbfe">registrations on track</text>
+      <text x="390" y="238" text-anchor="middle" class="svg-label" fill="#bfdbfe">with NO draw status</text>
+      <text x="390" y="254" text-anchor="middle" class="svg-label" fill="#bfdbfe">&#8594; re-runs are safe</text>
+
+      <!-- exception -->
+      <rect x="290" y="300" width="200" height="62" rx="10" fill="#f871711a" stroke="#f87171"/>
+      <text x="390" y="325" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="600">pool empty?</text>
+      <text x="390" y="343" text-anchor="middle" class="svg-label" fill="#fecaca">&#8594; &#8220;Draw Failed&#8221; notice,</text>
+      <text x="390" y="355" text-anchor="middle" class="svg-label" fill="#fecaca">nothing changed</text>
+
+      <!-- 5. algorithm -->
+      <rect x="540" y="160" width="190" height="110" rx="10" fill="#161b23" stroke="#f5b445" stroke-width="1.4"/>
+      <text x="635" y="188" text-anchor="middle" fill="#f5b445" font-size="13" font-weight="700">shuffle + greedy fill</text>
+      <text x="635" y="208" text-anchor="middle" class="svg-label" fill="#8b96a5">individuals = size 1</text>
+      <text x="635" y="222" text-anchor="middle" class="svg-label" fill="#8b96a5">teams = atomic unit,</text>
+      <text x="635" y="236" text-anchor="middle" class="svg-label" fill="#8b96a5">size = member count</text>
+      <text x="635" y="258" text-anchor="middle" class="svg-label" fill="#8b96a5">detail in section 02</text>
+
+      <!-- 6. transaction -->
+      <rect x="540" y="310" width="190" height="100" rx="10" fill="#161b23" stroke="#232a35"/>
+      <text x="635" y="336" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">One DB transaction</text>
+      <text x="635" y="356" text-anchor="middle" class="svg-label" fill="#8b96a5">draw_statuses rows:</text>
+      <text x="635" y="372" text-anchor="middle" class="svg-label" fill="#4ade80">drawn &middot; drawn_at = now()</text>
+      <text x="635" y="388" text-anchor="middle" class="svg-label" fill="#f87171">not_drawn &middot; drawn_at = null</text>
+      <text x="635" y="404" text-anchor="middle" class="svg-label" fill="#8b96a5">this is the point of no return</text>
+
+      <!-- aftermath -->
+      <rect x="780" y="150" width="166" height="58" rx="10" fill="#4ade801a" stroke="#4ade80"/>
+      <text x="863" y="174" text-anchor="middle" fill="#bbf7d0" font-size="12" font-weight="600">Starting numbers</text>
+      <text x="863" y="192" text-anchor="middle" class="svg-label" fill="#8b96a5">auto-assigned</text>
+
+      <rect x="780" y="240" width="166" height="58" rx="10" fill="#4ade801a" stroke="#4ade80"/>
+      <text x="863" y="264" text-anchor="middle" fill="#bbf7d0" font-size="12" font-weight="600">Audit log entry</text>
+      <text x="863" y="282" text-anchor="middle" class="svg-label" fill="#8b96a5">&#8220;draw_executed&#8221;</text>
+
+      <rect x="780" y="330" width="166" height="58" rx="10" fill="#60a5fa1a" stroke="#60a5fa" stroke-dasharray="5 4"/>
+      <text x="863" y="354" text-anchor="middle" fill="#bfdbfe" font-size="12" font-weight="600">Emails</text>
+      <text x="863" y="372" text-anchor="middle" class="svg-label" fill="#8b96a5">manual step &mdash; see 03</text>
+
+      <!-- arrows -->
+      <line x1="125" y1="136" x2="125" y2="178" stroke="#8b96a5" marker-end="url(#arr)"/>
+      <line x1="125" y1="236" x2="125" y2="280" stroke="#8b96a5" marker-end="url(#arr)"/>
+      <line x1="212" y1="318" x2="286" y2="318" stroke="#8b96a5" marker-end="url(#arr)"/>
+      <path d="M 455 222 C 505 222, 500 215, 538 215" fill="none" stroke="#f5b445" stroke-width="1.6" marker-end="url(#arrAcc)"/>
+      <path d="M 455 270 C 500 300, 495 315, 538 330" fill="none" stroke="#f87171" marker-end="url(#arr)" opacity="0"/>
+      <path d="M 635 270 C 635 290, 635 295, 635 308" fill="none" stroke="#8b96a5" marker-end="url(#arr)"/>
+      <line x1="730" y1="187" x2="776" y2="179" stroke="#8b96a5" marker-end="url(#arr)"/>
+      <line x1="730" y1="278" x2="776" y2="268" stroke="#8b96a5" marker-end="url(#arr)"/>
+      <line x1="730" y1="358" x2="776" y2="360" stroke="#8b96a5" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+    </svg>
+  </div>
+  <div class="notes">
+    <div class="note ok"><b>Safe to re-run</b>The pool only ever contains registrations without a draw status. Already-decided people are never re-drawn &mdash; running multiple rounds is officially supported.</div>
+    <div class="note warn"><b>The click commits</b>There is no dry-run and no confirmation beyond your own double-check. The only undo afterwards is manually re-marking people in the Registrations table.</div>
+  </div>
+</section>
+
+<!-- ================= 2. ALGORITHM ================= -->
+<section>
+  <div class="sec-head"><span class="num">02</span><h2>How the selection works</h2></div>
+  <p class="q"><code class="mono">DrawService::selectRegistrations</code> &mdash; individuals and teams all shuffle into one bag, then the bag is emptied slot by slot.</p>
+  <div class="card">
+    <svg viewBox="0 0 980 430" role="img" aria-label="Selection algorithm diagram">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#8b96a5"/>
+        </marker>
+      </defs>
+
+      <!-- the bag -->
+      <rect x="30" y="60" width="330" height="330" rx="16" fill="#1d242f" stroke="#232a35" stroke-width="1.5"/>
+      <text x="195" y="90" text-anchor="middle" fill="#8b96a5" font-family="var(--mono)" font-size="11" letter-spacing="2">SHUFFLED POOL</text>
+
+      <!-- individuals -->
+      <g>
+        <circle cx="90"  cy="140" r="16" fill="#60a5fa22" stroke="#60a5fa"/>
+        <circle cx="145" cy="128" r="16" fill="#60a5fa22" stroke="#60a5fa"/>
+        <circle cx="110" cy="192" r="16" fill="#60a5fa22" stroke="#60a5fa"/>
+        <circle cx="175" cy="190" r="16" fill="#60a5fa22" stroke="#60a5fa"/>
+        <circle cx="85"  cy="243" r="16" fill="#60a5fa22" stroke="#60a5fa"/>
+        <text x="285" y="140" text-anchor="middle" fill="#bfdbfe" font-size="12" font-weight="600">Individuals</text>
+        <text x="285" y="156" text-anchor="middle" fill="#8b96a5" font-size="11">one person = one unit</text>
+        <text x="285" y="170" text-anchor="middle" fill="#8b96a5" font-size="11">takes 1 spot</text>
+      </g>
+
+      <!-- teams -->
+      <g>
+        <rect x="58" y="285" width="112" height="40" rx="8" fill="#c084fc22" stroke="#c084fc"/>
+        <circle cx="80" cy="305" r="9" fill="#c084fc55"/><circle cx="104" cy="305" r="9" fill="#c084fc55"/><circle cx="128" cy="305" r="9" fill="#c084fc55"/><circle cx="152" cy="305" r="9" fill="#c084fc55"/>
+        <rect x="100" y="345" width="84" height="34" rx="8" fill="#c084fc22" stroke="#c084fc"/>
+        <circle cx="122" cy="362" r="8" fill="#c084fc55"/><circle cx="146" cy="362" r="8" fill="#c084fc55"/><circle cx="166" cy="362" r="8" fill="#c084fc55"/>
+        <text x="285" y="310" text-anchor="middle" fill="#e3c6fc" font-size="12" font-weight="600">Teams</text>
+        <text x="285" y="326" text-anchor="middle" fill="#8b96a5" font-size="11">atomic: all or nothing</text>
+        <text x="285" y="344" text-anchor="middle" fill="#8b96a5" font-size="11">takes n spots (members)</text>
+      </g>
+
+      <!-- arrow into machine -->
+      <line x1="365" y1="225" x2="440" y2="225" stroke="#8b96a5" marker-end="url(#arr2)"/>
+
+      <!-- the greedy loop -->
+      <rect x="445" y="140" width="250" height="170" rx="14" fill="#f5b4451a" stroke="#f5b445" stroke-width="1.5"/>
+      <text x="570" y="172" text-anchor="middle" fill="#f5b445" font-size="13" font-weight="700">Walk the pool in order</text>
+      <text x="570" y="200" text-anchor="middle" fill="#e6ebf2" font-size="12.5">fits in remaining spots?</text>
+      <line x1="480" y1="222" x2="660" y2="222" stroke="#232a35"/>
+      <text x="570" y="248" text-anchor="middle" fill="#4ade80" font-size="12.5" font-weight="600">yes &#8594; whole unit selected</text>
+      <text x="570" y="263" text-anchor="middle" fill="#8b96a5" font-size="11">spotsUsed += size</text>
+      <text x="570" y="290" text-anchor="middle" fill="#f87171" font-size="12.5" font-weight="600">no &#8594; skipped, keep walking</text>
+      <text x="570" y="304" text-anchor="middle" fill="#8b96a5" font-size="11">no partial teams, no backtracking</text>
+
+      <!-- result -->
+      <circle cx="750" cy="120" r="34" fill="#4ade801a" stroke="#4ade80"/>
+      <text x="750" y="116" text-anchor="middle" fill="#4ade80" font-size="16">&#10003;</text>
+      <text x="750" y="132" text-anchor="middle" fill="#8b96a5" font-size="10">spots full</text>
+      <text x="750" y="205" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">drawn: +1 spot each</text>
+      <text x="750" y="222" text-anchor="middle" fill="#e6ebf2" font-size="13" font-weight="600">skipped: not_drawn</text>
+      <text x="750" y="240" text-anchor="middle" fill="#8b96a5" font-size="11">everyone in the pool</text>
+      <text x="750" y="254" text-anchor="middle" fill="#8b96a5" font-size="11">gets a status that day</text>
+
+      <line x1="695" y1="150" x2="726" y2="140" stroke="#8b96a5" marker-end="url(#arr2)"/>
+
+      <!-- spot waste illustration -->
+      <rect x="445" y="330" width="250" height="60" rx="10" fill="#f871711a" stroke="#f87171"/>
+      <text x="570" y="355" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="600">Quirk: spots can go unfilled</text>
+      <text x="570" y="372" text-anchor="middle" fill="#fecaca" font-size="11">3 spots left + team of 5 &#8594; skip; 3 spots wasted</text>
+
+      <line x1="570" y1="310" x2="570" y2="328" stroke="#8b96a5" stroke-dasharray="4 4" marker-end="url(#arr2)"/>
+    </svg>
+  </div>
+  <div class="notes">
+    <div class="note warn"><b>Always compare counts</b>After drawing, check <code>total_drawn</code> in the success notification against the number you entered. A late big team can leave the last spots empty; only re-marking fixes that.</div>
+    <div class="note gold"><b>Randomness</b>The shuffle is Laravel&#8217;s <code>$pool-&gt;shuffle()</code> (PHP&#8217;s standard RNG). Fine for an entry lottery; not cryptographically hardened, and the audit log records counts only &mdash; not the random order.</div>
+  </div>
+</section>
+
+<!-- ================= 3. STATE ================= -->
+<section>
+  <div class="sec-head"><span class="num">03</span><h2>The life of a registration</h2></div>
+  <p class="q">Draw state lives in the <code class="mono">draw_statuses</code> table &mdash; one row per registration, all mutations flow through <code class="mono">DrawService</code>.</p>
+  <div class="card">
+    <svg viewBox="0 0 980 330" role="img" aria-label="State machine">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#8b96a5"/>
+        </marker>
+      </defs>
+
+      <!-- dot -->
+      <circle cx="60" cy="165" r="8" fill="#e6ebf2"/>
+      <line x1="68" y1="165" x2="120" y2="165" stroke="#8b96a5" marker-end="url(#arr3)"/>
+
+      <!-- no status -->
+      <rect x="124" y="110" width="170" height="110" rx="14" fill="#1d242f" stroke="#8b96a5" stroke-dasharray="5 4"/>
+      <text x="209" y="146" text-anchor="middle" fill="#e6ebf2" font-size="14" font-weight="700">no row</text>
+      <text x="209" y="168" text-anchor="middle" fill="#8b96a5" font-size="11">no draw_statuses entry</text>
+      <text x="209" y="188" text-anchor="middle" fill="#bfdbfe" font-size="11.5">eligible for the next draw</text>
+
+      <!-- to drawn -->
+      <path d="M 294 150 C 360 120, 420 120, 480 148" fill="none" stroke="#8b96a5" marker-end="url(#arr3)"/>
+      <text x="388" y="118" text-anchor="middle" fill="#8b96a5" font-size="11">automatic draw</text>
+      <text x="388" y="132" text-anchor="middle" fill="#8b96a5" font-size="11">or manual row action</text>
+
+      <!-- to not drawn -->
+      <path d="M 294 185 C 360 215, 420 215, 480 190" fill="none" stroke="#8b96a5" marker-end="url(#arr3)"/>
+
+      <!-- drawn -->
+      <rect x="484" y="86" width="200" height="118" rx="14" fill="#4ade801a" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="584" y="120" text-anchor="middle" fill="#4ade80" font-size="15" font-weight="700">drawn</text>
+      <text x="584" y="142" text-anchor="middle" fill="#8b96a5" font-size="11">drawn_at = now()</text>
+      <text x="584" y="162" text-anchor="middle" fill="#bbf7d0" font-size="11">starting number assigned</text>
+      <text x="584" y="176" text-anchor="middle" fill="#bbf7d0" font-size="11">gets in / email: draw_success</text>
+
+      <!-- not drawn -->
+      <rect x="484" y="205" width="200" height="110" rx="14" fill="#f871711a" stroke="#f87171" stroke-width="1.5"/>
+      <text x="584" y="236" text-anchor="middle" fill="#f87171" font-size="15" font-weight="700">not_drawn</text>
+      <text x="584" y="257" text-anchor="middle" fill="#8b96a5" font-size="11">drawn_at = null (by design)</text>
+      <text x="584" y="277" text-anchor="middle" fill="#fecaca" font-size="11">stays out / email: draw_rejection</text>
+
+      <!-- flip arrows -->
+      <path d="M 684 130 C 730 110, 750 260, 688 240" fill="none" stroke="#8b96a5" stroke-dasharray="5 4" marker-end="url(#arr3)"/>
+      <text x="836" y="180" text-anchor="middle" fill="#8b96a5" font-size="11">both flips possible via</text>
+      <text x="836" y="194" text-anchor="middle" fill="#8b96a5" font-size="11">row actions on one member;</text>
+      <text x="836" y="208" text-anchor="middle" fill="#8b96a5" font-size="11">the change cascades to the</text>
+      <text x="836" y="222" text-anchor="middle" fill="#8b96a5" font-size="11">whole team instantly</text>
+
+      <!-- key note -->
+      <text x="209" y="250" text-anchor="middle" fill="#8b96a5" font-size="11">withdrawn members are</text>
+      <text x="209" y="264" text-anchor="middle" fill="#8b96a5" font-size="11">handled separately</text>
+    </svg>
+  </div>
+  <div class="notes">
+    <div class="note info"><b>Teams move as one</b>Marking one team member (drawn or not) updates every member of that team, and they all share the same <code>drawn_at</code>. The lottery treats them the same way &mdash; atomic units.</div>
+    <div class="note warn"><b>Withdrawals aren&#8217;t automatic</b>Someone withdrawing after the draw frees a spot, but nobody is auto-promoted from the undrawn pool (open issue #19). Plan to do this by hand via row actions.</div>
+  </div>
+</section>
+
+<!-- ================= 4. WHO DOES WHAT ================= -->
+<section>
+  <div class="sec-head"><span class="num">04</span><h2>Hero list: what the draw does vs what you must do</h2></div>
+  <p class="q">The single most important distinction for tomorrow: the draw itself is fast and synchronous, the notifications are your job.</p>
+
+  <div class="split">
+    <div class="lane auto">
+      <h3>&#10003; Automatic (the moment you submit)</h3>
+      <ul>
+        <li><code class="mono">draw_statuses</code> rows written for everyone in the pool</li>
+        <li>Domain events fired per affected registration</li>
+        <li>Starting numbers assigned to drawn participants</li>
+        <li>Audit trail + log entries written</li>
+      </ul>
+    </div>
+    <div class="lane manual">
+      <h3>&#8594; Manual / queued (you drive this)</h3>
+      <ul>
+        <li>Registrations table &rarr; select rows &rarr; <strong>bulk action &#8220;Send Draw Result Emails&#8221;</strong></li>
+        <li>Picks <code>draw_success</code> / <code>draw_rejection</code> per current status &mdash; mixed selection is safe</li>
+        <li>Needs a <strong>running queue worker</strong>; retries for 20h, failures logged</li>
+        <li>Post-draw withdrawal spot management (issue #19)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.2rem">
+    <table>
+      <thead><tr><th>Concern</th><th>Where it lives</th></tr></thead>
+      <tbody>
+        <tr><td>Lottery core</td><td class="mono">app/Domain/Draw/Services/DrawService.php</td></tr>
+        <tr><td>Admin page</td><td class="mono">app/Domain/Draw/Filament/Pages/ManageDraw.php</td></tr>
+        <tr><td>State rows</td><td class="mono">draw_statuses table &middot; App\Domain\Draw\Models\DrawStatus</td></tr>
+        <tr><td>Events</td><td class="mono">app/Domain/Draw/Events/ (DrawExecuted, RegistrationDrawn, RegistrationNotDrawn)</td></tr>
+        <tr><td>Starting numbers</td><td class="mono">app/Domain/StartingNumber/Listeners/AssignStartingNumberOnDrawn.php</td></tr>
+        <tr><td>Email job</td><td class="mono">app/Domain/Mail/Jobs/SendDrawNotification.php</td></tr>
+        <tr><td>Send actions</td><td class="mono">app/Filament/Resources/Registrations/Tables/RegistrationsTable.php</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 5. CHECKLIST ================= -->
+<section>
+  <div class="sec-head"><span class="num">05</span><h2>Run-day checklist</h2></div>
+  <div class="card">
+    <table>
+      <thead><tr><th style="width:2.2rem"></th><th>Step</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="checkbox">[&#160;]</td><td><strong>Confirm the queue worker is running</strong> (production worker up)</td><td>Queued emails sit in the <code>jobs</code> table forever otherwise</td></tr>
+        <tr><td class="checkbox">[&#160;]</td><td>Review track stats on the Manage Draw page (individuals vs teams)</td><td>Team sizes decide how the shuffle will consume spots</td></tr>
+        <tr><td class="checkbox">[&#160;]</td><td>Fix spot counts per track <strong>before</strong> clicking &mdash; and change the <code>50</code> default</td><td>A wrong number is committed instantly</td></tr>
+        <tr><td class="checkbox">[&#160;]</td><td>One admin only while the draw is in flight</td><td>No concurrency lock exists</td></tr>
+        <tr><td class="checkbox">[&#160;]</td><td>After drawing: compare <code>total_drawn</code> vs spots requested</td><td>Team-gap quirk can leave spots unused</td></tr>
+        <tr><td class="checkbox">[&#160;]</td><td>Bulk-send draw result emails, then watch the mail trail logs</td><td>This is the step the success notification pretends it did</td></tr>
+        <tr><td class="checkbox">[&#160;]</td><td>Have a plan for withdrawals after the draw</td><td>No auto-promotion from the undrawn pool (issue #19)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Built from source inspection of the steppenreg codebase (Sep 2026) &mdash; every claim traces to the files listed in section 04.
+</footer>
+
+</div>
+</body>
+</html>

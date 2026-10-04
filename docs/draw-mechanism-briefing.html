@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw Mechanism — Pre-Event Briefing</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "base", securityLevel: "strict" });
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  :where(p, h1, h2, h3, h4, li, td, th, .badge) { overflow-wrap: anywhere; }
+  .mermaid { display: flex; justify-content: center; overflow-x: auto; }
+  .mermaid svg { max-width: 100%; height: auto; }
+  .code-chip { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; }
+</style>
+</head>
+<body class="bg-base-200 text-base-content min-h-screen">
+
+<div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+  <!-- HERO -->
+  <section class="hero bg-base-100 rounded-box shadow">
+    <div class="hero-content text-center py-10 max-w-4xl">
+      <div class="space-y-3">
+        <div class="flex justify-center gap-2 flex-wrap">
+          <span class="badge badge-primary">Steppenreg</span>
+          <span class="badge badge-outline">Tomorrow: big event draw</span>
+          <span class="badge badge-success">33 draw tests passing</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-bold">Draw Mechanism &mdash; Moving Parts</h1>
+        <p class="opacity-70">How the lottery works end-to-end: entry points, selection algorithm, state, events, side effects, and the operational checklist for tomorrow.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW FLOW -->
+  <section class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">1. End-to-end flow</h2>
+      <p class="opacity-70 text-sm">The question this answers: <strong>from clicking "Execute Draw" to a participant receiving an email, what happens and in what order?</strong></p>
+      <div class="mermaid">
+flowchart TD
+    A["Admin panel<br/>Manage Draw (Auslosung)"] -->|pick track +<br/>participants_to_draw| B["submitDraw<br/>ManageDraw.php"]
+    B -->|DrawService.executeDraw| C["Load pool:<br/>registrations of track<br/>with NO draw status"]
+    C -->|empty| X["InsufficientRegistrationsException<br/>UI: 'Draw Failed'"]
+    C --> D["selectRegistrations<br/>shuffle + greedy fill<br/>(see section 2)"]
+    D --> E["DB transaction:<br/>draw_statuses rows<br/>+ domain events per member"]
+    E -->|"drawn"| F["RegistrationDrawn"]
+    E -->|"not_drawn"| G["RegistrationNotDrawn"]
+    F --> H["StartingNumberService<br/>auto-assigns number"]
+    E --> I["DrawExecuted event"]
+    I --> J["Activity log entry<br/>'draw_executed' + audit trail"]
+    K["Manual step:<br/>Registrations table<br/>bulk 'Send Draw Result Emails'"] -->|SendDrawNotification job| L["Database queue"]
+    L --> M["MailTemplateService<br/>draw_success / draw_rejection"]
+    A -. "manual email step, not automatic" .-> K
+    style X fill:#4b1d1d,stroke:#ef4444,color:#fecaca
+    style K fill:#1e3a5f,stroke:#60a5fa,color:#bfdbfe
+      </div>
+      <div role="alert" class="alert alert-warning mt-2">
+        <span><strong>Key fact:</strong> re-running a draw is safe &mdash; the pool only contains registrations without a draw status, so already-decided participants are never re-drawn.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SELECTION ALGORITHM -->
+  <section class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">2. Selection algorithm
+        <span class="code-chip badge badge-ghost ml-2">DrawService::selectRegistrations</span></h2>
+      <p class="opacity-70 text-sm">The question: <strong>who gets picked, and how do teams complicate the count?</strong></p>
+      <div class="mermaid">
+flowchart TD
+    A["Registrations for track,<br/>no draw status yet"] --> B["Split into lottery units"]
+    B --> B1["Individual = 1 unit<br/>(size 1)"]
+    B --> B2["Each team = ONE atomic unit<br/>(size = member count)"]
+    B1 --> C["Shuffle pool"]
+    B2 --> C
+    C --> D{"Walk pool in shuffled order"}
+    D -->|"unit fits in remaining spots"| E["Select whole unit<br/>spotsUsed += size"]
+    D -->|"unit does NOT fit"| F["Skip unit entirely<br/>(no partial team picks,<br/>no backfill waitlist)"]
+    E --> D
+    F --> D
+    D -->|spots full| G["Done"]
+      </div>
+      <div class="grid sm:grid-cols-2 gap-4 mt-4">
+        <div class="alert alert-error">
+          <span><strong>Spot-waste quirk:</strong> if the remaining gap is smaller than a team's size, that team is skipped and the loop keeps going &mdash; the spots stay unused unless a later individual fits exactly. You may draw <em>fewer</em> participants than requested. Always compare <code class="code-chip">total_drawn</code> in the result notification against your input.</span>
+        </div>
+        <div class="alert alert-info">
+          <span><strong>Randomness:</strong> the shuffle is Laravel's <code class="code-chip">$pool-&gt;shuffle()</code> (PHP's standard RNG). Fine for a lottery; not cryptographically secure and not seed-reproducible. The audit log records counts, not the random order.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATE MODEL -->
+  <section class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">3. Draw state model
+        <span class="code-chip badge badge-ghost ml-2">draw_statuses table / DrawStatus model</span></h2>
+      <p class="opacity-70 text-sm">The question: <strong>what states can a registration be in, and how does it transition?</strong></p>
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> NoStatus: registration created
+    NoStatus --> Drawn: executeDraw / markDrawn
+    NoStatus --> NotDrawn: executeDraw / markNotDrawn
+    Drawn --> NotDrawn: manual row action
+    NotDrawn --> Drawn: manual row action
+    Drawn --> [*]
+    NotDrawn --> [*]
+
+    Drawn : status = drawn, drawn_at = now()
+    NotDrawn : status = not_drawn, drawn_at = NULL (by design, issue #17)
+    NoStatus : no draw_statuses row — eligible for draw / re-pool
+      </div>
+      <ul class="mt-2 space-y-2 text-sm">
+        <li><span class="badge badge-soft badge-success">drawn</span> Team members sync atomically: marking one member updates the whole team, and all members share the same <code class="code-chip">drawn_at</code>.</li>
+        <li><span class="badge badge-soft badge-error">not_drawn</span> <code class="code-chip">drawn_at</code> stays NULL &mdash; deliberate, not the bug described in issue <strong>#17</strong>.</li>
+        <li><span class="badge badge-soft badge-info">no row</span> Withdrawals after the draw do NOT auto-promote anyone from the undrawn pool &mdash; open issue <strong>#19</strong>. Handle manually via row actions.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- EVENTS & SIDE EFFECTS -->
+  <section class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">4. Events, listeners and mail dispatch</h2>
+      <p class="opacity-70 text-sm">The question: <strong>what happens automatically, and what needs a human?</strong></p>
+      <div class="mermaid">
+flowchart LR
+    DS["DrawService"] --> DB["draw_statuses<br/>updateOrCreate drawn / not_drawn"]
+    DS --> EV["Events<br/>RegistrationDrawn / NotDrawn / DrawExecuted"]
+    EV --> SN["StartingNumberService<br/>auto-assign (unless feature off)"]
+    ADM["Admin: Registrations table<br/>bulk or per-row send action"] -. "human step, not automatic" .-> Q["SendDrawNotification job on queue"]
+    Q --> MAIL["MailTemplateService<br/>draw_success / draw_rejection"]
+    Q -. "20h retry window, failures logged in mail trail" .-> Q
+      </div>
+      <div class="grid sm:grid-cols-3 gap-4 mt-2 text-sm">
+        <div class="card card-border bg-base-200"><div class="card-body p-4">
+          <h3 class="font-semibold text-sm">Automatic after draw</h3>
+          <p class="opacity-70">draw_statuses rows, starting numbers, activity log entries, log lines.</p>
+        </div></div>
+        <div class="card card-border bg-base-200"><div class="card-body p-4">
+          <h3 class="font-semibold text-sm">Manual dispatch</h3>
+          <p class="opacity-70">Bulk action "Send Draw Result Emails" on selected rows (or per-row action). Job picks template by current status, so mixing drawn/not-drawn in one bulk send is safe.</p>
+        </div></div>
+        <div class="card card-border bg-base-200"><div class="card-body p-4">
+          <h3 class="font-semibold text-sm">Templates</h3>
+          <p class="opacity-70"><code class="code-chip">draw_success</code>, <code class="code-chip">draw_rejection</code>, plus a <code class="code-chip">draw_waitlist</code> template available if needed.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRE-FLIGHT CHECKLIST -->
+  <section class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">5. Pre-flight checklist for tomorrow</h2>
+      <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+        <table class="table table-zebra">
+          <thead>
+            <tr><th>#</th><th>Check</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td><strong>Queue worker is running</strong> (composer dev locally; production worker up)</td><td>Emails sit in the <code class="code-chip">jobs</code> table forever otherwise &mdash; <code class="code-chip">QUEUE_CONNECTION=database</code></td></tr>
+            <tr><td>2</td><td>Review "Current Track Statistics" on the Manage Draw page</td><td>Verify individuals vs teams per track; understand how team sizes will consume spots</td></tr>
+            <tr><td>3</td><td>Decide spot counts per track <strong>before</strong> clicking</td><td>The draw commits immediately; the only undo is manual re-marking</td></tr>
+            <tr><td>4</td><td>After drawing: compare <code class="code-chip">total_drawn</code> vs requested spots</td><td>Team-size gap quirk can leave spots unused</td></tr>
+            <tr><td>5</td><td>Bulk-select rows and send draw result emails</td><td>Queued with 20h retries; watch <code class="code-chip">[Mail Trail]</code> logs</td></tr>
+            <tr><td>6</td><td>Plan for post-draw withdrawals</td><td>Issue <strong>#19</strong> open: no automatic waitlist reassignment</td></tr>
+            <tr><td>7</td><td><code class="code-chip">drawn_at</code> warnings are expected for not_drawn</td><td>Issue <strong>#17</strong>: NULL is by design</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILE MAP -->
+  <section class="card card-border bg-base-100">
+    <div class="card-body">
+      <h2 class="card-title">6. Where things live</h2>
+      <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+        <table class="table table-sm">
+          <thead><tr><th>Concern</th><th>Location</th></tr></thead>
+          <tbody>
+            <tr><td>Draw orchestration</td><td class="code-chip">app/Domain/Draw/Services/DrawService.php</td></tr>
+            <tr><td>Admin draw page</td><td class="code-chip">app/Domain/Draw/Filament/Pages/ManageDraw.php</td></tr>
+            <tr><td>State rows</td><td class="code-chip">draw_statuses table, App\Domain\Draw\Models\DrawStatus</td></tr>
+            <tr><td>Domain events</td><td class="code-chip">app/Domain/Draw/Events/ (RegistrationDrawn, RegistrationNotDrawn, DrawExecuted)</td></tr>
+            <tr><td>Starting numbers</td><td class="code-chip">app/Domain/StartingNumber/Listeners/AssignStartingNumberOnDrawn.php</td></tr>
+            <tr><td>Mail job</td><td class="code-chip">app/Domain/Mail/Jobs/SendDrawNotification.php</td></tr>
+            <tr><td>Email dispatch actions</td><td class="code-chip">app/Filament/Resources/Registrations/Tables/RegistrationsTable.php</td></tr>
+            <tr><td>Tests</td><td class="code-chip">tests/Feature/Draw*.php, RegistrationTeamDrawStatusSyncTest.php — 33 passed, 70 assertions</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-center text-xs opacity-50 pb-6">
+    Generated from source inspection of the steppenreg codebase. All claims cite the files listed above.
+  </footer>
+</div>
+</body>
+</html>

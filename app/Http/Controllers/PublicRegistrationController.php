@@ -267,7 +267,6 @@ class PublicRegistrationController extends Controller
             'team_id' => $teamId,
             'notes' => $validated['notes'] ?? null,
             'custom_answers' => $validated['custom_answers'] ?? null,
-            'payed' => false,
             'starting' => false,
         ]);
 
