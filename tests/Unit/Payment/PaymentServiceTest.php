@@ -34,9 +34,24 @@ class PaymentServiceTest extends TestCase
         $this->assertEquals('manual', $registration->paymentStatus->paid_via);
     }
 
+    public function test_mark_paid_does_not_overwrite_existing_provenance(): void
+    {
+        $registration = Registration::factory()->paid()->create();
+        $registration->refresh();
+
+        $this->assertEquals('seed', $registration->paymentStatus->paid_via);
+
+        // Reconfirming an externally-paid registration must not touch its provenance
+        app(PaymentService::class)->markPaid($registration, 'bank_import');
+        $registration->refresh();
+
+        $this->assertEquals('seed', $registration->paymentStatus->paid_via);
+    }
+
     public function test_mark_paid_is_idempotent(): void
     {
         $registration = Registration::factory()->paid()->create();
+        $registration->refresh();
 
         $before = $registration->paymentStatus->paid_at;
 
@@ -49,6 +64,7 @@ class PaymentServiceTest extends TestCase
     public function test_mark_unpaid_clears_state(): void
     {
         $registration = Registration::factory()->paid()->create();
+        $registration->refresh();
 
         app(PaymentService::class)->markUnpaid($registration);
 

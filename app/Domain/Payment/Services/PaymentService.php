@@ -13,16 +13,20 @@ class PaymentService
     public const VIA_BANK_IMPORT = 'bank_import';
 
     /**
-     * Mark a registration as paid.
+     * Mark a registration as paid. No-ops if already paid — provenance
+     * (paid_via/paid_at) of an existing confirmation is never overwritten.
      *
      * @param  self::VIA_*  $via
      */
     public function markPaid(Registration $registration, string $via = self::VIA_MANUAL): void
     {
-        PaymentStatus::updateOrCreate(
-            ['registration_id' => $registration->id],
-            ['paid' => true, 'paid_via' => $via, 'paid_at' => now()],
-        );
+        $status = PaymentStatus::query()->firstOrCreate(['registration_id' => $registration->id]);
+
+        if ($status->paid) {
+            return;
+        }
+
+        $status->update(['paid' => true, 'paid_via' => $via, 'paid_at' => now()]);
     }
 
     /**
