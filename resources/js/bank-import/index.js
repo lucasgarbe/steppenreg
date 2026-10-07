@@ -6,19 +6,22 @@ import { downloadUnresolvedCsv } from './exporter.js';
 /**
  * Alpine.js component for the 3-phase bank transfer CSV import workflow.
  *
- * Registered as window.bankImport() so the Blade view can call x-data="bankImport(...)".
+ * Registered as window.bankImport() so the Blade view can call x-data="bankImport()".
+ * All state lives inside the Alpine component — the Livewire re-render never
+ * re-initialises it (the view passes no data through x-data, see ADR-0003).
  *
  * The raw bank CSV never leaves the browser: only registration IDs and
  * opaque transfer fingerprints are sent to the server. The server keeps the
  * confirmation ledger (ADR-0003); no state is persisted locally.
- *
- * @param {Array<{id: number, name: string, paid: boolean, draw_status: string, track_name: string}>} registrations
  */
-function bankImport(registrations) {
+function bankImport() {
     return {
         // ------------------------------------------------------------------
         // State
         // ------------------------------------------------------------------
+
+        /** Registration snapshot pushed from Livewire at init and re-synced after confirms */
+        registrations: [],
 
         /** Active phase tab: 1 | 2 | 3 */
         phase: 1,
@@ -29,16 +32,16 @@ function bankImport(registrations) {
         /** Rows that passed the filter and were exactly matched to a registration */
         matched: [],
 
-        /** Rows that passed the filter but had no exact match */
+        /** Rows that passed the filter (exactly or as suggestion) with no confirmation yet */
         unmatched: [],
 
-        /** Rows discarded because they did not contain the event prefix */
+        /** Rows discarded because they contain no plausible registration */
         filtered: [],
 
         /** Parse error message */
         parseError: null,
 
-        /** Map of transfer hashes already recorded in the server-side ledger, by fingerprint */
+        /** Fingerprints of transfers already recorded in the server-side ledger */
         confirmedFingerprints: new Set(),
 
         // ------------------------------------------------------------------
@@ -60,21 +63,35 @@ function bankImport(registrations) {
         // Lifecycle
         // ------------------------------------------------------------------
 
-        init() {
-            // Carried over from the server-side ledger (ADR-0003), replaces localStorage
-            const setFrom = value => {
+        async init() {
+            await this.syncFromServer();
+        },
+
+        /**
+         * Pull registrations + known ledger fingerprints from Livewire.
+         * Handles both synchronous property access and $wire promises.
+         */
+        async syncFromServer() {
+            const resolve = value => {
                 if (Array.isArray(value)) {
-                    this.confirmedFingerprints = new Set(value);
-                } else if (value && typeof value === 'object') {
-                    this.confirmedFingerprints = new Set(Object.values(value));
+                    return value;
                 }
+                return null;
             };
+
+            const registrations = this.$wire.registrations;
+            this.registrations = resolve(registrations) ?? await registrations;
 
             const fingerprints = this.$wire.confirmedFingerprints;
             if (fingerprints && typeof fingerprints.then === 'function') {
-                fingerprints.then(setFrom);
-            } else {
-                setFrom(fingerprints);
+                fingerprints.then(value => {
+                    this.confirmedFingerprints =
+                        new Set(Array.isArray(value) ? value : Object.values(value ?? {}));
+                });
+            } else if (Array.isArray(fingerprints)) {
+                this.confirmedFingerprints = new Set(fingerprints);
+            } else if (fingerprints && typeof fingerprints === 'object') {
+                this.confirmedFingerprints = new Set(Object.values(fingerprints));
             }
         },
 
@@ -86,6 +103,20 @@ function bankImport(registrations) {
         async recordConfirmed(row) {
             const hash = await hashRow(row);
             this.confirmedFingerprints.add(hash);
+        },
+
+        // ------------------------------------------------------------------
+        // Phase 2 helpers
+        // ------------------------------------------------------------------
+
+        suggestionReasonLabel(reason) {
+            switch (reason) {
+                case 'prefix_mismatch': return '(event prefix mismatch)';
+                case 'no_separator': return '(no "name - reference" convention)';
+                case 'exact_miss': return '(name typo in reference)';
+                case 'ambiguous': return '(several possible matches)';
+                default: return '';
+            }
         },
 
         // ------------------------------------------------------------------
@@ -124,36 +155,42 @@ function bankImport(registrations) {
             const { matched, unmatched, filtered } = filterAndMatch(
                 rows,
                 this.eventPrefix.trim(),
-                registrations
+                this.registrations
             );
 
-            // Annotate matched rows with confirmed state from the server ledger
+            // Exact matches: "already handled" is either in the server ledger
+            // or the registration is already paid — pre-check, never re-confirm.
             const annotatedMatched = await Promise.all(
                 matched.map(async item => ({
                     ...item,
                     confirmed: false,
-                    alreadyConfirmedByHash: await this.isAlreadyConfirmed(item.row),
+                    alreadyConfirmedByHash:
+                        item.registration.paid || (await this.isAlreadyConfirmed(item.row)),
                 }))
             );
 
-            // Pre-check rows already confirmed in a previous session
             annotatedMatched.forEach(item => {
                 if (item.alreadyConfirmedByHash) {
                     item.confirmed = true;
                 }
             });
 
-            // Annotate unmatched rows
-            const annotatedUnmatched = unmatched.map(item => ({
-                ...item,
-                manualMatch: null,
-                manualConfirmed: false,
-                searchResults: [],
-            }));
+            // Unmatched rows: prefill a loose suggestion if the matcher produced one,
+            // but never confirm it — the admin must press Confirm (ADR: suggest only).
+            const annotatedUnmatched = unmatched.map(item => {
+                if (item.suggestedRegistration && item.suggestionReason !== 'ambiguous') {
+                    item.manualMatch = item.suggestedRegistration;
+                }
+                return {
+                    ...item,
+                    manualConfirmed: false,
+                    searchResults: item.ambiguousCandidates && item.ambiguousCandidates.length ? item.ambiguousCandidates : [],
+                };
+            });
 
             this.matched = annotatedMatched;
             this.unmatched = annotatedUnmatched;
-            this.filtered = filtered.map(row => ({ row }));
+            this.filtered = filtered;
         },
 
         bulkSelectAll() {
@@ -204,21 +241,15 @@ function bankImport(registrations) {
                 item.alreadyConfirmedByHash = true;
             }
 
-            // Refresh registrations from updated Livewire state
-            const updated = this.$wire.get('registrations');
-            if (updated) {
-                updated.forEach(reg => {
-                    const idx = registrations.findIndex(r => r.id === reg.id);
-                    if (idx !== -1) {
-                        registrations[idx] = reg;
-                    }
-                });
-                // Re-annotate matched list with fresh paid state
-                this.matched.forEach(item => {
-                    const fresh = registrations.find(r => r.id === item.registration.id);
-                    if (fresh) item.registration = fresh;
-                });
-            }
+            // Pull fresh state — this does NOT reset local UI state because the
+            // Alpine component is not re-initialised on Livewire re-renders.
+            await this.syncFromServer();
+
+            // Re-annotate matched list with fresh paid state
+            this.matched.forEach(item => {
+                const fresh = this.registrations.find(r => r.id === item.registration.id);
+                if (fresh) item.registration = fresh;
+            });
         },
 
         // ------------------------------------------------------------------
@@ -227,14 +258,14 @@ function bankImport(registrations) {
 
         async searchForRow(item, query) {
             if (!query || query.trim().length < 2) {
-                item.searchResults = [];
+                item.searchResults = item.ambiguousCandidates?.length ? item.ambiguousCandidates : [];
                 return;
             }
 
             // Server-side search behind the marking seam (ADR-0003):
             // searching a registration is part of the confirmation decision,
             // so both live behind the same server interface.
-            item.searchResults = await this.$wire.call('searchRegistrations', query) ?? [];
+            item.searchResults = (await this.$wire.call('searchRegistrations', query)) ?? [];
         },
 
         selectManualMatch(item, registration) {
@@ -256,6 +287,8 @@ function bankImport(registrations) {
             await this.recordConfirmed(item.row);
             item.manualConfirmed = true;
             item.manualMatch = null;
+
+            await this.syncFromServer();
         },
 
         // ------------------------------------------------------------------

@@ -1,6 +1,6 @@
 <x-filament-panels::page>
     <div
-        x-data="bankImport(@js($registrations))"
+        x-data="bankImport()"
         x-init="init()"
         class="space-y-6"
     >
@@ -191,6 +191,14 @@
                                         &bull;
                                         Extracted: <em x-text="item.extractedName || '(none)'"></em>
                                     </p>
+                                    {{-- Loose suggestion (never auto-confirmed) --}}
+                                    <template x-if="item.suggestedRegistration && !item.manualConfirmed">
+                                        <p class="mt-1.5 inline-flex items-center gap-2 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-2 py-1 text-xs text-primary-700 dark:text-primary-300">
+                                            <span class="font-semibold">Suggested:</span>
+                                            <span x-text="item.suggestedRegistration.name"></span>
+                                            <span class="text-primary-500" x-text="suggestionReasonLabel(item.suggestionReason)"></span>
+                                        </p>
+                                    </template>
                                 </div>
                                 <template x-if="item.manualMatch">
                                     <button
@@ -242,9 +250,9 @@
                             {{-- Selected match preview --}}
                             <template x-if="item.manualMatch">
                                 <div class="flex items-center gap-3 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-3 py-2">
-                                    <span class="text-xs text-primary-700 dark:text-primary-300">Selected:</span>
-                                    <span class="text-sm font-medium text-primary-900 dark:text-primary-100" x-text="item.manualMatch.name"></span>
-                                    <span class="text-xs text-primary-600 dark:text-primary-400" x-text="item.manualMatch.track_name"></span>
+                                    <span class="text-xs text-primary-700 dark:text-primary-300" x-text="item.suggestedRegistration?.id === item.manualMatch?.id ? 'Suggested:' : 'Selected:'"></span>
+                                    <span class="text-sm font-medium text-primary-900 dark:text-primary-100" x-text="item.manualMatch?.name"></span>
+                                    <span class="text-xs text-primary-600 dark:text-primary-400" x-text="item.manualMatch?.track_name"></span>
                                     <button @click="item.manualMatch = null" class="ml-auto text-xs text-primary-500 hover:text-primary-700">Clear</button>
                                 </div>
                             </template>

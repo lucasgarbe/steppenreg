@@ -126,3 +126,82 @@ describe('filterAndMatch', () => {
         expect(filtered).toHaveLength(1);
     });
 });
+
+describe('loose suggestions (never auto-confirmed)', () => {
+    it('suggests a match when an exact registration name appears without the separator', () => {
+        // prefix present but no " - " convention — e.g. bank writes it in one chunk
+        const rows = [makeRow('Teilnahmebeitrag SPX26 Davonte Moore')];
+        // Davonte Moore is not registered here, but the suggestion mechanism
+        // must find a full registration name inside the reference:
+        const regs = [...registrations, { id: 9, name: 'Davonte Moore', paid: false, draw_status: 'drawn', track_name: 'Track A' }];
+        const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag', regs);
+
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].suggestedRegistration.id).toBe(9);
+        expect(unmatched[0].suggestionReason).toBe('no_separator');
+        expect(filtered).toHaveLength(0);
+    });
+
+    it('suggests a match for rows with a prefix typo (prefix mismatch)', () => {
+        const rows = [makeRow('Teilnahnebeitrag SPX26 - Ansel Purdy')];
+        const regs = [...registrations, { id: 5, name: 'Ansel Purdy', paid: false, draw_status: 'not_drawn', track_name: 'Track B' }];
+        const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag', regs);
+
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].suggestedRegistration.id).toBe(5);
+        expect(unmatched[0].suggestionReason).toBe('prefix_mismatch');
+    });
+
+    it('keeps exact matches as exact matches, not suggestions', () => {
+        const rows = [makeRow('Teilnahmebeitrag SPX26 - Maria Muster')];
+        const { matched, unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag', registrations);
+
+        expect(matched).toHaveLength(1);
+        expect(unmatched).toHaveLength(0);
+    });
+
+    it('routes name-typo rows through the suggestion finder (whole-name substring hit)', () => {
+        // registered as 'Mr. Reed Corwin'; reference has the bare name
+        const rows = [makeRow('Teilnahmebeitrag SPX26 - Reed Corwin')];
+        const regs = [...registrations, { id: 7, name: 'Mr. Reed Corwin', paid: false, draw_status: 'not_drawn', track_name: 'Track A' }];
+        const { unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag', regs);
+
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].suggestedRegistration.id).toBe(7);
+        expect(unmatched[0].suggestionReason).toBe('exact_miss');
+    });
+
+    it('marks rows with several contained names as ambiguous without a suggestion', () => {
+        const rows = [makeRow('Einlage fuer Maria Muster und Klaus Weber')];
+        const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag', registrations);
+
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].suggestedRegistration).toBeNull();
+        expect(unmatched[0].suggestionReason).toBe('ambiguous');
+        expect(unmatched[0].ambiguousCandidates.map(c => c.id)).toEqual([1, 2]);
+        expect(filtered).toHaveLength(0);
+    });
+
+    it('still filters rows that contain no registration name at all', () => {
+        const rows = [
+            makeRow('Spende an Steppenreg e.V.'),
+            makeRow('REWE Lieferservice Bestellung'),
+            makeRow('Miete Vereinsheim Oktober'),
+        ];
+        const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag', registrations);
+
+        expect(filtered).toHaveLength(3);
+        expect(unmatched).toHaveLength(0);
+    });
+
+    it('does not lose the row when the extracted name is a substring of a longer registration name', () => {
+        // 'Reed Corwin' vs registered 'Mr. Reed Corwin' — handled exactly once:
+        // strict path fails, suggestion succeeds, still a manual confirm.
+        const rows = [makeRow('Teilnahmebeitrag SPX26 - Reed Corwin')];
+        const regs = [...registrations, { id: 7, name: 'Mr. Reed Corwin', paid: false, draw_status: 'not_drawn', track_name: 'Track A' }];
+        const { matched, unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag', regs);
+
+        expect(matched).toHaveLength(0);
+        expect(unmatched).toHaveLength(1);
+    });
+});
