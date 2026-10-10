@@ -6,7 +6,9 @@ use App\Domain\BankImport\Filament\Pages\ManageBankImport;
 use App\Domain\BankImport\Models\BankTransferConfirmation;
 use App\Models\Registration;
 use App\Models\User;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -33,6 +35,31 @@ class ManageBankImportPageTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/admin/bank-import')
             ->assertOk();
+    }
+
+    public function test_page_includes_bank_import_script(): void
+    {
+        $this->actingAs($this->admin)
+            ->get('/admin/bank-import')
+            ->assertOk()
+            ->assertSee('bank-import', false)
+            ->assertSee('type="module"', false);
+    }
+
+    public function test_application_boots_without_vite_manifest(): void
+    {
+        $emptyPublicPath = storage_path('framework/testing/empty-public');
+        File::ensureDirectoryExists($emptyPublicPath);
+
+        try {
+            $app = require base_path('bootstrap/app.php');
+            $app->usePublicPath($emptyPublicPath);
+            $app->make(Kernel::class)->bootstrap();
+
+            $this->assertTrue($app->isBooted());
+        } finally {
+            File::deleteDirectory($emptyPublicPath);
+        }
     }
 
     public function test_mount_populates_registrations_with_all_non_deleted_registrations(): void

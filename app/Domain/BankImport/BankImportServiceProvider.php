@@ -5,9 +5,9 @@ namespace App\Domain\BankImport;
 use App\Domain\BankImport\Actions\ConfirmPaymentsAction;
 use App\Domain\BankImport\Filament\Pages\ManageBankImport;
 use Filament\Panel;
-use Filament\Support\Assets\Js;
-use Filament\Support\Facades\FilamentAsset;
-use Illuminate\Support\Facades\Vite;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Foundation\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class BankImportServiceProvider extends ServiceProvider
@@ -28,17 +28,11 @@ class BankImportServiceProvider extends ServiceProvider
             $panel->pages([
                 ManageBankImport::class,
             ]);
+
+            $panel->renderHook(
+                PanelsRenderHook::SCRIPTS_AFTER,
+                fn (): Htmlable => app(Vite::class)('resources/js/bank-import/index.js'),
+            );
         });
-    }
-
-    public function boot(): void
-    {
-        if (! config('steppenreg.features.bank_import', true)) {
-            return;
-        }
-
-        FilamentAsset::register([
-            Js::make('bank-import', Vite::asset('resources/js/bank-import/index.js'))->module(),
-        ]);
     }
 }
