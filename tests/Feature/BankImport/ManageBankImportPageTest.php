@@ -75,7 +75,7 @@ class ManageBankImportPageTest extends TestCase
 
         Livewire::actingAs($this->admin)
             ->test(ManageBankImport::class)
-            ->call('confirmPayments', [$reg->id]);
+            ->call('confirmPayments', [['registration_id' => $reg->id, 'fingerprint' => 'fp-a']]);
 
         $this->assertDatabaseHas('payment_statuses', ['registration_id' => $reg->id, 'paid' => true]);
     }
@@ -92,18 +92,30 @@ class ManageBankImportPageTest extends TestCase
     {
         Livewire::actingAs($this->admin)
             ->test(ManageBankImport::class)
-            ->call('confirmPayments', [999999])
+            ->call('confirmPayments', [['registration_id' => 999999, 'fingerprint' => 'fp-a']])
             ->assertNotified();
     }
 
-    public function test_confirm_payments_already_paid_sends_success_notification_with_correct_counts(): void
+    public function test_confirm_payments_for_duplicate_transfer_sends_notification(): void
     {
-        $reg = Registration::factory()->paid()->create();
+        $reg = Registration::factory()->create();
+        BankTransferConfirmation::create(['registration_id' => $reg->id, 'fingerprint' => 'fp-first']);
 
         Livewire::actingAs($this->admin)
             ->test(ManageBankImport::class)
-            ->call('confirmPayments', [$reg->id])
+            ->call('confirmPayments', [['registration_id' => $reg->id, 'fingerprint' => 'fp-second']])
             ->assertNotified();
+    }
+
+    public function test_confirm_payments_with_malformed_transfers_books_nothing(): void
+    {
+        $reg = Registration::factory()->create();
+
+        $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
+        $result = $component->instance()->confirmPayments([['id' => $reg->id], 'garbage']);
+
+        $this->assertEquals([], $result['booked_fingerprints']);
+        $this->assertDatabaseMissing('payment_statuses', ['registration_id' => $reg->id, 'paid' => true]);
     }
 
     public function test_confirmed_fingerprints_include_every_fingerprint_of_a_registration(): void
@@ -117,15 +129,29 @@ class ManageBankImportPageTest extends TestCase
         $this->assertEqualsCanonicalizing(['fp-a', 'fp-b'], $component->get('confirmedFingerprints'));
     }
 
-    public function test_confirm_payments_returns_already_paid_registration_ids(): void
+    public function test_registration_ids_with_transfer_lists_registrations_with_a_booked_transfer(): void
     {
-        $unpaid = Registration::factory()->create();
-        $paid = Registration::factory()->paid()->create();
+        $withTransfer = Registration::factory()->create();
+        Registration::factory()->paid()->create();
+        BankTransferConfirmation::create(['registration_id' => $withTransfer->id, 'fingerprint' => 'fp-a']);
 
         $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
-        $result = $component->instance()->confirmPayments([$unpaid->id, $paid->id]);
 
-        $this->assertEquals([$paid->id], $result['already_paid_ids']);
+        $this->assertEquals([$withTransfer->id], $component->get('registrationIdsWithTransfer'));
+    }
+
+    public function test_confirm_payments_returns_booked_fingerprints_only(): void
+    {
+        $reg = Registration::factory()->create();
+
+        $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
+        $result = $component->instance()->confirmPayments([
+            ['registration_id' => $reg->id, 'fingerprint' => 'fp-first'],
+            ['registration_id' => $reg->id, 'fingerprint' => 'fp-second'],
+        ]);
+
+        $this->assertEquals(['fp-first'], $result['booked_fingerprints']);
+        $this->assertContains($reg->id, $component->get('registrationIdsWithTransfer'));
     }
 
     public function test_search_registrations_returns_matching_names(): void

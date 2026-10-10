@@ -11,6 +11,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use UnitEnum;
 
 class ManageBankImport extends Page
@@ -45,6 +46,13 @@ class ManageBankImport extends Page
     public array $confirmedFingerprints = [];
 
     /**
+     * Registrations that already have a booked transfer; any further transfer for them is a duplicate.
+     *
+     * @var list<int>
+     */
+    public array $registrationIdsWithTransfer = [];
+
+    /**
      * Search results for Phase 2 manual resolution, filled by searchRegistrations().
      *
      * @var array<int, array{id: int, name: string, paid: bool, draw_status: string, track_name: string}>
@@ -70,39 +78,50 @@ class ManageBankImport extends Page
         $this->confirmedFingerprints = BankTransferConfirmation::query()
             ->pluck('fingerprint')
             ->all();
+
+        $this->registrationIdsWithTransfer = BankTransferConfirmation::query()
+            ->distinct()
+            ->orderBy('registration_id')
+            ->pluck('registration_id')
+            ->all();
     }
 
     /**
-     * Called from the Alpine component to mark registrations as paid and
-     * record the confirmed transfer fingerprints in the ledger.
+     * Called from the Alpine component to book bank transfers as registration
+     * payments (one entry per transfer, see ConfirmPaymentsAction for the rules).
      *
-     * Returns the ids of registrations that were already paid, so the client
-     * keeps those transfers unresolved.
+     * Returns the fingerprints that were booked; every other transfer stays
+     * unresolved on the client.
      *
-     * @param  array<int>  $ids
-     * @param  array<int, string>  $fingerprintsByRegistrationId
-     * @return array{already_paid_ids: array<int>}
+     * @param  array<mixed>  $transfers  list of {registration_id, fingerprint}
+     * @return array{booked_fingerprints: list<string>}
      */
-    public function confirmPayments(array $ids, array $fingerprintsByRegistrationId = []): array
+    public function confirmPayments(array $transfers): array
     {
-        try {
-            $result = app(ConfirmPaymentsAction::class)->execute($ids, $fingerprintsByRegistrationId);
+        $validator = Validator::make(['transfers' => $transfers], [
+            'transfers' => ['array'],
+            'transfers.*' => ['array'],
+            'transfers.*.registration_id' => ['required', 'integer'],
+            'transfers.*.fingerprint' => ['nullable', 'string', 'max:128'],
+        ]);
 
-            $body = "{$result->newly_confirmed} payment(s) confirmed.";
-            if ($result->already_paid > 0) {
-                $body .= " {$result->already_paid} were already marked as paid.";
-            }
-
+        if ($validator->fails()) {
             Notification::make()
-                ->title('Payments confirmed')
-                ->body($body)
-                ->success()
+                ->title('Invalid transfers')
+                ->body('The submitted transfers could not be read. Nothing was booked.')
+                ->danger()
                 ->send();
 
-            // Refresh registrations list so the Alpine component gets updated state
-            $this->mount();
+            return ['booked_fingerprints' => []];
+        }
 
-            return ['already_paid_ids' => $result->already_paid_ids];
+        $transfers = array_map(fn (array $transfer) => [
+            'registration_id' => (int) $transfer['registration_id'],
+            'fingerprint' => $transfer['fingerprint'] ?? null,
+        ], $transfers);
+
+        try {
+            $result = app(ConfirmPaymentsAction::class)->execute($transfers);
         } catch (InvalidRegistrationIdsException $e) {
             Notification::make()
                 ->title('Invalid registrations')
@@ -114,8 +133,31 @@ class ManageBankImport extends Page
                 'message' => $e->getMessage(),
             ]);
 
-            return ['already_paid_ids' => []];
+            return ['booked_fingerprints' => []];
         }
+
+        $body = "{$result->newly_confirmed} payment(s) confirmed.";
+        if ($result->linked > 0) {
+            $body .= " {$result->linked} transfer(s) linked to registrations that were already paid.";
+        }
+        if ($result->already_paid > 0) {
+            $body .= " {$result->already_paid} transfer(s) not booked: the registration already has a payment.";
+        }
+
+        $notification = Notification::make()->body($body);
+
+        if ($result->already_paid > 0) {
+            $notification->title('Some transfers were not booked')->warning();
+        } else {
+            $notification->title('Payments confirmed')->success();
+        }
+
+        $notification->send();
+
+        // Refresh registrations list so the Alpine component gets updated state
+        $this->mount();
+
+        return ['booked_fingerprints' => $result->booked_fingerprints];
     }
 
     /**

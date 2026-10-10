@@ -12,55 +12,93 @@ use Illuminate\Support\Facades\DB;
 class ConfirmPaymentsAction
 {
     /**
-     * Confirm bank transfer payments: mark the given registrations as paid
-     * and record transfer fingerprints in the confirmation ledger.
+     * Confirm bank transfers as registration payments.
      *
-     * A registration that is already paid is left untouched and its transfer
-     * is not recorded, so a second transfer stays unresolved instead of
-     * silently disappearing.
+     * A registration has at most one booked transfer. Transfers are handled in order:
+     * - the transfer is already booked for the registration: nothing changes (idempotent)
+     * - the registration has another booked transfer: not booked, it is a duplicate
+     * - the registration is paid without a booked transfer: the transfer is linked
+     *   as its payment, the payment provenance stays untouched
+     * - otherwise the registration is marked paid and the transfer is booked
      *
-     * @param  array<int>  $registrationIds
-     * @param  array<int, string>  $fingerprintsByRegistrationId  client-computed transfer fingerprints keyed by registration id
+     * @param  list<array{registration_id: int, fingerprint?: string|null}>  $transfers
      *
      * @throws InvalidRegistrationIdsException when any ID does not exist or is soft-deleted
      */
-    public function execute(array $registrationIds, array $fingerprintsByRegistrationId = []): ConfirmResult
+    public function execute(array $transfers): ConfirmResult
     {
-        if (empty($registrationIds)) {
+        if (empty($transfers)) {
             return new ConfirmResult(newly_confirmed: 0, already_paid: 0);
         }
 
-        $registrations = Registration::whereIn('id', $registrationIds)->get();
+        $registrationIds = array_values(array_unique(array_column($transfers, 'registration_id')));
+        $registrations = Registration::whereIn('id', $registrationIds)->get()->keyBy('id');
 
-        $foundIds = $registrations->pluck('id')->all();
-        $invalidIds = array_values(array_diff($registrationIds, $foundIds));
+        $invalidIds = array_values(array_diff($registrationIds, $registrations->keys()->all()));
 
         if (! empty($invalidIds)) {
             throw new InvalidRegistrationIdsException($invalidIds);
         }
 
-        [$alreadyPaid, $unpaid] = $registrations->partition(fn (Registration $registration) => $registration->is_paid);
+        $bookedByRegistration = BankTransferConfirmation::query()
+            ->whereIn('registration_id', $registrationIds)
+            ->get()
+            ->groupBy('registration_id')
+            ->map(fn ($confirmations) => $confirmations->pluck('fingerprint')->all())
+            ->all();
 
-        DB::transaction(function () use ($unpaid, $fingerprintsByRegistrationId) {
+        return DB::transaction(function () use ($transfers, $registrations, $bookedByRegistration) {
             $paymentService = app(PaymentService::class);
+            $paidIds = $registrations->filter(fn (Registration $registration) => $registration->is_paid)->keys()->all();
 
-            foreach ($unpaid as $registration) {
-                $paymentService->markPaid($registration, PaymentService::VIA_BANK_IMPORT);
+            $newlyConfirmed = 0;
+            $alreadyPaid = 0;
+            $linked = 0;
+            $bookedFingerprints = [];
 
-                $fingerprint = $fingerprintsByRegistrationId[$registration->id] ?? null;
-                if ($fingerprint !== null && $fingerprint !== '') {
-                    BankTransferConfirmation::firstOrCreate([
+            foreach ($transfers as $transfer) {
+                $registration = $registrations[$transfer['registration_id']];
+                $fingerprint = ($transfer['fingerprint'] ?? '') !== '' ? $transfer['fingerprint'] : null;
+                $booked = $bookedByRegistration[$registration->id] ?? [];
+
+                if ($fingerprint !== null && in_array($fingerprint, $booked, true)) {
+                    $bookedFingerprints[] = $fingerprint;
+
+                    continue;
+                }
+
+                $isPaid = in_array($registration->id, $paidIds, true);
+
+                if ($booked !== [] || ($isPaid && $fingerprint === null)) {
+                    $alreadyPaid++;
+
+                    continue;
+                }
+
+                if ($isPaid) {
+                    $linked++;
+                } else {
+                    $paymentService->markPaid($registration, PaymentService::VIA_BANK_IMPORT);
+                    $paidIds[] = $registration->id;
+                    $newlyConfirmed++;
+                }
+
+                if ($fingerprint !== null) {
+                    BankTransferConfirmation::create([
                         'registration_id' => $registration->id,
                         'fingerprint' => $fingerprint,
                     ]);
+                    $bookedByRegistration[$registration->id][] = $fingerprint;
+                    $bookedFingerprints[] = $fingerprint;
                 }
             }
-        });
 
-        return new ConfirmResult(
-            newly_confirmed: $unpaid->count(),
-            already_paid: $alreadyPaid->count(),
-            already_paid_ids: $alreadyPaid->pluck('id')->values()->all(),
-        );
+            return new ConfirmResult(
+                newly_confirmed: $newlyConfirmed,
+                already_paid: $alreadyPaid,
+                linked: $linked,
+                booked_fingerprints: $bookedFingerprints,
+            );
+        });
     }
 }

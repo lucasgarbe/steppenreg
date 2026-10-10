@@ -25,9 +25,9 @@
             >
                 Phase 2 &mdash; Manual match
                 <span
-                    x-show="unresolved.length > 0"
+                    x-show="unresolvedUnmatched.length > 0"
                     class="ml-1 inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900 px-2 py-0.5 text-xs font-medium text-warning-700 dark:text-warning-300"
-                    x-text="unresolved.length"
+                    x-text="unresolvedUnmatched.length"
                 ></span>
             </button>
             <button
@@ -119,7 +119,12 @@
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-900 dark:text-white">
                         Matched rows
-                        <span class="ml-1 text-sm text-gray-500 dark:text-gray-400" x-text="'(' + matched.filter(r => r.confirmed).length + ' of ' + matched.length + ' confirmed)'"></span>
+                        <span class="ml-1 text-sm text-gray-500 dark:text-gray-400" x-text="'(' + matched.filter(r => r.status === 'booked').length + ' of ' + matched.length + ' booked)'"></span>
+                        <span
+                            x-show="duplicates.length > 0"
+                            class="ml-2 inline-flex items-center rounded-full bg-danger-100 dark:bg-danger-900 px-2 py-0.5 text-xs font-medium text-danger-700 dark:text-danger-300"
+                            x-text="duplicates.length + ' possible duplicate(s) — see Phase 3'"
+                        ></span>
                     </h3>
                     <div class="flex gap-2">
                         <button
@@ -130,7 +135,7 @@
                         </button>
                         <button
                             @click="confirmSelected()"
-                            :disabled="matched.filter(r => r.confirmed).length === 0"
+                            :disabled="selectableMatched.filter(r => r.confirmed).length === 0"
                             class="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             Confirm selected
@@ -154,13 +159,17 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         <template x-for="(item, idx) in matched" :key="idx">
-                            <tr :class="item.confirmed ? 'bg-success-50 dark:bg-success-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'">
+                            <tr :class="{
+                                'bg-success-50 dark:bg-success-900/10': item.status === 'booked',
+                                'bg-danger-50 dark:bg-danger-900/10': item.status === 'duplicate',
+                                'hover:bg-gray-50 dark:hover:bg-gray-800/50': item.status === 'unpaid' || item.status === 'paid_unlinked',
+                            }">
                                 <td class="px-4 py-3">
                                     <input
                                         type="checkbox"
                                         x-model="item.confirmed"
-                                        :disabled="item.alreadyConfirmedByHash"
-                                        class="rounded border-gray-300 dark:border-gray-600"
+                                        :disabled="item.status !== 'unpaid' && item.status !== 'paid_unlinked'"
+                                        class="rounded border-gray-300 dark:border-gray-600 disabled:opacity-40"
                                     />
                                 </td>
                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-xs truncate" x-text="item.row['Verwendungszweck']"></td>
@@ -169,12 +178,17 @@
                                 <td class="px-4 py-3 text-right font-mono text-gray-900 dark:text-white" x-text="item.row['Betrag'] + ' ' + item.row['Waehrung']"></td>
                                 <td class="px-4 py-3 text-gray-500 dark:text-gray-400" x-text="item.row['Buchungstag']"></td>
                                 <td class="px-4 py-3">
-                                    <template x-if="item.registration.paid || item.alreadyConfirmedByHash">
-                                        <span class="inline-flex items-center rounded-full bg-success-100 dark:bg-success-900 px-2 py-0.5 text-xs font-medium text-success-700 dark:text-success-300">Paid</span>
-                                    </template>
-                                    <template x-if="!item.registration.paid && !item.alreadyConfirmedByHash">
-                                        <span class="inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900 px-2 py-0.5 text-xs font-medium text-warning-700 dark:text-warning-300">Unpaid</span>
-                                    </template>
+                                    <span
+                                        class="inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
+                                        :class="{
+                                            'bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300': item.status === 'booked',
+                                            'bg-danger-100 dark:bg-danger-900 text-danger-700 dark:text-danger-300': item.status === 'duplicate',
+                                            'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300': item.status === 'paid_unlinked',
+                                            'bg-warning-100 dark:bg-warning-900 text-warning-700 dark:text-warning-300': item.status === 'unpaid',
+                                        }"
+                                        :title="item.status === 'duplicate' ? item.registration.name + ' already has a payment — this transfer is not booked' : ''"
+                                        x-text="statusLabel(item.status)"
+                                    ></span>
                                 </td>
                             </tr>
                         </template>
@@ -231,13 +245,28 @@
                             {{-- Chosen registration was paid already: transfer stays unresolved --}}
                             <template x-if="item.alreadyPaidRegistration && !item.manualConfirmed">
                                 <p class="rounded-lg bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 px-3 py-2 text-sm text-danger-700 dark:text-danger-300">
-                                    <strong x-text="item.alreadyPaidRegistration?.name"></strong> was already paid, so this transfer was not booked.
+                                    <strong x-text="item.alreadyPaidRegistration?.name"></strong> already has a payment, so this transfer was not booked.
                                     It stays unresolved for the Phase 3 export — pick another registration if it belongs to someone else.
                                 </p>
                             </template>
 
+                            {{-- Several registrations fit: offer them inline instead of an open dropdown --}}
+                            <template x-if="item.ambiguousCandidates?.length && !item.manualMatch && !item.manualConfirmed">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Possible matches:</span>
+                                    <template x-for="candidate in item.ambiguousCandidates" :key="candidate.id">
+                                        <button
+                                            type="button"
+                                            @click="selectManualMatch(item, candidate)"
+                                            class="rounded-full border border-gray-300 dark:border-gray-600 px-2.5 py-0.5 text-xs text-gray-700 dark:text-gray-300 hover:border-primary-500 hover:text-primary-600"
+                                            x-text="candidate.name + (candidate.paid ? ' (paid)' : '')"
+                                        ></button>
+                                    </template>
+                                </div>
+                            </template>
+
                             {{-- Search input --}}
-                            <div x-show="!item.manualConfirmed" class="relative">
+                            <div x-show="!item.manualConfirmed" class="relative" @click.outside="item.searchResults = []">
                                 <input
                                     type="text"
                                     :placeholder="'Search registrations...'"
@@ -303,8 +332,8 @@
                     <div>
                         <h2 class="text-base font-semibold text-gray-900 dark:text-white">Unresolved rows</h2>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            These rows passed the event prefix filter but could not be matched to a registration.
-                            Export them for manual bookkeeping.
+                            Event transfers that could not be booked: possible duplicates of an existing payment
+                            and rows without a confirmed registration. Export them for manual bookkeeping.
                         </p>
                     </div>
                     <button
@@ -328,6 +357,7 @@
                                 <th class="px-4 py-3 text-left">Sender</th>
                                 <th class="px-4 py-3 text-left">Reference</th>
                                 <th class="px-4 py-3 text-right">Amount</th>
+                                <th class="px-4 py-3 text-left">Note</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -337,6 +367,12 @@
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300" x-text="item.row['Name Zahlungsbeteiligter']"></td>
                                     <td class="px-4 py-3 text-gray-700 dark:text-gray-300" x-text="item.row['Verwendungszweck']"></td>
                                     <td class="px-4 py-3 text-right font-mono text-gray-900 dark:text-white" x-text="item.row['Betrag'] + ' ' + item.row['Waehrung']"></td>
+                                    <td
+                                        class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400"
+                                        x-text="item.status === 'duplicate'
+                                            ? 'Duplicate? ' + item.registration.name + ' already has a payment'
+                                            : (item.alreadyPaidRegistration ? item.alreadyPaidRegistration.name + ' already has a payment' : 'No confirmed registration')"
+                                    ></td>
                                 </tr>
                             </template>
                         </tbody>

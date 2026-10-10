@@ -188,7 +188,7 @@ describe('loose suggestions (never auto-confirmed)', () => {
     });
 
     it('marks rows with several contained names as ambiguous without a suggestion', () => {
-        const rows = [makeRow('Einlage fuer Maria Muster und Klaus Weber')];
+        const rows = [makeRow('Teilnahmebeitrag fuer Maria Muster und Klaus Weber')];
         const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag', registrations);
 
         expect(unmatched).toHaveLength(1);
@@ -219,5 +219,51 @@ describe('loose suggestions (never auto-confirmed)', () => {
 
         expect(matched).toHaveLength(0);
         expect(unmatched).toHaveLength(1);
+    });
+});
+
+describe('noise rows that mention a registered name', () => {
+    it('does not suggest rows whose reference lacks the event prefix', () => {
+        const rows = [makeRow('Mitgliedsbeitrag 2026 Maria Muster')];
+        const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag SPX26', registrations);
+
+        expect(unmatched).toHaveLength(0);
+        expect(filtered).toHaveLength(1);
+    });
+
+    it('does not suggest rows for another edition of the event', () => {
+        const rows = [makeRow('Teilnahmebeitrag SPX25 - Maria Muster')];
+        const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag SPX26', registrations);
+
+        expect(unmatched).toHaveLength(0);
+        expect(filtered).toHaveLength(1);
+    });
+
+    it('still suggests rows with a small typo in the prefix', () => {
+        const rows = [makeRow('Teilnahnebeitrag SPX26 - Maria Muster')];
+        const { unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag SPX26', registrations);
+
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].suggestedRegistration.id).toBe(1);
+    });
+
+    it('still suggests rows where the event code carries a suffix', () => {
+        const rows = [makeRow('Teilnahmebeitrag SPX26-V1 Maria Muster Hinweis')];
+        const { unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag SPX26', registrations);
+
+        expect(unmatched).toHaveLength(1);
+        expect(unmatched[0].suggestedRegistration.id).toBe(1);
+    });
+
+    it('filters outgoing payments even when they follow the event convention', () => {
+        const rows = [
+            makeRow('Teilnahmebeitrag SPX26 - Maria Muster', { 'Betrag': '-35,00' }),
+            makeRow('Teilnahmebeitrag SPX26 Maria Muster', { 'Betrag': '-35,00' }),
+        ];
+        const { matched, unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag SPX26', registrations);
+
+        expect(matched).toHaveLength(0);
+        expect(unmatched).toHaveLength(0);
+        expect(filtered).toHaveLength(2);
     });
 });

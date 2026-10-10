@@ -1,6 +1,7 @@
 import { parseCsv } from './csv-parser.js';
-import { hashRow } from './row-hasher.js';
+import { fingerprintRows } from './row-hasher.js';
 import { filterAndMatch } from './matcher.js';
+import { classifyMatched } from './transfer-status.js';
 import { downloadUnresolvedCsv } from './exporter.js';
 
 /**
@@ -11,7 +12,7 @@ import { downloadUnresolvedCsv } from './exporter.js';
  * re-initialises it (the view passes no data through x-data, see ADR-0003).
  *
  * The raw bank CSV never leaves the browser: only registration IDs and
- * opaque transfer fingerprints are sent to the server. The server keeps the
+ * opaque transfer fingerprints (one per transfer) are sent to the server. The server keeps the
  * confirmation ledger (ADR-0003); no state is persisted locally.
  */
 function bankImport() {
@@ -50,6 +51,9 @@ function bankImport() {
         /** Fingerprints of transfers already recorded in the server-side ledger */
         confirmedFingerprints: new Set(),
 
+        /** Registrations that already have a booked transfer in the ledger */
+        registrationIdsWithTransfer: new Set(),
+
         // ------------------------------------------------------------------
         // Computed helpers
         // ------------------------------------------------------------------
@@ -63,11 +67,26 @@ function bankImport() {
         },
 
         /**
-         * Unresolved = unmatched rows that have not been manually confirmed,
-         * including rows whose chosen registration turned out to be paid already.
+         * Phase 2 rows that have not been manually confirmed, including rows whose
+         * chosen registration turned out to have a payment already.
          */
-        get unresolved() {
+        get unresolvedUnmatched() {
             return this.unmatched.filter(item => !item.manualConfirmed);
+        },
+
+        /** Auto-matched transfers for a registration that already has a payment */
+        get duplicates() {
+            return this.matched.filter(item => item.status === 'duplicate');
+        },
+
+        /** Everything that needs manual bookkeeping — the Phase 3 export */
+        get unresolved() {
+            return [...this.duplicates, ...this.unresolvedUnmatched];
+        },
+
+        /** Auto-matched transfers that can still be booked */
+        get selectableMatched() {
+            return this.matched.filter(item => item.status === 'unpaid' || item.status === 'paid_unlinked');
         },
 
         // ------------------------------------------------------------------
@@ -96,16 +115,53 @@ function bankImport() {
             const fingerprints = await this.$wire.confirmedFingerprints;
             this.confirmedFingerprints =
                 new Set(Array.isArray(fingerprints) ? fingerprints : Object.values(fingerprints ?? {}));
+
+            const registrationIds = await this.$wire.registrationIdsWithTransfer;
+            this.registrationIdsWithTransfer =
+                new Set(Array.isArray(registrationIds) ? registrationIds : Object.values(registrationIds ?? {}));
         },
 
-        async isAlreadyConfirmed(row) {
-            const hash = await hashRow(row);
-            return this.confirmedFingerprints.has(hash);
+        /**
+         * Book transfers on the server; returns the set of fingerprints that were booked.
+         *
+         * @param {Array<{registration_id: number, fingerprint: string}>} transfers
+         * @returns {Promise<Set<string>>}
+         */
+        async bookTransfers(transfers) {
+            const result = await this.$wire.call('confirmPayments', transfers);
+            await this.syncFromServer();
+            return new Set(result?.booked_fingerprints ?? []);
         },
 
-        async recordConfirmed(row) {
-            const hash = await hashRow(row);
-            this.confirmedFingerprints.add(hash);
+        /** Re-derive Phase 1 statuses from the ledger and the fresh registration snapshot. */
+        reclassifyMatched() {
+            this.matched.forEach(item => {
+                const fresh = this.registrations.find(r => r.id === item.registration.id);
+                if (fresh) {
+                    item.registration = fresh;
+                }
+            });
+
+            const statuses = classifyMatched(this.matched, {
+                confirmedFingerprints: this.confirmedFingerprints,
+                registrationIdsWithTransfer: this.registrationIdsWithTransfer,
+            });
+
+            this.matched.forEach((item, index) => {
+                item.status = statuses[index];
+                if (item.status !== 'unpaid' && item.status !== 'paid_unlinked') {
+                    item.confirmed = false;
+                }
+            });
+        },
+
+        statusLabel(status) {
+            switch (status) {
+                case 'booked': return 'Booked';
+                case 'duplicate': return 'Duplicate?';
+                case 'paid_unlinked': return 'Paid · no transfer linked';
+                default: return 'Unpaid';
+            }
         },
 
         // ------------------------------------------------------------------
@@ -166,113 +222,73 @@ function bankImport() {
                 return;
             }
 
+            const fingerprints = await fingerprintRows(rows);
+            const fingerprintOf = new Map(rows.map((row, index) => [row, fingerprints[index]]));
+
             const { matched, unmatched, filtered } = filterAndMatch(
                 rows,
                 this.eventPrefix.trim(),
                 this.registrations
             );
 
-            // Exact matches: "already handled" is either in the server ledger
-            // or the registration is already paid — pre-check, never re-confirm.
-            const annotatedMatched = await Promise.all(
-                matched.map(async item => ({
-                    ...item,
-                    confirmed: false,
-                    alreadyConfirmedByHash:
-                        item.registration.paid || (await this.isAlreadyConfirmed(item.row)),
-                }))
-            );
-
-            annotatedMatched.forEach(item => {
-                if (item.alreadyConfirmedByHash) {
-                    item.confirmed = true;
-                }
-            });
+            // Exact matches: statuses come from the ledger (see classifyMatched).
+            // Nothing is pre-selected — the admin ticks what to book.
+            this.matched = matched.map(item => ({
+                ...item,
+                fingerprint: fingerprintOf.get(item.row),
+                confirmed: false,
+                status: 'unpaid',
+            }));
+            this.reclassifyMatched();
 
             // Unmatched rows: transfers already in the ledger were confirmed in an
             // earlier import. Otherwise prefill a loose suggestion if the matcher
             // produced one, but never confirm it — the admin must press Confirm.
-            const annotatedUnmatched = await Promise.all(
-                unmatched.map(async item => {
-                    const manualConfirmed = await this.isAlreadyConfirmed(item.row);
-                    return {
-                        ...item,
-                        manualMatch: !manualConfirmed && item.suggestedRegistration ? item.suggestedRegistration : null,
-                        manualConfirmed,
-                        confirmedRegistration: null,
-                        alreadyPaidRegistration: null,
-                        searchResults: item.ambiguousCandidates?.length ? item.ambiguousCandidates : [],
-                    };
-                })
-            );
+            this.unmatched = unmatched.map(item => {
+                const fingerprint = fingerprintOf.get(item.row);
+                const manualConfirmed = this.confirmedFingerprints.has(fingerprint);
+                return {
+                    ...item,
+                    fingerprint,
+                    manualMatch: !manualConfirmed && item.suggestedRegistration ? item.suggestedRegistration : null,
+                    manualConfirmed,
+                    confirmedRegistration: null,
+                    alreadyPaidRegistration: null,
+                    searchResults: [],
+                };
+            });
 
-            this.matched = annotatedMatched;
-            this.unmatched = annotatedUnmatched;
             this.filtered = filtered;
         },
 
         bulkSelectAll() {
-            this.matched.forEach(item => {
-                if (!item.alreadyConfirmedByHash) {
-                    item.confirmed = true;
-                }
+            this.selectableMatched.forEach(item => {
+                item.confirmed = true;
             });
         },
 
         toggleAllMatched(event) {
             const checked = event.target.checked;
-            this.matched.forEach(item => {
-                if (!item.alreadyConfirmedByHash) {
-                    item.confirmed = checked;
-                }
+            this.selectableMatched.forEach(item => {
+                item.confirmed = checked;
             });
         },
 
         async confirmSelected() {
-            const toConfirm = this.matched.filter(
-                item => item.confirmed && !item.alreadyConfirmedByHash
-            );
+            const toConfirm = this.selectableMatched.filter(item => item.confirmed);
 
             if (toConfirm.length === 0) {
                 return;
             }
 
-            // Send registration IDs and fingerprints keyed by registration id;
-            // the server records the ledger and marks payments (ADR-0003).
-            const confirmations = await Promise.all(
-                toConfirm.map(async item => ({
-                    id: item.registration.id,
-                    fingerprint: await hashRow(item.row),
-                }))
-            );
+            // One entry per transfer; the server books at most one transfer per
+            // registration and reports which ones it booked (ADR-0003).
+            await this.bookTransfers(toConfirm.map(item => ({
+                registration_id: item.registration.id,
+                fingerprint: item.fingerprint,
+            })));
 
-            const ids = confirmations.map(confirmation => confirmation.id);
-            const fingerprintsByRegistrationId = Object.fromEntries(
-                confirmations.map(confirmation => [String(confirmation.id), confirmation.fingerprint])
-            );
-
-            const result = await this.$wire.call('confirmPayments', ids, fingerprintsByRegistrationId);
-            const alreadyPaidIds = new Set(result?.already_paid_ids ?? []);
-
-            // Reflect the ledger locally so the UI marks these as handled.
-            // Rows whose registration was paid in the meantime were not recorded.
-            for (const item of toConfirm) {
-                if (alreadyPaidIds.has(item.registration.id)) {
-                    continue;
-                }
-                await this.recordConfirmed(item.row);
-                item.alreadyConfirmedByHash = true;
-            }
-
-            // Pull fresh state — this does NOT reset local UI state because the
-            // Alpine component is not re-initialised on Livewire re-renders.
-            await this.syncFromServer();
-
-            // Re-annotate matched list with fresh paid state
-            this.matched.forEach(item => {
-                const fresh = this.registrations.find(r => r.id === item.registration.id);
-                if (fresh) item.registration = fresh;
-            });
+            this.reclassifyMatched();
         },
 
         // ------------------------------------------------------------------
@@ -281,7 +297,7 @@ function bankImport() {
 
         async searchForRow(item, query) {
             if (!query || query.trim().length < 2) {
-                item.searchResults = item.ambiguousCandidates?.length ? item.ambiguousCandidates : [];
+                item.searchResults = [];
                 return;
             }
 
@@ -302,28 +318,25 @@ function bankImport() {
             }
 
             const registration = item.manualMatch;
-            const fingerprint = await hashRow(item.row);
+            const booked = await this.bookTransfers([{
+                registration_id: registration.id,
+                fingerprint: item.fingerprint,
+            }]);
 
-            const result = await this.$wire.call('confirmPayments', [registration.id], {
-                [String(registration.id)]: fingerprint,
-            });
-
-            // The registration was paid already: this transfer is not its payment,
-            // so it stays unresolved and ends up in the Phase 3 export.
-            if ((result?.already_paid_ids ?? []).includes(registration.id)) {
-                item.alreadyPaidRegistration = registration;
-                item.manualMatch = null;
-                await this.syncFromServer();
-                return;
-            }
-
-            await this.recordConfirmed(item.row);
-            item.manualConfirmed = true;
-            item.confirmedRegistration = registration;
-            item.alreadyPaidRegistration = null;
             item.manualMatch = null;
 
-            await this.syncFromServer();
+            // The registration already has a payment: this transfer is not it,
+            // so it stays unresolved and ends up in the Phase 3 export.
+            if (!booked.has(item.fingerprint)) {
+                item.alreadyPaidRegistration = registration;
+            } else {
+                item.manualConfirmed = true;
+                item.confirmedRegistration = registration;
+                item.alreadyPaidRegistration = null;
+            }
+
+            // A manual booking can turn a Phase 1 row for the same registration into a duplicate
+            this.reclassifyMatched();
         },
 
         // ------------------------------------------------------------------

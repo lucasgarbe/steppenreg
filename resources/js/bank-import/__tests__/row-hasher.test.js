@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashRow } from '../row-hasher.js';
+import { hashRow, fingerprintRows } from '../row-hasher.js';
 
 const makeRow = (overrides = {}) => ({
     'Buchungstag': '01.03.2025',
@@ -43,5 +43,24 @@ describe('hashRow', () => {
     it('produces a hex string of expected length (SHA-256 = 64 chars)', async () => {
         const hash = await hashRow(makeRow());
         expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    });
+});
+
+describe('fingerprintRows', () => {
+    it('gives the first occurrence of a row the same fingerprint as hashRow', async () => {
+        const row = makeRow();
+        const [fingerprint] = await fingerprintRows([row]);
+        expect(fingerprint).toBe(await hashRow(row));
+    });
+
+    it('gives identical rows in one file distinct fingerprints', async () => {
+        const fingerprints = await fingerprintRows([makeRow(), makeRow(), makeRow()]);
+        expect(new Set(fingerprints).size).toBe(3);
+    });
+
+    it('is stable across imports of the same rows', async () => {
+        const first = await fingerprintRows([makeRow(), makeRow({ 'Betrag': '75,00' }), makeRow()]);
+        const second = await fingerprintRows([makeRow(), makeRow({ 'Betrag': '75,00' }), makeRow()]);
+        expect(second).toEqual(first);
     });
 });
