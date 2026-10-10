@@ -15,6 +15,10 @@ class ConfirmPaymentsAction
      * Confirm bank transfer payments: mark the given registrations as paid
      * and record transfer fingerprints in the confirmation ledger.
      *
+     * A registration that is already paid is left untouched and its transfer
+     * is not recorded, so a second transfer stays unresolved instead of
+     * silently disappearing.
+     *
      * @param  array<int>  $registrationIds
      * @param  array<int, string>  $fingerprintsByRegistrationId  client-computed transfer fingerprints keyed by registration id
      *
@@ -35,12 +39,12 @@ class ConfirmPaymentsAction
             throw new InvalidRegistrationIdsException($invalidIds);
         }
 
-        $alreadyPayed = $registrations->filter(fn (Registration $registration) => $registration->is_paid)->count();
+        [$alreadyPaid, $unpaid] = $registrations->partition(fn (Registration $registration) => $registration->is_paid);
 
-        DB::transaction(function () use ($registrations, $fingerprintsByRegistrationId) {
+        DB::transaction(function () use ($unpaid, $fingerprintsByRegistrationId) {
             $paymentService = app(PaymentService::class);
 
-            foreach ($registrations as $registration) {
+            foreach ($unpaid as $registration) {
                 $paymentService->markPaid($registration, PaymentService::VIA_BANK_IMPORT);
 
                 $fingerprint = $fingerprintsByRegistrationId[$registration->id] ?? null;
@@ -54,8 +58,9 @@ class ConfirmPaymentsAction
         });
 
         return new ConfirmResult(
-            newly_confirmed: $registrations->count() - $alreadyPayed,
-            already_paid: $alreadyPayed,
+            newly_confirmed: $unpaid->count(),
+            already_paid: $alreadyPaid->count(),
+            already_paid_ids: $alreadyPaid->pluck('id')->values()->all(),
         );
     }
 }

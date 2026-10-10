@@ -84,6 +84,25 @@ class ConfirmPaymentsActionTest extends TestCase
         $this->assertEquals(1, $result->already_paid);
     }
 
+    public function test_does_not_record_fingerprint_for_already_paid_registration(): void
+    {
+        $reg = Registration::factory()->paid()->create();
+
+        $this->action->execute([$reg->id], [$reg->id => 'fp-second-transfer']);
+
+        $this->assertDatabaseMissing('bank_transfer_confirmations', ['fingerprint' => 'fp-second-transfer']);
+    }
+
+    public function test_reports_ids_of_already_paid_registrations(): void
+    {
+        $unpaid = Registration::factory()->create();
+        $paid = Registration::factory()->paid()->create();
+
+        $result = $this->action->execute([$unpaid->id, $paid->id]);
+
+        $this->assertEquals([$paid->id], $result->already_paid_ids);
+    }
+
     public function test_returns_correct_mixed_counts_for_mixed_paid_state(): void
     {
         $unpaid = Registration::factory()->create();

@@ -37,10 +37,10 @@ class ManageBankImport extends Page
     public array $registrations = [];
 
     /**
-     * Fingerprints of transfers confirmed before, keyed by registration id.
+     * Fingerprints of every transfer confirmed before.
      * Loaded once per mount so the client can pre-check already-handled transfers.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     public array $confirmedFingerprints = [];
 
@@ -68,7 +68,7 @@ class ManageBankImport extends Page
             ->all();
 
         $this->confirmedFingerprints = BankTransferConfirmation::query()
-            ->pluck('fingerprint', 'registration_id')
+            ->pluck('fingerprint')
             ->all();
     }
 
@@ -76,10 +76,14 @@ class ManageBankImport extends Page
      * Called from the Alpine component to mark registrations as paid and
      * record the confirmed transfer fingerprints in the ledger.
      *
+     * Returns the ids of registrations that were already paid, so the client
+     * keeps those transfers unresolved.
+     *
      * @param  array<int>  $ids
      * @param  array<int, string>  $fingerprintsByRegistrationId
+     * @return array{already_paid_ids: array<int>}
      */
-    public function confirmPayments(array $ids, array $fingerprintsByRegistrationId = []): void
+    public function confirmPayments(array $ids, array $fingerprintsByRegistrationId = []): array
     {
         try {
             $result = app(ConfirmPaymentsAction::class)->execute($ids, $fingerprintsByRegistrationId);
@@ -98,6 +102,7 @@ class ManageBankImport extends Page
             // Refresh registrations list so the Alpine component gets updated state
             $this->mount();
 
+            return ['already_paid_ids' => $result->already_paid_ids];
         } catch (InvalidRegistrationIdsException $e) {
             Notification::make()
                 ->title('Invalid registrations')
@@ -108,6 +113,8 @@ class ManageBankImport extends Page
             Log::warning('Bank import: invalid registration IDs submitted', [
                 'message' => $e->getMessage(),
             ]);
+
+            return ['already_paid_ids' => []];
         }
     }
 
@@ -115,6 +122,8 @@ class ManageBankImport extends Page
      * Search registrations by name for Phase 2 manual resolution.
      * Returns the matching registrations (also stored in $searchResults)
      * so the client-side Alpine component can await the result.
+     *
+     * @return array<int, array{id: int, name: string, paid: bool, draw_status: string|null, track_name: string|null}>
      */
     public function searchRegistrations(string $query): array
     {

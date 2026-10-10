@@ -29,6 +29,12 @@ function bankImport() {
         /** Event prefix typed by the admin */
         eventPrefix: '',
 
+        /** CSV file picked by the admin; only read once matching is started */
+        selectedFile: null,
+
+        /** True while the selected file is being parsed and matched */
+        isProcessing: false,
+
         /** Rows that passed the filter and were exactly matched to a registration */
         matched: [],
 
@@ -48,12 +54,17 @@ function bankImport() {
         // Computed helpers
         // ------------------------------------------------------------------
 
+        get canStartMatching() {
+            return this.selectedFile !== null && this.eventPrefix.trim() !== '' && !this.isProcessing;
+        },
+
         get hasResults() {
             return this.matched.length > 0 || this.unmatched.length > 0 || this.filtered.length > 0;
         },
 
         /**
-         * Unresolved = unmatched rows that have not been manually matched/confirmed.
+         * Unresolved = unmatched rows that have not been manually confirmed,
+         * including rows whose chosen registration turned out to be paid already.
          */
         get unresolved() {
             return this.unmatched.filter(item => !item.manualConfirmed);
@@ -82,17 +93,9 @@ function bankImport() {
             const registrations = this.$wire.registrations;
             this.registrations = resolve(registrations) ?? await registrations;
 
-            const fingerprints = this.$wire.confirmedFingerprints;
-            if (fingerprints && typeof fingerprints.then === 'function') {
-                fingerprints.then(value => {
-                    this.confirmedFingerprints =
-                        new Set(Array.isArray(value) ? value : Object.values(value ?? {}));
-                });
-            } else if (Array.isArray(fingerprints)) {
-                this.confirmedFingerprints = new Set(fingerprints);
-            } else if (fingerprints && typeof fingerprints === 'object') {
-                this.confirmedFingerprints = new Set(Object.values(fingerprints));
-            }
+            const fingerprints = await this.$wire.confirmedFingerprints;
+            this.confirmedFingerprints =
+                new Set(Array.isArray(fingerprints) ? fingerprints : Object.values(fingerprints ?? {}));
         },
 
         async isAlreadyConfirmed(row) {
@@ -113,30 +116,41 @@ function bankImport() {
             switch (reason) {
                 case 'prefix_mismatch': return '(event prefix mismatch)';
                 case 'no_separator': return '(no "name - reference" convention)';
-                case 'exact_miss': return '(name typo in reference)';
+                case 'exact_miss': return '(name differs from registration)';
                 case 'ambiguous': return '(several possible matches)';
                 default: return '';
             }
         },
 
         // ------------------------------------------------------------------
-        // Phase 1: File upload + auto-match
+        // Phase 1: File selection + auto-match
         // ------------------------------------------------------------------
 
-        async handleFileUpload(event) {
+        /**
+         * Only remembers the picked file — matching starts with startMatching(),
+         * so the prefix can be entered or changed after choosing the file.
+         */
+        selectFile(event) {
             this.parseError = null;
-            const file = event.target.files?.[0];
+            this.selectedFile = event.target.files?.[0] ?? null;
+        },
 
-            if (!file) {
+        async startMatching() {
+            if (!this.canStartMatching) {
                 return;
             }
 
-            if (!this.eventPrefix.trim()) {
-                this.parseError = 'Please enter an event name prefix before uploading a file.';
-                event.target.value = '';
-                return;
-            }
+            this.parseError = null;
+            this.isProcessing = true;
 
+            try {
+                await this.processFile(this.selectedFile);
+            } finally {
+                this.isProcessing = false;
+            }
+        },
+
+        async processFile(file) {
             const content = await file.text();
             let rows;
 
@@ -175,18 +189,22 @@ function bankImport() {
                 }
             });
 
-            // Unmatched rows: prefill a loose suggestion if the matcher produced one,
-            // but never confirm it — the admin must press Confirm (ADR: suggest only).
-            const annotatedUnmatched = unmatched.map(item => {
-                if (item.suggestedRegistration && item.suggestionReason !== 'ambiguous') {
-                    item.manualMatch = item.suggestedRegistration;
-                }
-                return {
-                    ...item,
-                    manualConfirmed: false,
-                    searchResults: item.ambiguousCandidates && item.ambiguousCandidates.length ? item.ambiguousCandidates : [],
-                };
-            });
+            // Unmatched rows: transfers already in the ledger were confirmed in an
+            // earlier import. Otherwise prefill a loose suggestion if the matcher
+            // produced one, but never confirm it — the admin must press Confirm.
+            const annotatedUnmatched = await Promise.all(
+                unmatched.map(async item => {
+                    const manualConfirmed = await this.isAlreadyConfirmed(item.row);
+                    return {
+                        ...item,
+                        manualMatch: !manualConfirmed && item.suggestedRegistration ? item.suggestedRegistration : null,
+                        manualConfirmed,
+                        confirmedRegistration: null,
+                        alreadyPaidRegistration: null,
+                        searchResults: item.ambiguousCandidates?.length ? item.ambiguousCandidates : [],
+                    };
+                })
+            );
 
             this.matched = annotatedMatched;
             this.unmatched = annotatedUnmatched;
@@ -233,10 +251,15 @@ function bankImport() {
                 confirmations.map(confirmation => [String(confirmation.id), confirmation.fingerprint])
             );
 
-            await this.$wire.call('confirmPayments', ids, fingerprintsByRegistrationId);
+            const result = await this.$wire.call('confirmPayments', ids, fingerprintsByRegistrationId);
+            const alreadyPaidIds = new Set(result?.already_paid_ids ?? []);
 
-            // Reflect the ledger locally so the UI marks these as handled
+            // Reflect the ledger locally so the UI marks these as handled.
+            // Rows whose registration was paid in the meantime were not recorded.
             for (const item of toConfirm) {
+                if (alreadyPaidIds.has(item.registration.id)) {
+                    continue;
+                }
                 await this.recordConfirmed(item.row);
                 item.alreadyConfirmedByHash = true;
             }
@@ -278,14 +301,26 @@ function bankImport() {
                 return;
             }
 
+            const registration = item.manualMatch;
             const fingerprint = await hashRow(item.row);
 
-            await this.$wire.call('confirmPayments', [item.manualMatch.id], {
-                [String(item.manualMatch.id)]: fingerprint,
+            const result = await this.$wire.call('confirmPayments', [registration.id], {
+                [String(registration.id)]: fingerprint,
             });
+
+            // The registration was paid already: this transfer is not its payment,
+            // so it stays unresolved and ends up in the Phase 3 export.
+            if ((result?.already_paid_ids ?? []).includes(registration.id)) {
+                item.alreadyPaidRegistration = registration;
+                item.manualMatch = null;
+                await this.syncFromServer();
+                return;
+            }
 
             await this.recordConfirmed(item.row);
             item.manualConfirmed = true;
+            item.confirmedRegistration = registration;
+            item.alreadyPaidRegistration = null;
             item.manualMatch = null;
 
             await this.syncFromServer();

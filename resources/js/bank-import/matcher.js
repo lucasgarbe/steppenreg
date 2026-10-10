@@ -46,7 +46,7 @@ export function filterAndMatch(rows, eventPrefix, registrations) {
         if (candidates.length === 1) {
             unmatched.push({
                 row,
-                extractedName: candidates[0].name,
+                extractedName,
                 registration: null,
                 suggestedRegistration: candidates[0],
                 suggestionReason: reason,
@@ -105,7 +105,7 @@ export function filterAndMatch(rows, eventPrefix, registrations) {
         if (candidates.length === 1) {
             unmatched.push({
                 row,
-                extractedName: candidates[0].name,
+                extractedName: null,
                 registration: null,
                 suggestedRegistration: candidates[0],
                 suggestionReason: separatorIndex === -1 ? 'no_separator' : 'prefix_mismatch',

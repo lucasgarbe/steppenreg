@@ -25,9 +25,9 @@
             >
                 Phase 2 &mdash; Manual match
                 <span
-                    x-show="unmatched.length > 0"
+                    x-show="unresolved.length > 0"
                     class="ml-1 inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900 px-2 py-0.5 text-xs font-medium text-warning-700 dark:text-warning-300"
-                    x-text="unmatched.length"
+                    x-text="unresolved.length"
                 ></span>
             </button>
             <button
@@ -63,7 +63,7 @@
                             class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                         />
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Only rows where <em>Verwendungszweck</em> starts with this prefix will be processed.
+                            Rows whose <em>Verwendungszweck</em> reads <em>&lt;prefix&gt; - &lt;name&gt;</em> are auto-matched.
                         </p>
                     </div>
 
@@ -74,10 +74,25 @@
                         <input
                             type="file"
                             accept=".csv"
-                            @change="handleFileUpload($event)"
+                            @change="selectFile($event)"
                             class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 dark:file:bg-primary-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100"
                         />
                     </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3">
+                    <p
+                        x-show="!canStartMatching && !isProcessing"
+                        class="text-xs text-gray-500 dark:text-gray-400"
+                        x-text="selectedFile ? 'Enter an event name prefix to start.' : 'Choose a CSV file to start.'"
+                    ></p>
+                    <button
+                        type="button"
+                        @click="startMatching()"
+                        :disabled="!canStartMatching"
+                        class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                        x-text="isProcessing ? 'Matching…' : (hasResults ? 'Restart matching' : 'Start matching')"
+                    ></button>
                 </div>
 
                 <div x-show="parseError" class="rounded-lg bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 p-3 text-sm text-danger-700 dark:text-danger-300" x-text="parseError"></div>
@@ -191,16 +206,11 @@
                                         &bull;
                                         Extracted: <em x-text="item.extractedName || '(none)'"></em>
                                     </p>
-                                    {{-- Loose suggestion (never auto-confirmed) --}}
-                                    <template x-if="item.suggestedRegistration && !item.manualConfirmed">
-                                        <p class="mt-1.5 inline-flex items-center gap-2 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-2 py-1 text-xs text-primary-700 dark:text-primary-300">
-                                            <span class="font-semibold">Suggested:</span>
-                                            <span x-text="item.suggestedRegistration.name"></span>
-                                            <span class="text-primary-500" x-text="suggestionReasonLabel(item.suggestionReason)"></span>
-                                        </p>
-                                    </template>
                                 </div>
-                                <template x-if="item.manualMatch">
+                                <template x-if="item.manualConfirmed">
+                                    <span class="shrink-0 inline-flex items-center rounded-full bg-success-100 dark:bg-success-900 px-2 py-0.5 text-xs font-medium text-success-700 dark:text-success-300">Confirmed</span>
+                                </template>
+                                <template x-if="item.manualMatch && !item.manualConfirmed">
                                     <button
                                         @click="confirmManualMatch(item)"
                                         class="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700"
@@ -210,8 +220,24 @@
                                 </template>
                             </div>
 
+                            {{-- Confirmed match --}}
+                            <template x-if="item.manualConfirmed">
+                                <p class="text-sm text-success-700 dark:text-success-300">
+                                    <span x-show="item.confirmedRegistration">Payment confirmed for <strong x-text="item.confirmedRegistration?.name"></strong>.</span>
+                                    <span x-show="!item.confirmedRegistration">Confirmed in an earlier import.</span>
+                                </p>
+                            </template>
+
+                            {{-- Chosen registration was paid already: transfer stays unresolved --}}
+                            <template x-if="item.alreadyPaidRegistration && !item.manualConfirmed">
+                                <p class="rounded-lg bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 px-3 py-2 text-sm text-danger-700 dark:text-danger-300">
+                                    <strong x-text="item.alreadyPaidRegistration?.name"></strong> was already paid, so this transfer was not booked.
+                                    It stays unresolved for the Phase 3 export — pick another registration if it belongs to someone else.
+                                </p>
+                            </template>
+
                             {{-- Search input --}}
-                            <div class="relative">
+                            <div x-show="!item.manualConfirmed" class="relative">
                                 <input
                                     type="text"
                                     :placeholder="'Search registrations...'"
@@ -233,7 +259,7 @@
                                             <div class="flex items-center justify-between">
                                                 <div>
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="reg.name"></p>
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="reg.track_name + ' \u00b7 ' + reg.draw_status"></p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="[reg.track_name, reg.draw_status].filter(Boolean).join(' \u00b7 ')"></p>
                                                 </div>
                                                 <template x-if="reg.paid">
                                                     <span class="text-xs px-2 py-0.5 rounded-full bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300">Paid</span>
@@ -248,11 +274,19 @@
                             </div>
 
                             {{-- Selected match preview --}}
-                            <template x-if="item.manualMatch">
+                            <template x-if="item.manualMatch && !item.manualConfirmed">
                                 <div class="flex items-center gap-3 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-3 py-2">
                                     <span class="text-xs text-primary-700 dark:text-primary-300" x-text="item.suggestedRegistration?.id === item.manualMatch?.id ? 'Suggested:' : 'Selected:'"></span>
                                     <span class="text-sm font-medium text-primary-900 dark:text-primary-100" x-text="item.manualMatch?.name"></span>
                                     <span class="text-xs text-primary-600 dark:text-primary-400" x-text="item.manualMatch?.track_name"></span>
+                                    <span
+                                        x-show="item.suggestedRegistration?.id === item.manualMatch?.id"
+                                        class="text-xs text-primary-500"
+                                        x-text="suggestionReasonLabel(item.suggestionReason)"
+                                    ></span>
+                                    <template x-if="item.manualMatch?.paid">
+                                        <span class="text-xs px-2 py-0.5 rounded-full bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300">Already paid</span>
+                                    </template>
                                     <button @click="item.manualMatch = null" class="ml-auto text-xs text-primary-500 hover:text-primary-700">Clear</button>
                                 </div>
                             </template>

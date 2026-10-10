@@ -171,6 +171,22 @@ describe('loose suggestions (never auto-confirmed)', () => {
         expect(unmatched[0].suggestionReason).toBe('exact_miss');
     });
 
+    it('keeps the name from the reference as extractedName when suggesting a registration', () => {
+        const rows = [makeRow('Teilnahmebeitrag SPX26 - Reed Corwin')];
+        const regs = [...registrations, { id: 7, name: 'Mr. Reed Corwin', paid: false, draw_status: 'not_drawn', track_name: 'Track A' }];
+        const { unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag', regs);
+
+        expect(unmatched[0].extractedName).toBe('Reed Corwin');
+    });
+
+    it('has no extractedName for a fallback suggestion without the separator', () => {
+        const rows = [makeRow('Teilnahmebeitrag SPX26 Davonte Moore')];
+        const regs = [...registrations, { id: 9, name: 'Davonte Moore', paid: false, draw_status: 'drawn', track_name: 'Track A' }];
+        const { unmatched } = filterAndMatch(rows, 'Teilnahmebeitrag', regs);
+
+        expect(unmatched[0].extractedName).toBeNull();
+    });
+
     it('marks rows with several contained names as ambiguous without a suggestion', () => {
         const rows = [makeRow('Einlage fuer Maria Muster und Klaus Weber')];
         const { unmatched, filtered } = filterAndMatch(rows, 'Teilnahmebeitrag', registrations);

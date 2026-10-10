@@ -3,6 +3,7 @@
 namespace Tests\Feature\BankImport;
 
 use App\Domain\BankImport\Filament\Pages\ManageBankImport;
+use App\Domain\BankImport\Models\BankTransferConfirmation;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,6 +104,28 @@ class ManageBankImportPageTest extends TestCase
             ->test(ManageBankImport::class)
             ->call('confirmPayments', [$reg->id])
             ->assertNotified();
+    }
+
+    public function test_confirmed_fingerprints_include_every_fingerprint_of_a_registration(): void
+    {
+        $reg = Registration::factory()->create();
+        BankTransferConfirmation::create(['registration_id' => $reg->id, 'fingerprint' => 'fp-a']);
+        BankTransferConfirmation::create(['registration_id' => $reg->id, 'fingerprint' => 'fp-b']);
+
+        $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
+
+        $this->assertEqualsCanonicalizing(['fp-a', 'fp-b'], $component->get('confirmedFingerprints'));
+    }
+
+    public function test_confirm_payments_returns_already_paid_registration_ids(): void
+    {
+        $unpaid = Registration::factory()->create();
+        $paid = Registration::factory()->paid()->create();
+
+        $component = Livewire::actingAs($this->admin)->test(ManageBankImport::class);
+        $result = $component->instance()->confirmPayments([$unpaid->id, $paid->id]);
+
+        $this->assertEquals([$paid->id], $result['already_paid_ids']);
     }
 
     public function test_search_registrations_returns_matching_names(): void
