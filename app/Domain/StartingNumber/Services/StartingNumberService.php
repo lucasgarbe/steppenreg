@@ -139,6 +139,17 @@ class StartingNumberService
 
     public function getWaitlistStatus(int $trackId): array
     {
+        if (! $this->waitlistEnabled()) {
+            return [
+                'track_id' => $trackId,
+                'used' => 0,
+                'capacity' => 0,
+                'percentage' => 0,
+                'overflow_used' => 0,
+                'status' => 'normal',
+            ];
+        }
+
         $ranges = $this->getTrackRanges($trackId);
         $used = Registration::where('track_id', $trackId)
             ->drawn()
@@ -180,15 +191,16 @@ class StartingNumberService
             'end' => $baseStart + $track['max_participants'] - 1,
         ];
 
-        $waitlistRange = [
-            'start' => $mainRange['end'] + 1,
-            'end' => $mainRange['end'] + $this->getWaitlistSize($track['max_participants']),
-        ];
+        $ranges = ['main' => $mainRange];
 
-        return [
-            'main' => $mainRange,
-            'waitlist' => $waitlistRange,
-        ];
+        if ($this->waitlistEnabled()) {
+            $ranges['waitlist'] = [
+                'start' => $mainRange['end'] + 1,
+                'end' => $mainRange['end'] + $this->getWaitlistSize($track['max_participants']),
+            ];
+        }
+
+        return $ranges;
     }
 
     private function calculateTrackBaseStart(int $trackId): int
@@ -205,8 +217,10 @@ class StartingNumberService
 
             // Move to next 100-increment boundary after this track's full range
             $trackEnd = $currentStart + $track['max_participants'] - 1;
-            $waitlistEnd = $trackEnd + $this->getWaitlistSize($track['max_participants']);
-            $nextBoundary = (int) (($waitlistEnd / 100) + 1) * 100;
+            $rangeEnd = $this->waitlistEnabled()
+                ? $trackEnd + $this->getWaitlistSize($track['max_participants'])
+                : $trackEnd;
+            $nextBoundary = (int) (($rangeEnd / 100) + 1) * 100;
 
             $currentStart = $nextBoundary;
         }
@@ -249,7 +263,9 @@ class StartingNumberService
     {
         $baseRanges = $this->getBaseRanges($trackId);
         $mainCapacity = $baseRanges['main']['end'] - $baseRanges['main']['start'] + 1;
-        $waitlistCapacity = $baseRanges['waitlist']['end'] - $baseRanges['waitlist']['start'] + 1;
+        $waitlistCapacity = $this->waitlistEnabled()
+            ? $baseRanges['waitlist']['end'] - $baseRanges['waitlist']['start'] + 1
+            : 0;
 
         $totalDrawn = Registration::withTrashed()->where('track_id', $trackId)
             ->drawn()
@@ -259,5 +275,10 @@ class StartingNumberService
         $beyondMain = max(0, $totalDrawn - $mainCapacity);
 
         return max(0, $beyondMain - $waitlistCapacity);
+    }
+
+    private function waitlistEnabled(): bool
+    {
+        return (bool) config('steppenreg.features.waitlist', true);
     }
 }

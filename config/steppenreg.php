@@ -20,6 +20,18 @@ return [
         'starting_numbers' => env('STEPPENREG_STARTING_NUMBERS_ENABLED', true),
 
         /*
+         * Starting Number Waitlist Range
+         *
+         * When enabled, each track reserves a waitlist block (30% of
+         * capacity) after its main range, and the next track starts at
+         * the next 100-boundary after that block. Disable for denser
+         * numbering: tracks then start right after their predecessor's
+         * main range. Note: shifting ranges affects how already-assigned
+         * numbers outside the new ranges are classified.
+         */
+        'waitlist' => env('STEPPENREG_WAITLIST_ENABLED', true),
+
+        /*
          * Payment tracking
          *
          * When enabled, the fee payment state of registrations is tracked
