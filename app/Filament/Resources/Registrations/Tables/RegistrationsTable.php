@@ -10,12 +10,16 @@ use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ExportBulkAction;
+use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -32,6 +36,7 @@ class RegistrationsTable
             ->columns([
                 TextColumn::make('starting_number')
                     ->label(__('admin.registrations.columns.start_number'))
+                    ->toggleable()
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->whereNotNull('starting_number')->orderBy('starting_number', $direction);
                     })
@@ -62,6 +67,7 @@ class RegistrationsTable
 
                 TextColumn::make('email')
                     ->label(__('admin.registrations.columns.email'))
+                    ->toggleable()
                     ->searchable()
                     ->sortable(),
 
@@ -102,12 +108,14 @@ class RegistrationsTable
 
                 TextColumn::make('team.name')
                     ->label(__('admin.registrations.columns.team'))
+                    ->toggleable()
                     ->placeholder(__('admin.form.placeholders.individual'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('drawStatus.status')
                     ->label(__('admin.registrations.columns.draw_status'))
+                    ->toggleable()
                     ->badge()
                     ->color(fn ($record): string => match ($record?->draw_status_value) {
                         'drawn' => 'success',
@@ -127,15 +135,26 @@ class RegistrationsTable
                             ->select('registrations.*');
                     }),
 
-                TextColumn::make('paymentStatus.paid')
+                ToggleColumn::make('paymentStatus.paid')
                     ->label(__('admin.registrations.columns.payment'))
-                    ->badge()
+                    ->toggleable()
                     ->visible(fn () => config('steppenreg.features.payment', true))
-                    ->formatStateUsing(fn ($state) => $state ? __('admin.registrations.status.paid') : __('admin.registrations.status.unpaid'))
-                    ->color(fn ($state): string => match ((bool) $state) {
-                        true => 'success',
-                        false => 'gray',
+                    ->onColor('success')
+                    ->updateStateUsing(function (Registration $record, bool $state): bool {
+                        $paymentService = app(PaymentService::class);
+
+                        $state ? $paymentService->markPaid($record) : $paymentService->markUnpaid($record);
+
+                        $record->unsetRelation('paymentStatus');
+
+                        return $state;
                     })
+                    ->sortable(),
+
+                ToggleColumn::make('starting')
+                    ->label(__('admin.registrations.columns.starting'))
+                    ->toggleable()
+                    ->onColor('info')
                     ->sortable(),
 
                 TextColumn::make('finish_time')
@@ -344,13 +363,13 @@ class RegistrationsTable
             ->filtersFormColumns(2)
             ->recordActions([
                 Action::make('arrived')
-                    ->label('Angekommen')
+                    ->label(__('admin.registrations.actions.mark_as_arrived'))
                     ->color('success')
                     ->button()
                     ->action(fn ($record) => $record->update(['finish_time' => now()])),
 
                 Action::make('DNF')
-                    ->label('DNF')
+                    ->label(__('admin.registrations.actions.mark_as_dnf'))
                     ->color('danger')
                     ->button()
                     ->action(fn ($record) => $record->update(['finish_time' => '00:00'])),
@@ -435,49 +454,15 @@ class RegistrationsTable
                         ->icon('heroicon-o-envelope')
                         ->color('primary')
                         ->visible(fn ($record) => in_array($record?->draw_status_value, ['drawn', 'not_drawn']))
+                        ->requiresConfirmation()
+                        ->modalHeading(__('admin.registrations.actions.send_draw_results'))
+                        ->modalDescription(fn ($record) => "Send draw result email to {$record->name} ({$record->email})?")
                         ->action(function ($record) {
-                            // Send draw notification email
                             \App\Domain\Mail\Jobs\SendDrawNotification::dispatch($record);
 
                             \Filament\Notifications\Notification::make()
                                 ->title(__('admin.registrations.notifications.draw_results_sent'))
                                 ->body(__('admin.registrations.notifications.draw_results_sent_body', ['email' => $record->email]))
-                                ->success()
-                                ->send();
-                        }),
-
-                    Action::make('mark_as_paid')
-                        ->label(__('admin.registrations.actions.mark_as_paid'))
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->visible(fn ($record) => ! $record?->is_paid && config('steppenreg.features.payment', true))
-                        ->requiresConfirmation()
-                        ->modalHeading(__('admin.registrations.actions.mark_as_paid'))
-                        ->modalDescription(fn ($record) => "Mark {$record->name} as paid?")
-                        ->action(function ($record) {
-                            app(PaymentService::class)->markPaid($record);
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Payment status updated')
-                                ->body("{$record->name} marked as paid")
-                                ->success()
-                                ->send();
-                        }),
-
-                    Action::make('mark_as_starting')
-                        ->label(__('admin.registrations.actions.mark_as_starting'))
-                        ->icon('heroicon-o-play-circle')
-                        ->color('info')
-                        ->visible(fn ($record) => ! $record?->starting && $record?->is_paid && config('steppenreg.features.payment', true))
-                        ->requiresConfirmation()
-                        ->modalHeading(__('admin.registrations.actions.mark_as_starting'))
-                        ->modalDescription(fn ($record) => "Mark {$record->name} as starting?")
-                        ->action(function ($record) {
-                            $record->update(['starting' => true]);
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Starting status updated')
-                                ->body("{$record->name} marked as starting")
                                 ->success()
                                 ->send();
                         }),
@@ -513,6 +498,21 @@ class RegistrationsTable
                                     ->send();
                             }
                         }),
+
+                    Action::make('send_custom_email')
+                        ->label('Send Custom Email')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('info')
+                        ->fillForm(fn ($record) => ['to' => $record->email])
+                        ->form(self::customEmailFormSchema())
+                        ->modalHeading('Send Custom Email')
+                        ->modalDescription(fn ($record) => "This will send a custom email to {$record->name}.")
+                        ->modalWidth('xl')
+                        ->action(fn ($record, array $data) => self::sendCustomEmail(collect([$record]), $data)),
+
+                    DeleteAction::make(),
+                    ForceDeleteAction::make(),
+                    RestoreAction::make(),
                 ]),
             ])
             ->bulkActions([
@@ -522,20 +522,56 @@ class RegistrationsTable
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn () => config('steppenreg.features.payment', true))
+                        ->requiresConfirmation()
                         ->action(fn (Collection $records) => $records->each(fn ($record) => app(PaymentService::class)->markPaid($record)))
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('mark_as_unpaid')
+                        ->label(__('admin.registrations.actions.mark_as_unpaid'))
+                        ->icon('heroicon-o-x-circle')
+                        ->color('gray')
+                        ->visible(fn () => config('steppenreg.features.payment', true))
+                        ->requiresConfirmation()
+                        ->action(fn (Collection $records) => $records->each(fn ($record) => app(PaymentService::class)->markUnpaid($record)))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_starting')
                         ->label(__('admin.registrations.actions.mark_as_starting'))
                         ->icon('heroicon-o-play-circle')
                         ->color('info')
+                        ->requiresConfirmation()
                         ->action(fn (Collection $records) => $records->each->update(['starting' => true]))
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('mark_as_not_starting')
+                        ->label(__('admin.registrations.actions.mark_as_not_starting'))
+                        ->icon('heroicon-o-pause-circle')
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->action(fn (Collection $records) => $records->each->update(['starting' => false]))
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('mark_as_arrived')
+                        ->label(__('admin.registrations.actions.mark_as_arrived'))
+                        ->icon('heroicon-o-flag')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(fn (Collection $records) => $records->each->update(['finish_time' => now()]))
+                        ->deselectRecordsAfterCompletion(),
+
+                    BulkAction::make('mark_as_dnf')
+                        ->label(__('admin.registrations.actions.mark_as_dnf'))
+                        ->icon('heroicon-o-no-symbol')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(fn (Collection $records) => $records->each->update(['finish_time' => '00:00']))
                         ->deselectRecordsAfterCompletion(),
 
                     BulkAction::make('mark_as_drawn')
                         ->label(__('admin.registrations.actions.mark_as_drawn'))
                         ->icon('heroicon-o-star')
                         ->color('success')
+                        ->requiresConfirmation()
                         ->action(function (Collection $records) {
                             $drawService = app(\App\Domain\Draw\Services\DrawService::class);
                             $records->each(fn ($record) => $drawService->markDrawn($record));
@@ -546,6 +582,7 @@ class RegistrationsTable
                         ->label(__('admin.registrations.actions.mark_as_not_drawn'))
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
+                        ->requiresConfirmation()
                         ->action(function (Collection $records) {
                             $drawService = app(\App\Domain\Draw\Services\DrawService::class);
                             $records->each(fn ($record) => $drawService->markNotDrawn($record));
@@ -650,92 +687,8 @@ class RegistrationsTable
                         ->fillForm(fn (Collection $records) => [
                             'to' => $records->map(fn ($record) => $record->email)->implode(', '),
                         ])
-                        ->form([
-                            \Filament\Forms\Components\TextInput::make('to')
-                                ->readOnly(),
-                            \Filament\Forms\Components\TextInput::make('subject')
-                                ->label('Email Subject')
-                                ->required()
-                                ->maxLength(255)
-                                ->placeholder('Enter email subject'),
-                            \Filament\Forms\Components\RichEditor::make('message')
-                                ->label('Email Message')
-                                ->required()
-                                ->placeholder('Enter your message here...')
-                                ->toolbarButtons([
-                                    'bold',
-                                    'italic',
-                                    'underline',
-                                    'strike',
-                                    'link',
-                                    'orderedList',
-                                    'bulletList',
-                                    'h2',
-                                    'h3',
-                                    'blockquote',
-                                    'codeBlock',
-                                    'undo',
-                                    'redo',
-                                ])
-                                ->columnSpan('full')
-                                ->helperText('You can use template variables like {{name}}, {{email}}, {{track_name}} to personalize emails for each recipient.'),
-                            \Filament\Forms\Components\Placeholder::make('variables_help')
-                                ->label('Available Template Variables')
-                                ->content(function () {
-                                    $variablesGrouped = \App\Domain\Mail\Models\MailTemplate::getAvailableVariablesGrouped();
-                                    $help = "Use these variables in your subject and message to personalize emails:\n\n";
-
-                                    foreach ($variablesGrouped as $groupName => $variables) {
-                                        $help .= "**{$groupName}:**\n\n";
-
-                                        foreach ($variables as $key => $description) {
-                                            $help .= '• **{{'.$key.'}}** - '.$description."\n";
-                                        }
-
-                                        $help .= "\n";
-                                    }
-
-                                    // Add explanatory note about custom questions
-                                    if (isset($variablesGrouped['Custom Question Answers']) && ! empty($variablesGrouped['Custom Question Answers'])) {
-                                        $help .= "**Custom Question Variables:**\n\n";
-                                        $help .= "Use locale suffixes for bilingual emails:\n";
-                                        $help .= "• No suffix for raw values (e.g., `{{custom.shirt_size}}`)\n";
-
-                                        if (\App\Domain\Mail\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
-                                            $help .= "• `.en` suffix for English labels (e.g., `{{custom.shirt_size.en}}`)\n";
-                                            $help .= "• `.de` suffix for German labels (e.g., `{{custom.shirt_size.de}}`)\n\n";
-                                        }
-                                    }
-
-                                    $help .= "**Example:**\n";
-                                    $help .= '"Dear {{name}}, you are registered for {{track_name}}!"';
-
-                                    if (\App\Domain\Mail\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
-                                        $help .= "\n\n**Bilingual Example:**\n";
-                                        $help .= '"Shirt Size / Hemdgröße: {{custom.shirt_size.en}} / {{custom.shirt_size.de}}"';
-                                    }
-
-                                    return $help;
-                                })
-                                ->columnSpan('full'),
-                        ])
-                        ->action(function (Collection $records, array $data) {
-                            $sent = 0;
-                            foreach ($records as $record) {
-                                \App\Domain\Mail\Jobs\SendFlexibleMail::dispatch(
-                                    $record,
-                                    $data['subject'],
-                                    $data['message']
-                                );
-                                $sent++;
-                            }
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Custom emails queued')
-                                ->body("Sent {$sent} custom emails to queue for processing")
-                                ->success()
-                                ->send();
-                        })
+                        ->form(self::customEmailFormSchema())
+                        ->action(fn (Collection $records, array $data) => self::sendCustomEmail($records, $data))
                         ->requiresConfirmation()
                         ->modalHeading('Send Custom Email')
                         ->modalDescription(function (Collection $records) {
@@ -757,6 +710,99 @@ class RegistrationsTable
             ])
             ->paginated([10, 25, 50, 100, 'all'])
             ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * @return array<int, \Filament\Schemas\Components\Component|\Filament\Forms\Components\Field>
+     */
+    protected static function customEmailFormSchema(): array
+    {
+        return [
+            \Filament\Forms\Components\TextInput::make('to')
+                ->readOnly(),
+            \Filament\Forms\Components\TextInput::make('subject')
+                ->label('Email Subject')
+                ->required()
+                ->maxLength(255)
+                ->placeholder('Enter email subject'),
+            \Filament\Forms\Components\RichEditor::make('message')
+                ->label('Email Message')
+                ->required()
+                ->placeholder('Enter your message here...')
+                ->toolbarButtons([
+                    'bold',
+                    'italic',
+                    'underline',
+                    'strike',
+                    'link',
+                    'orderedList',
+                    'bulletList',
+                    'h2',
+                    'h3',
+                    'blockquote',
+                    'codeBlock',
+                    'undo',
+                    'redo',
+                ])
+                ->columnSpan('full')
+                ->helperText('You can use template variables like {{name}}, {{email}}, {{track_name}} to personalize emails for each recipient.'),
+            \Filament\Forms\Components\Placeholder::make('variables_help')
+                ->label('Available Template Variables')
+                ->content(function () {
+                    $variablesGrouped = \App\Domain\Mail\Models\MailTemplate::getAvailableVariablesGrouped();
+                    $help = "Use these variables in your subject and message to personalize emails:\n\n";
+
+                    foreach ($variablesGrouped as $groupName => $variables) {
+                        $help .= "**{$groupName}:**\n\n";
+
+                        foreach ($variables as $key => $description) {
+                            $help .= '• **{{'.$key.'}}** - '.$description."\n";
+                        }
+
+                        $help .= "\n";
+                    }
+
+                    // Add explanatory note about custom questions
+                    if (isset($variablesGrouped['Custom Question Answers']) && ! empty($variablesGrouped['Custom Question Answers'])) {
+                        $help .= "**Custom Question Variables:**\n\n";
+                        $help .= "Use locale suffixes for bilingual emails:\n";
+                        $help .= "• No suffix for raw values (e.g., `{{custom.shirt_size}}`)\n";
+
+                        if (\App\Domain\Mail\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                            $help .= "• `.en` suffix for English labels (e.g., `{{custom.shirt_size.en}}`)\n";
+                            $help .= "• `.de` suffix for German labels (e.g., `{{custom.shirt_size.de}}`)\n\n";
+                        }
+                    }
+
+                    $help .= "**Example:**\n";
+                    $help .= '"Dear {{name}}, you are registered for {{track_name}}!"';
+
+                    if (\App\Domain\Mail\Models\MailTemplate::hasLocaleSuffixedCustomVariables()) {
+                        $help .= "\n\n**Bilingual Example:**\n";
+                        $help .= '"Shirt Size / Hemdgröße: {{custom.shirt_size.en}} / {{custom.shirt_size.de}}"';
+                    }
+
+                    return $help;
+                })
+                ->columnSpan('full'),
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Registration>  $records
+     * @param  array{subject: string, message: string}  $data
+     */
+    protected static function sendCustomEmail(\Illuminate\Support\Collection $records, array $data): void
+    {
+        foreach ($records as $record) {
+            \App\Domain\Mail\Jobs\SendFlexibleMail::dispatch($record, $data['subject'], $data['message']);
+        }
+
+        \Filament\Notifications\Notification::make()
+            ->title('Custom emails queued')
+            ->body("Sent {$records->count()} custom emails to queue for processing")
+            ->success()
+            ->send();
     }
 
     protected static function getCustomQuestionColumns(): array
